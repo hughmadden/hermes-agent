@@ -1,0 +1,953 @@
+{
+  "reports": [
+    {
+      "classifier": "custom:cerebras:gemma-4-31b",
+      "cases": 48,
+      "accuracy": 0.375,
+      "fallbacks": 42,
+      "latency_ms": {
+        "p50": 940,
+        "p90": 2053,
+        "max": 2053,
+        "mean": 892
+      },
+      "confusions": [
+        {
+          "prompt": "Convert this callback-based JS to async/await.",
+          "expected": "coding",
+          "routed": "general"
+        },
+        {
+          "prompt": "What is the determinant of [[2,1],[5,3]]?",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "Prove that the sum of two even numbers is even.",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "A train travels 240km in 3 hours. What's its average speed?",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "How many ways can 8 people sit around a round table?",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "Integrate x^2 * e^x dx.",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "What is 15% compound interest on $2000 over 3 years?",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "hi!",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "thanks, that's perfect",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "good morning :)",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "what's the capital of France?",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "ok sounds good",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "can you say that again more simply?",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "Write a Python function that parses ISO dates from a CSV.",
+          "expected": "coding",
+          "routed": "general"
+        },
+        {
+          "prompt": "Why does my Rust program panic with 'index out of bounds'?",
+          "expected": "coding",
+          "routed": "general"
+        },
+        {
+          "prompt": "Refactor this SQL query to use a window function.",
+          "expected": "coding",
+          "routed": "general"
+        },
+        {
+          "prompt": "Give me a bash one-liner to find files modified in the last hour.",
+          "expected": "coding",
+          "routed": "general"
+        },
+        {
+          "prompt": "My pytest fixture isn't tearing down \u2014 how do I debug it?",
+          "expected": "coding",
+          "routed": "general"
+        },
+        {
+          "prompt": "Convert this callback-based JS to async/await.",
+          "expected": "coding",
+          "routed": "general"
+        },
+        {
+          "prompt": "What is the determinant of [[2,1],[5,3]]?",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "Prove that the sum of two even numbers is even.",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "How many ways can 8 people sit around a round table?",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "Integrate x^2 * e^x dx.",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "What is 15% compound interest on $2000 over 3 years?",
+          "expected": "math",
+          "routed": "general"
+        },
+        {
+          "prompt": "hi!",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "thanks, that's perfect",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "good morning :)",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "what's the capital of France?",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "ok sounds good",
+          "expected": "self",
+          "routed": "general"
+        },
+        {
+          "prompt": "can you say that again more simply?",
+          "expected": "self",
+          "routed": "general"
+        }
+      ],
+      "rows": [
+        {
+          "prompt": "Write a Python function that parses ISO dates from a CSV.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 940,
+          "rep": 0
+        },
+        {
+          "prompt": "Why does my Rust program panic with 'index out of bounds'?",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 592,
+          "rep": 0
+        },
+        {
+          "prompt": "Refactor this SQL query to use a window function.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 300,
+          "rep": 0
+        },
+        {
+          "prompt": "Give me a bash one-liner to find files modified in the last hour.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 2053,
+          "rep": 0
+        },
+        {
+          "prompt": "My pytest fixture isn't tearing down \u2014 how do I debug it?",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 995,
+          "rep": 0
+        },
+        {
+          "prompt": "Convert this callback-based JS to async/await.",
+          "expected": "coding",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 265,
+          "rep": 0
+        },
+        {
+          "prompt": "What is the determinant of [[2,1],[5,3]]?",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 245,
+          "rep": 0
+        },
+        {
+          "prompt": "Prove that the sum of two even numbers is even.",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 251,
+          "rep": 0
+        },
+        {
+          "prompt": "A train travels 240km in 3 hours. What's its average speed?",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 251,
+          "rep": 0
+        },
+        {
+          "prompt": "How many ways can 8 people sit around a round table?",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 247,
+          "rep": 0
+        },
+        {
+          "prompt": "Integrate x^2 * e^x dx.",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 245,
+          "rep": 0
+        },
+        {
+          "prompt": "What is 15% compound interest on $2000 over 3 years?",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 243,
+          "rep": 0
+        },
+        {
+          "prompt": "Summarize the causes of the French Revolution in a paragraph.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 397,
+          "rep": 0
+        },
+        {
+          "prompt": "Draft a polite email declining a meeting invitation.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 252,
+          "rep": 0
+        },
+        {
+          "prompt": "Compare the pros and cons of remote work for a small team.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 247,
+          "rep": 0
+        },
+        {
+          "prompt": "What are the main differences between Stoicism and Epicureanism?",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 317,
+          "rep": 0
+        },
+        {
+          "prompt": "Suggest a week-long itinerary for Japan in autumn.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 396,
+          "rep": 0
+        },
+        {
+          "prompt": "Explain how mRNA vaccines work to a high schooler.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 253,
+          "rep": 0
+        },
+        {
+          "prompt": "hi!",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 253,
+          "rep": 0
+        },
+        {
+          "prompt": "thanks, that's perfect",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 251,
+          "rep": 0
+        },
+        {
+          "prompt": "good morning :)",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 255,
+          "rep": 0
+        },
+        {
+          "prompt": "what's the capital of France?",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 273,
+          "rep": 0
+        },
+        {
+          "prompt": "ok sounds good",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 234,
+          "rep": 0
+        },
+        {
+          "prompt": "can you say that again more simply?",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 233,
+          "rep": 0
+        },
+        {
+          "prompt": "Write a Python function that parses ISO dates from a CSV.",
+          "expected": "coding",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 241,
+          "rep": 1
+        },
+        {
+          "prompt": "Why does my Rust program panic with 'index out of bounds'?",
+          "expected": "coding",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 233,
+          "rep": 1
+        },
+        {
+          "prompt": "Refactor this SQL query to use a window function.",
+          "expected": "coding",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 364,
+          "rep": 1
+        },
+        {
+          "prompt": "Give me a bash one-liner to find files modified in the last hour.",
+          "expected": "coding",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 233,
+          "rep": 1
+        },
+        {
+          "prompt": "My pytest fixture isn't tearing down \u2014 how do I debug it?",
+          "expected": "coding",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 241,
+          "rep": 1
+        },
+        {
+          "prompt": "Convert this callback-based JS to async/await.",
+          "expected": "coding",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 233,
+          "rep": 1
+        },
+        {
+          "prompt": "What is the determinant of [[2,1],[5,3]]?",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 235,
+          "rep": 1
+        },
+        {
+          "prompt": "Prove that the sum of two even numbers is even.",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 240,
+          "rep": 1
+        },
+        {
+          "prompt": "A train travels 240km in 3 hours. What's its average speed?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 477,
+          "rep": 1
+        },
+        {
+          "prompt": "How many ways can 8 people sit around a round table?",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 249,
+          "rep": 1
+        },
+        {
+          "prompt": "Integrate x^2 * e^x dx.",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 232,
+          "rep": 1
+        },
+        {
+          "prompt": "What is 15% compound interest on $2000 over 3 years?",
+          "expected": "math",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 261,
+          "rep": 1
+        },
+        {
+          "prompt": "Summarize the causes of the French Revolution in a paragraph.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 233,
+          "rep": 1
+        },
+        {
+          "prompt": "Draft a polite email declining a meeting invitation.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 238,
+          "rep": 1
+        },
+        {
+          "prompt": "Compare the pros and cons of remote work for a small team.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 238,
+          "rep": 1
+        },
+        {
+          "prompt": "What are the main differences between Stoicism and Epicureanism?",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 246,
+          "rep": 1
+        },
+        {
+          "prompt": "Suggest a week-long itinerary for Japan in autumn.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 245,
+          "rep": 1
+        },
+        {
+          "prompt": "Explain how mRNA vaccines work to a high schooler.",
+          "expected": "general",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 256,
+          "rep": 1
+        },
+        {
+          "prompt": "hi!",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 300,
+          "rep": 1
+        },
+        {
+          "prompt": "thanks, that's perfect",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 250,
+          "rep": 1
+        },
+        {
+          "prompt": "good morning :)",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 243,
+          "rep": 1
+        },
+        {
+          "prompt": "what's the capital of France?",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 241,
+          "rep": 1
+        },
+        {
+          "prompt": "ok sounds good",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 246,
+          "rep": 1
+        },
+        {
+          "prompt": "can you say that again more simply?",
+          "expected": "self",
+          "routed": "general",
+          "method": "fallback",
+          "latency_ms": 274,
+          "rep": 1
+        }
+      ]
+    },
+    {
+      "classifier": "openrouter:google/gemma-4-31b-it",
+      "cases": 48,
+      "accuracy": 1.0,
+      "fallbacks": 0,
+      "latency_ms": {
+        "p50": 338,
+        "p90": 1453,
+        "max": 11789,
+        "mean": 885
+      },
+      "confusions": [],
+      "rows": [
+        {
+          "prompt": "Write a Python function that parses ISO dates from a CSV.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 1034,
+          "rep": 0
+        },
+        {
+          "prompt": "Why does my Rust program panic with 'index out of bounds'?",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 498,
+          "rep": 0
+        },
+        {
+          "prompt": "Refactor this SQL query to use a window function.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 433,
+          "rep": 0
+        },
+        {
+          "prompt": "Give me a bash one-liner to find files modified in the last hour.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 1309,
+          "rep": 0
+        },
+        {
+          "prompt": "My pytest fixture isn't tearing down \u2014 how do I debug it?",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 620,
+          "rep": 0
+        },
+        {
+          "prompt": "Convert this callback-based JS to async/await.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 997,
+          "rep": 0
+        },
+        {
+          "prompt": "What is the determinant of [[2,1],[5,3]]?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 551,
+          "rep": 0
+        },
+        {
+          "prompt": "Prove that the sum of two even numbers is even.",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 690,
+          "rep": 0
+        },
+        {
+          "prompt": "A train travels 240km in 3 hours. What's its average speed?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 779,
+          "rep": 0
+        },
+        {
+          "prompt": "How many ways can 8 people sit around a round table?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 1453,
+          "rep": 0
+        },
+        {
+          "prompt": "Integrate x^2 * e^x dx.",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 517,
+          "rep": 0
+        },
+        {
+          "prompt": "What is 15% compound interest on $2000 over 3 years?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 344,
+          "rep": 0
+        },
+        {
+          "prompt": "Summarize the causes of the French Revolution in a paragraph.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 11789,
+          "rep": 0
+        },
+        {
+          "prompt": "Draft a polite email declining a meeting invitation.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 375,
+          "rep": 0
+        },
+        {
+          "prompt": "Compare the pros and cons of remote work for a small team.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 345,
+          "rep": 0
+        },
+        {
+          "prompt": "What are the main differences between Stoicism and Epicureanism?",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 793,
+          "rep": 0
+        },
+        {
+          "prompt": "Suggest a week-long itinerary for Japan in autumn.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 361,
+          "rep": 0
+        },
+        {
+          "prompt": "Explain how mRNA vaccines work to a high schooler.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 1314,
+          "rep": 0
+        },
+        {
+          "prompt": "hi!",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 370,
+          "rep": 0
+        },
+        {
+          "prompt": "thanks, that's perfect",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 338,
+          "rep": 0
+        },
+        {
+          "prompt": "good morning :)",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 3457,
+          "rep": 0
+        },
+        {
+          "prompt": "what's the capital of France?",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 1574,
+          "rep": 0
+        },
+        {
+          "prompt": "ok sounds good",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 10904,
+          "rep": 0
+        },
+        {
+          "prompt": "can you say that again more simply?",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 546,
+          "rep": 0
+        },
+        {
+          "prompt": "Write a Python function that parses ISO dates from a CSV.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 56,
+          "rep": 1
+        },
+        {
+          "prompt": "Why does my Rust program panic with 'index out of bounds'?",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 50,
+          "rep": 1
+        },
+        {
+          "prompt": "Refactor this SQL query to use a window function.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 49,
+          "rep": 1
+        },
+        {
+          "prompt": "Give me a bash one-liner to find files modified in the last hour.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 52,
+          "rep": 1
+        },
+        {
+          "prompt": "My pytest fixture isn't tearing down \u2014 how do I debug it?",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 46,
+          "rep": 1
+        },
+        {
+          "prompt": "Convert this callback-based JS to async/await.",
+          "expected": "coding",
+          "routed": "coding",
+          "method": "classified",
+          "latency_ms": 55,
+          "rep": 1
+        },
+        {
+          "prompt": "What is the determinant of [[2,1],[5,3]]?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 48,
+          "rep": 1
+        },
+        {
+          "prompt": "Prove that the sum of two even numbers is even.",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 58,
+          "rep": 1
+        },
+        {
+          "prompt": "A train travels 240km in 3 hours. What's its average speed?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 47,
+          "rep": 1
+        },
+        {
+          "prompt": "How many ways can 8 people sit around a round table?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 49,
+          "rep": 1
+        },
+        {
+          "prompt": "Integrate x^2 * e^x dx.",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 52,
+          "rep": 1
+        },
+        {
+          "prompt": "What is 15% compound interest on $2000 over 3 years?",
+          "expected": "math",
+          "routed": "math",
+          "method": "classified",
+          "latency_ms": 42,
+          "rep": 1
+        },
+        {
+          "prompt": "Summarize the causes of the French Revolution in a paragraph.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 45,
+          "rep": 1
+        },
+        {
+          "prompt": "Draft a polite email declining a meeting invitation.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 44,
+          "rep": 1
+        },
+        {
+          "prompt": "Compare the pros and cons of remote work for a small team.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 46,
+          "rep": 1
+        },
+        {
+          "prompt": "What are the main differences between Stoicism and Epicureanism?",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 44,
+          "rep": 1
+        },
+        {
+          "prompt": "Suggest a week-long itinerary for Japan in autumn.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 43,
+          "rep": 1
+        },
+        {
+          "prompt": "Explain how mRNA vaccines work to a high schooler.",
+          "expected": "general",
+          "routed": "general",
+          "method": "classified",
+          "latency_ms": 40,
+          "rep": 1
+        },
+        {
+          "prompt": "hi!",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 40,
+          "rep": 1
+        },
+        {
+          "prompt": "thanks, that's perfect",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 48,
+          "rep": 1
+        },
+        {
+          "prompt": "good morning :)",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 42,
+          "rep": 1
+        },
+        {
+          "prompt": "what's the capital of France?",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 47,
+          "rep": 1
+        },
+        {
+          "prompt": "ok sounds good",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 43,
+          "rep": 1
+        },
+        {
+          "prompt": "can you say that again more simply?",
+          "expected": "self",
+          "routed": "self",
+          "method": "classified",
+          "latency_ms": 44,
+          "rep": 1
+        }
+      ]
+    }
+  ]
+}

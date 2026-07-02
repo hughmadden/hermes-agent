@@ -146,16 +146,79 @@ loop is implemented:
 3. **Ground truth for free.** Client-side tool results arriving in the *next*
    proxied request show whether the previous synthesis was right; they are in
    the traces the grader reads.
-4. **Evolve preset composition (future).** The same graded data ranks
+4. **Graded outcomes (optional).** Eval harnesses that know the expected
+   answer can attach an external grade to a trace record (the `outcome`
+   field via `consume_and_save_trace(outcome=...)` /
+   `save_moa_turn(outcome=...)`); `hermes moa evolve` treats it as ground
+   truth and mines incorrect turns hardest. `scripts/moa_learning_cycle.py`
+   runs the full loop as a train/held-out benchmark.
+5. **Evolve preset composition (future).** The same graded data ranks
    reference models per task domain — enough signal to auto-tune presets
    (drop a reference that is never followed; cap `reference_max_tokens` when
    long advice adds latency but no lift). See
-   `docs/plans/moa-proxy-backlog.md`, alongside preset routing and a fast
-   Cerebras-class classifier/aggregator slot.
+   `docs/plans/moa-proxy-backlog.md`.
+
+## Routing — `moa:auto`
+
+With a router block configured, clients can request `model: "moa:auto"` and
+a fast classifier assigns each request to the best preset — or answers it
+directly (the SELF class) when it is trivial, skipping the reference fan-out
+entirely. That self-answer path is the main latency/cost win: greetings,
+acknowledgements, and single-fact queries stop paying the full MoA
+multiplier.
+
+```yaml
+moa:
+  default_preset: general
+  router:
+    enabled: true
+    classifier: {provider: openrouter, model: google/gemma-4-31b-it}
+    default: general          # fallback on classifier error/timeout
+    self_answer: true         # enable the SELF class (default)
+    # self_answer_model: {provider: ..., model: ...}   # default: classifier
+    timeout_s: 8
+  presets:
+    coding:
+      route: {description: "writing or debugging code, refactors, shell"}
+      # ... reference_models / aggregator as usual
+    general:
+      route: {description: "everything that is not code and not trivial"}
+      # ...
+```
+
+Semantics:
+
+- Only presets carrying a `route.description` are routing candidates; the
+  router refuses to enable without a classifier slot and at least one.
+- **Sticky sessions.** One client conversation (same `x-hermes-session-id`,
+  else the first user message) keeps its first routing decision, so tool
+  loops never re-classify or flip presets mid-conversation.
+- **Fallbacks.** Classifier error, timeout, or an unparseable label routes to
+  `router.default`. A routing failure never fails the request.
+- **Surface.** The response `model` echoes the routed preset
+  (`moa:coding`, `moa:self`); streaming announces the decision in the first
+  reasoning delta; `usage.moa.routed_preset` + `usage.moa.routing`
+  (method/latency) carry it structurally; trace records gain a `routing`
+  field so `hermes moa evolve` can grade routing quality offline.
+- `GET /v1/models` lists `moa:auto` with classifier + routable-preset
+  metadata when the router is enabled.
+
+Classifier slot guidance (measured 2026-07-02, `scripts/moa_router_bench.py`,
+24 labelled cases x2): `google/gemma-4-31b-it` via OpenRouter routed at 100%
+accuracy, p50 338 ms — comfortably inside the added-latency budget. The same
+model on Cerebras (custom provider) classifies correctly but the
+free-tier key's requests-per-minute quota collapses under bursts (42/48
+fell back — served correctly via the default preset); use Cerebras for the
+classifier only with a paid tier, and prefer an OpenRouter fast host
+otherwise.
 
 ## Testing
 
-- Unit (no network): `pytest tests/hermes_cli/test_moa_proxy_server.py`
+- Unit (no network): `pytest tests/hermes_cli/test_moa_proxy_server.py tests/hermes_cli/test_moa_router.py`
 - Live end-to-end (real OpenRouter models, small spend):
-  `OPENROUTER_API_KEY=... pytest -m integration tests/integration/test_moa_proxy_live.py`
+  `OPENROUTER_API_KEY=... pytest -m integration tests/integration/test_moa_proxy_live.py tests/integration/test_moa_router_live.py`
+  (router live tests also honor `CEREBRAS_API_KEY` for the custom-provider classifier)
 - Both in Docker: `tests/integration/docker/run-moa-proxy-tests.sh`
+- Router accuracy/latency: `scripts/moa_router_bench.py`; learning loop
+  benchmark: `scripts/moa_learning_cycle.py`; composition benchmark:
+  `scripts/moa_bench.py`
