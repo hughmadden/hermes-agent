@@ -90,6 +90,15 @@ CONFIGS: dict[str, dict] = {
         ["deepseek/deepseek-v4-flash", "qwen/qwen3.6-35b-a3b", "z-ai/glm-5.1"],
         "deepseek/deepseek-v4-flash",
     ),
+    # Deliberately small/fallible combo (single-consumer-GPU-sized models):
+    # headroom for the learning loop to show quality lift, and a proxy for the
+    # "independent per-GPU small models" composition studied in
+    # docs/plans/multi-gpu-moa-plan.md.
+    "open-moa-nano": _preset(
+        ["meta-llama/llama-3.1-8b-instruct", "mistralai/ministral-8b-2512", "google/gemma-3-12b-it"],
+        "google/gemma-3-27b-it",
+    ),
+    "open-nano-solo": _preset(None, "google/gemma-3-27b-it"),
 }
 
 
