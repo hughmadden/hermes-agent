@@ -408,6 +408,23 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
 
         cfg = normalize_moa_config((load_config() or {}).get("moa") or {})
         data = []
+        router_cfg = cfg.get("router") or {}
+        if router_cfg.get("enabled"):
+            data.append(
+                {
+                    "id": "moa:auto",
+                    "object": "model",
+                    "created": 0,
+                    "owned_by": "hermes-moa",
+                    "moa": {
+                        "router": True,
+                        "classifier": _slot_label(router_cfg.get("classifier") or {}),
+                        "routable_presets": router_cfg.get("routable_presets") or [],
+                        "self_answer": bool(router_cfg.get("self_answer")),
+                        "default": router_cfg.get("default"),
+                    },
+                }
+            )
         for name, preset in cfg["presets"].items():
             if not preset.get("enabled", True):
                 continue
@@ -446,18 +463,45 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             return _json_error(400, "'messages' must be a non-empty array.")
 
         from hermes_cli.config import load_config
-        from hermes_cli.moa_config import resolve_moa_preset
+        from hermes_cli.moa_config import normalize_moa_config, resolve_moa_preset
+        from hermes_cli.proxy import moa_router
 
         config = load_config() or {}
-        try:
-            preset_name = resolve_preset_name(body.get("model"), config)
-            preset = resolve_moa_preset(config.get("moa") or {}, preset_name)
-        except KeyError as exc:
-            return _json_error(
-                404,
-                f"Unknown MoA preset {exc}. See GET /v1/models for available presets.",
-                code="model_not_found",
+        session_id = request.headers.get("x-hermes-session-id") or None
+        routing: moa_router.RouteDecision | None = None
+
+        if moa_router.is_auto_model(body.get("model")):
+            cfg_norm = normalize_moa_config(config.get("moa") or {})
+            router_cfg = cfg_norm.get("router") or {}
+            if not router_cfg.get("enabled"):
+                return _json_error(
+                    404,
+                    "moa:auto requires moa.router.enabled with a classifier "
+                    "slot and at least one preset carrying route.description.",
+                    code="model_not_found",
+                )
+            routing = await moa_router.route_request(
+                cfg_norm, messages, session_id=session_id
             )
+            if routing.is_self:
+                preset_name = moa_router.SELF_CLASS
+                preset = moa_router.self_answer_preset(router_cfg)
+            else:
+                preset_name = routing.preset_name
+                preset = cfg_norm["presets"].get(preset_name)
+                if preset is None:  # stale sticky entry after a config change
+                    preset_name = cfg_norm["default_preset"]
+                    preset = cfg_norm["presets"][preset_name]
+        else:
+            try:
+                preset_name = resolve_preset_name(body.get("model"), config)
+                preset = resolve_moa_preset(config.get("moa") or {}, preset_name)
+            except KeyError as exc:
+                return _json_error(
+                    404,
+                    f"Unknown MoA preset {exc}. See GET /v1/models for available presets.",
+                    code="model_not_found",
+                )
 
         reference_models = list(preset.get("reference_models") or [])
         if not preset.get("enabled", True):
@@ -477,9 +521,9 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         request_id = f"chatcmpl-{uuid.uuid4().hex}"
         created = int(time.time())
         model_name = f"moa:{preset_name}"
-        session_id = request.headers.get("x-hermes-session-id") or None
 
         common = {
+            "routing": routing,
             "request_id": request_id,
             "created": created,
             "model_name": model_name,
@@ -566,7 +610,9 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 if isinstance(getattr(acct, "usage", None), CanonicalUsage):
                     ref_usage = ref_usage + acct.usage
         usage = _usage_to_openai(agg_usage + ref_usage)
-        usage["moa"] = _usage_breakdown(reference_outputs, agg_usage, refs_from_cache)
+        usage["moa"] = _usage_breakdown(
+            reference_outputs, agg_usage, refs_from_cache, common.get("routing")
+        )
 
         _save_proxy_trace(common, reference_outputs, agg_messages, message.get("content"))
 
@@ -643,6 +689,12 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
 
         abort = threading.Event()
         loop = asyncio.get_running_loop()
+
+        if common.get("routing") is not None:
+            routing = common["routing"]
+            await send_reasoning(
+                f"[moa:auto → '{routing.preset_name}' — {routing.reason}]\n"
+            )
 
         messages = common["messages"]
         reference_models = common["reference_models"]
@@ -805,7 +857,9 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                         if isinstance(getattr(acct, "usage", None), CanonicalUsage):
                             ref_usage = ref_usage + acct.usage
                 usage = _usage_to_openai(agg_usage + ref_usage)
-                usage["moa"] = _usage_breakdown(reference_outputs, agg_usage, refs_from_cache)
+                usage["moa"] = _usage_breakdown(
+                    reference_outputs, agg_usage, refs_from_cache, common.get("routing")
+                )
                 await send_chunk(None, usage=usage, empty_choices=True)
 
             await resp.write(b"data: [DONE]\n\n")
@@ -849,7 +903,9 @@ def _tool_call_delta_dict(tc: Any) -> dict[str, Any]:
     return out
 
 
-def _usage_breakdown(reference_outputs: list, agg_usage: Any, refs_from_cache: bool) -> dict:
+def _usage_breakdown(
+    reference_outputs: list, agg_usage: Any, refs_from_cache: bool, routing: Any = None
+) -> dict:
     """Per-slot usage split for the ``usage.moa`` extension field."""
     refs = []
     for label, _text, acct in reference_outputs:
@@ -861,7 +917,11 @@ def _usage_breakdown(reference_outputs: list, agg_usage: Any, refs_from_cache: b
                 **(_usage_to_openai(usage) if usage is not None else {}),
             }
         )
-    return {"references": refs, "aggregator": _usage_to_openai(agg_usage)}
+    out = {"references": refs, "aggregator": _usage_to_openai(agg_usage)}
+    if routing is not None:
+        out["routed_preset"] = routing.preset_name
+        out["routing"] = routing.as_trace()
+    return out
 
 
 def _save_proxy_trace(
@@ -892,6 +952,7 @@ def _save_proxy_trace(
             )
             digest = hashlib.sha256(first_user.encode("utf-8", "replace")).hexdigest()[:16]
             session_id = f"moa-proxy-{digest}"
+        routing = common.get("routing")
         save_moa_turn(
             session_id=session_id,
             preset_name=common["preset_name"],
@@ -903,6 +964,7 @@ def _save_proxy_trace(
             aggregator_input_messages=agg_messages,
             aggregator_output=aggregator_output,
             aggregator_streamed=aggregator_output is None,
+            routing=routing.as_trace() if routing is not None else None,
         )
     except Exception as exc:  # pragma: no cover - tracing must never break a turn
         logger.debug("MoA proxy trace write failed: %s", exc)

@@ -106,11 +106,20 @@ def save_moa_turn(
     aggregator_input_messages: Any,
     aggregator_output: Optional[str],
     aggregator_streamed: bool,
+    outcome: Optional[dict] = None,
+    routing: Optional[dict] = None,
 ) -> None:
     """Append one full MoA turn record to the session's trace JSONL, if enabled.
 
     Best-effort: any failure is logged at debug and swallowed — tracing must
     never break a live turn. Called once per turn on a reference cache MISS.
+
+    ``outcome`` is an optional external grade for the turn (e.g. from an eval
+    harness that knows the expected answer): a small JSON-safe dict such as
+    ``{"correct": false, "expected": "23", "extracted": "27", "grader":
+    "moa_bench"}``. When present it is stored on the record so offline
+    distillation (`hermes moa evolve`) can learn from supervised signal
+    instead of inferring quality from agreement alone.
 
     ``aggregator_output`` is the aggregator's synthesized text. On the
     non-streaming path (eval / quiet-mode / subagents) it was captured inline
@@ -161,6 +170,12 @@ def save_moa_turn(
                 "output_location": _output_location,
             },
         }
+        if outcome:
+            record["outcome"] = outcome
+        # moa:auto routing decision (requested/routed/method/latency) so evolve
+        # can grade routing quality offline alongside aggregation quality.
+        if routing:
+            record["routing"] = routing
         with path.open("a", encoding="utf-8") as f:
             f.write(json.dumps(record, ensure_ascii=False, default=str) + "\n")
     except Exception as exc:  # pragma: no cover - tracing must never break a turn

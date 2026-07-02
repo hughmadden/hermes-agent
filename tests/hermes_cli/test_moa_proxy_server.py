@@ -637,3 +637,209 @@ async def test_streaming_reference_failure_still_aggregates(moa_home, fake_llm):
         assert content_text == "acted anyway"
     finally:
         await client.close()
+
+
+# ---------------------------------------------------------------------------
+# moa:auto routing through the endpoint
+# ---------------------------------------------------------------------------
+
+
+def _write_routed_cfg(home):
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: general
+  router:
+    enabled: true
+    classifier:
+      provider: openrouter
+      model: fast-classifier
+    default: general
+  presets:
+    coding:
+      route:
+        description: code writing, debugging, refactors, shell
+      reference_models:
+        - provider: openrouter
+          model: ref-model-a
+      aggregator:
+        provider: openrouter
+        model: agg-model
+    general:
+      route:
+        description: everything else
+      reference_models:
+        - provider: openrouter
+          model: ref-model-b
+      aggregator:
+        provider: openrouter
+        model: agg-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def routed_home(monkeypatch, tmp_path):
+    import hermes_cli.proxy.moa_router as moa_router
+
+    home = tmp_path / ".hermes"
+    _write_routed_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    moa_router.sticky_clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_models_lists_auto_when_router_enabled(routed_home):
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.get("/v1/models")
+        data = (await resp.json())["data"]
+        ids = [m["id"] for m in data]
+        assert "moa:auto" in ids
+        auto = next(m for m in data if m["id"] == "moa:auto")
+        assert auto["moa"]["router"] is True
+        assert auto["moa"]["classifier"] == "openrouter:fast-classifier"
+        assert auto["moa"]["routable_presets"] == ["coding", "general"]
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_auto_404_when_router_disabled(moa_home, fake_llm):
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:auto", "messages": [{"role": "user", "content": "q"}]},
+        )
+        assert resp.status == 404
+        body = await resp.json()
+        assert "router" in body["error"]["message"]
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_auto_routes_to_classified_preset(routed_home, fake_llm):
+    fake_llm.handlers["moa_router"] = lambda kwargs: _response("coding")
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:auto",
+                "messages": [{"role": "user", "content": "fix my bug"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["model"] == "moa:coding"
+        assert body["usage"]["moa"]["routed_preset"] == "coding"
+        assert body["usage"]["moa"]["routing"]["method"] == "classified"
+        # coding preset's reference model ran
+        ref_calls = [c for c in fake_llm.calls if c.get("task") == "moa_reference"]
+        assert any(c.get("model") == "ref-model-a" for c in ref_calls)
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_auto_self_answer_skips_fanout(routed_home, fake_llm):
+    fake_llm.handlers["moa_router"] = lambda kwargs: _response("self")
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response("hello there")
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:auto", "messages": [{"role": "user", "content": "hi"}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["model"] == "moa:self"
+        assert body["choices"][0]["message"]["content"] == "hello there"
+        assert body["usage"]["moa"]["routed_preset"] == "self"
+        assert body["usage"]["moa"]["references"] == []
+        # No reference fan-out ran; the acting call used the classifier slot.
+        assert not [c for c in fake_llm.calls if c.get("task") == "moa_reference"]
+        agg_calls = [c for c in fake_llm.calls if c.get("task") == "moa_aggregator"]
+        assert agg_calls and agg_calls[0].get("model") == "fast-classifier"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_auto_classifier_failure_uses_default(routed_home, fake_llm):
+    def boom(kwargs):
+        raise RuntimeError("classifier down")
+
+    fake_llm.handlers["moa_router"] = boom
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:auto", "messages": [{"role": "user", "content": "q"}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["model"] == "moa:general"
+        assert body["usage"]["moa"]["routing"]["method"] == "fallback"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_auto_streaming_announces_route_first(routed_home, fake_llm):
+    fake_llm.handlers["moa_router"] = lambda kwargs: _response("coding")
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: iter(
+        [_delta_chunk(content="done"), _delta_chunk(finish_reason="stop")]
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:auto",
+                "messages": [{"role": "user", "content": "fix my bug"}],
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            },
+        )
+        events = await _read_sse(resp)
+        chunks = [e for e in events if e != "[DONE]"]
+        first_reasoning = next(
+            c["choices"][0]["delta"].get("reasoning_content")
+            for c in chunks
+            if c["choices"] and c["choices"][0]["delta"].get("reasoning_content")
+        )
+        assert first_reasoning.startswith("[moa:auto → 'coding'")
+        usage_chunk = next(c for c in chunks if c.get("usage"))
+        assert usage_chunk["usage"]["moa"]["routed_preset"] == "coding"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_auto_sticky_across_requests(routed_home, fake_llm):
+    replies = iter(["coding", "general"])
+    fake_llm.handlers["moa_router"] = lambda kwargs: _response(next(replies))
+    client = await _client(create_moa_app())
+    try:
+        for _ in range(2):
+            resp = await client.post(
+                "/v1/chat/completions",
+                json={
+                    "model": "moa:auto",
+                    "messages": [{"role": "user", "content": "same conversation"}],
+                },
+                headers={"x-hermes-session-id": "conv-1"},
+            )
+            body = await resp.json()
+            assert body["model"] == "moa:coding"
+        router_calls = [c for c in fake_llm.calls if c.get("task") == "moa_router"]
+        assert len(router_calls) == 1
+    finally:
+        await client.close()

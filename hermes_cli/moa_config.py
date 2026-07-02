@@ -106,10 +106,21 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
 
     aggregator = _clean_slot(raw.get("aggregator")) or deepcopy(DEFAULT_MOA_AGGREGATOR)
 
+    # Optional router metadata: a one-line description of what this preset is
+    # good at, consumed by the `moa:auto` classifier (see moa_router.py).
+    # Presets without a route block are simply not routing candidates.
+    route_raw = raw.get("route")
+    route = None
+    if isinstance(route_raw, dict):
+        description = str(route_raw.get("description") or "").strip()
+        if description:
+            route = {"description": description}
+
     return {
         "enabled": bool(raw.get("enabled", True)),
         "reference_models": refs,
         "aggregator": aggregator,
+        "route": route,
         "reference_temperature": _coerce_float(raw.get("reference_temperature"), 0.6),
         "aggregator_temperature": _coerce_float(raw.get("aggregator_temperature"), 0.4),
         "max_tokens": _coerce_int(raw.get("max_tokens"), 4096),
@@ -122,6 +133,39 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         # judgement, so capping roughly halves per-turn wall time. Does NOT cap
         # the acting aggregator (its output is the user-visible answer).
         "reference_max_tokens": _coerce_int_or_none(raw.get("reference_max_tokens")),
+    }
+
+
+def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
+    """Validate the ``moa.router`` block against the normalized presets.
+
+    Returns a dict with ``enabled`` False unless the block is coherent: a
+    classifier slot must resolve and at least one enabled preset must carry a
+    ``route.description`` (otherwise there is nothing to classify onto).
+    ``default`` falls back to the first routable preset when unset/unknown.
+    ``self_answer`` (default true) enables the SELF class: trivial requests
+    answered directly by ``self_answer_model`` (default: the classifier slot)
+    with no reference fan-out — the main latency/cost win of routing.
+    """
+    if not isinstance(raw, dict):
+        raw = {}
+    classifier = _clean_slot(raw.get("classifier"))
+    routable = [
+        name
+        for name, preset in (presets or {}).items()
+        if preset.get("enabled", True) and (preset.get("route") or {}).get("description")
+    ]
+    default = str(raw.get("default") or "").strip()
+    if default not in (presets or {}):
+        default = routable[0] if routable else ""
+    return {
+        "enabled": bool(raw.get("enabled", False)) and classifier is not None and bool(routable),
+        "classifier": classifier,
+        "default": default,
+        "self_answer": bool(raw.get("self_answer", True)),
+        "self_answer_model": _clean_slot(raw.get("self_answer_model")) or classifier,
+        "timeout_s": _coerce_float(raw.get("timeout_s"), 8.0),
+        "routable_presets": routable,
     }
 
 
@@ -161,6 +205,7 @@ def normalize_moa_config(raw: Any) -> dict[str, Any]:
         "default_preset": default_name,
         "active_preset": active_name,
         "presets": presets,
+        "router": normalize_moa_router(raw.get("router"), presets),
         # Compatibility/flattened view for existing dashboard/desktop callers.
         "reference_models": deepcopy(active["reference_models"]),
         "aggregator": deepcopy(active["aggregator"]),

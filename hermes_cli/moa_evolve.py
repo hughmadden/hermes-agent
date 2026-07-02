@@ -46,7 +46,13 @@ _DISTILL_SYSTEM_PROMPT = (
     "aggregator followed or ignored, which references look reliable or "
     "unreliable for which kinds of task, and any recurring aggregation "
     "mistakes (e.g. following a confident-but-wrong reference, discarding a "
-    "correct minority view, verbatim-copying instead of synthesizing).\n\n"
+    "correct minority view, verbatim-copying instead of synthesizing). Some "
+    "turns may carry a 'Graded outcome' line from an external grader — treat "
+    "that as ground truth about whether the aggregator's final answer was "
+    "right, and mine the incorrect turns hardest for what the aggregator "
+    "should have done differently. Distill transferable heuristics about HOW "
+    "to aggregate (verification habits, when to trust majority vs minority, "
+    "per-model reliability), never task-specific answers or facts.\n\n"
     "Then return the FULL UPDATED heuristics document as plain markdown:\n"
     "- keep still-valid existing heuristics, merge duplicates, drop rules the "
     "new evidence contradicts\n"
@@ -123,6 +129,16 @@ def _turn_digest(rec: dict[str, Any], idx: int) -> str:
         f"- Aggregator {agg.get('label') or '?'} acted: "
         f"{_clip(agg.get('output') or '(output streamed; not captured)', _AGGREGATOR_PREVIEW)}"
     )
+    outcome = rec.get("outcome")
+    if isinstance(outcome, dict):
+        verdict = "CORRECT" if outcome.get("correct") else "INCORRECT"
+        detail = ""
+        if outcome.get("correct") is False and outcome.get("expected") is not None:
+            detail = (
+                f" (expected {_clip(outcome.get('expected'), 80)!r}, "
+                f"got {_clip(outcome.get('extracted'), 80)!r})"
+            )
+        lines.append(f"- Graded outcome: {verdict}{detail}")
     return "\n".join(lines)
 
 
