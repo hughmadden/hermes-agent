@@ -12467,6 +12467,24 @@ def main():
     moa_configure.add_argument("name", nargs="?", help="Preset name to create or update")
     moa_delete = moa_subparsers.add_parser("delete", aliases=["rm"], help="Delete a MoA preset")
     moa_delete.add_argument("name", help="Preset name to delete")
+    moa_serve = moa_subparsers.add_parser(
+        "serve",
+        help="Serve MoA presets as a local OpenAI-compatible endpoint",
+        description=(
+            "Expose every MoA preset as a model on /v1/chat/completions so other "
+            "agents (OpenCode, OpenClaw, another Hermes) can use Hermes MoA as "
+            "their upstream. The calling client executes tool calls; streaming "
+            "surfaces reference + aggregator thinking as reasoning deltas."
+        ),
+    )
+    moa_serve.add_argument("--host", default=None, help="Bind address (default 127.0.0.1)")
+    moa_serve.add_argument("--port", type=int, default=None, help="Bind port (default 8646)")
+    moa_serve.add_argument(
+        "--api-key",
+        dest="api_key",
+        default=None,
+        help="Require this bearer token on /v1 requests (or set HERMES_MOA_API_KEY)",
+    )
     moa_parser.set_defaults(func=cmd_moa)
 
     # =========================================================================

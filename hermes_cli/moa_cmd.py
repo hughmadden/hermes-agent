@@ -113,6 +113,13 @@ def cmd_moa(args) -> None:
         _print_config(cfg)
         return
 
+    if sub == "serve":
+        # OpenAI-compatible MoA endpoint — lazy import so `hermes moa list`
+        # never pays for (or requires) aiohttp.
+        from hermes_cli.proxy.moa_server import cmd_moa_serve
+
+        raise SystemExit(cmd_moa_serve(args))
+
     if sub == "delete":
         moa = normalize_moa_config(cfg.get("moa") if isinstance(cfg, dict) else {})
         preset_name = (getattr(args, "name", None) or "").strip()

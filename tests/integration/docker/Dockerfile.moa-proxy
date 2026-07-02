@@ -1,0 +1,42 @@
+# Test image for the OpenAI-compatible MoA endpoint (`hermes moa serve`).
+#
+# Installs the repo's exact-pinned core dependencies plus the pinned test
+# deps (pytest / pytest-asyncio from the dev extra, aiohttp from messaging)
+# into an isolated container, so proxy tests never touch a host install.
+#
+# The build context excludes tests/ (.dockerignore), so the suite is mounted
+# at runtime — test edits never require a rebuild.
+#
+# Build (from the repo root):
+#   docker build -f tests/integration/docker/Dockerfile.moa-proxy -t hermes-moa-proxy-test .
+# Unit tests:
+#   docker run --rm -v "$PWD/tests:/app/tests:ro" hermes-moa-proxy-test
+# Live integration tests (spends a little OpenRouter credit):
+#   docker run --rm -v "$PWD/tests:/app/tests:ro" -e OPENROUTER_API_KEY \
+#     hermes-moa-proxy-test pytest -m integration tests/integration/test_moa_proxy_live.py -v
+
+FROM python:3.13-slim
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+WORKDIR /app
+
+# Test-dep layer first so source edits don't re-resolve packages. The
+# versions match the repo's dev / messaging extras' exact pins.
+RUN python -m pip install --upgrade pip && \
+    pip install \
+        pytest==9.0.2 \
+        pytest-asyncio==1.3.0 \
+        aiohttp==3.14.1
+
+# The build context excludes *.md (.dockerignore), but pyproject declares
+# readme = "README.md" — give setuptools a stub so the editable build works.
+COPY . .
+RUN touch README.md && pip install -e .
+
+# Isolated hermes home inside the container — never the host's ~/.hermes.
+ENV HERMES_HOME=/tmp/hermes-home
+
+CMD ["pytest", "tests/hermes_cli/test_moa_proxy_server.py", "-v"]
