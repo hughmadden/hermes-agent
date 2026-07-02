@@ -58,6 +58,7 @@ def moa_home(monkeypatch, tmp_path):
         f"""
 moa:
   default_preset: live
+  save_traces: true
   presets:
     live:
       reference_models:
@@ -74,9 +75,11 @@ moa:
     )
     monkeypatch.setenv("HERMES_HOME", str(home))
     monkeypatch.setenv("OPENROUTER_API_KEY", _OPENROUTER_KEY)
+    import agent.moa_loop as moa_loop
     import hermes_cli.proxy.moa_server as moa_server
 
     moa_server._ref_cache.clear()
+    moa_loop._skill_cache.clear()
     return home
 
 
@@ -271,5 +274,77 @@ async def test_live_client_side_tool_round_trip(moa_home):
         body = await resp.json()
         answer = (body["choices"][0]["message"]["content"] or "").lower()
         assert "31" in answer or "thunderstorm" in answer, answer
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_live_evolve_loop_end_to_end(moa_home):
+    """The full skills loop against real models: proxied turns write traces,
+    `hermes moa evolve` distills them into the moa-aggregation skill, and the
+    next turn's aggregator prompt carries the distilled heuristics."""
+    from types import SimpleNamespace
+
+    from hermes_cli.moa_evolve import cmd_moa_evolve
+
+    client = await _client()
+    try:
+        for prompt in (
+            "Is a tomato a fruit or a vegetable, botanically? One sentence.",
+            "What is 12 * 12? Just the number.",
+        ):
+            resp = await client.post(
+                "/v1/chat/completions",
+                json={
+                    "model": "moa:live",
+                    "messages": [{"role": "user", "content": prompt}],
+                    "max_tokens": 2000,
+                },
+            )
+            assert resp.status == 200, await resp.text()
+
+        trace_dir = moa_home / "moa-traces"
+        trace_files = list(trace_dir.glob("*.jsonl"))
+        assert trace_files, "proxied turns did not write MoA traces"
+
+        # Distill with a cheap model.
+        rc = cmd_moa_evolve(
+            SimpleNamespace(
+                max_turns=10,
+                model=f"openrouter:{_REF_A}",
+                trace_dir=None,
+                dry_run=False,
+            )
+        )
+        assert rc == 0
+        skill_path = moa_home / "skills" / "moa-aggregation" / "SKILL.md"
+        content = skill_path.read_text(encoding="utf-8")
+        assert "auto_generated: moa-evolve" in content
+        assert len(content) > 200, content  # real heuristics, not an empty shell
+
+        # A fresh turn must inject the distilled heuristics into the
+        # aggregator guidance — visible in the newly written trace record.
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:live",
+                "messages": [
+                    {"role": "user", "content": "Name the largest planet. One word."}
+                ],
+                "max_tokens": 1000,
+            },
+        )
+        assert resp.status == 200, await resp.text()
+        records = []
+        for path in trace_dir.glob("*.jsonl"):
+            for line in path.read_text(encoding="utf-8").splitlines():
+                if line.strip():
+                    records.append(json.loads(line))
+        records.sort(key=lambda r: r.get("ts") or 0)
+        last_agg_input = records[-1]["aggregator"]["input_messages"]
+        joined = "\n".join(
+            str(m.get("content")) for m in last_agg_input if isinstance(m, dict)
+        )
+        assert "[Aggregation heuristics" in joined
     finally:
         await client.close()

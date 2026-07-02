@@ -12485,6 +12485,39 @@ def main():
         default=None,
         help="Require this bearer token on /v1 requests (or set HERMES_MOA_API_KEY)",
     )
+    moa_evolve = moa_subparsers.add_parser(
+        "evolve",
+        help="Distill recorded MoA traces into the moa-aggregation skill",
+        description=(
+            "Grade recent MoA turns (recorded when moa.save_traces is on) with "
+            "an LLM and rewrite skills/moa-aggregation/SKILL.md; the skill body "
+            "is injected into every MoA aggregator guidance block."
+        ),
+    )
+    moa_evolve.add_argument(
+        "--max-turns",
+        dest="max_turns",
+        type=int,
+        default=30,
+        help="How many recent turns to grade (default 30)",
+    )
+    moa_evolve.add_argument(
+        "--model",
+        default=None,
+        help="Distiller as provider:model (default: default preset's aggregator)",
+    )
+    moa_evolve.add_argument(
+        "--trace-dir",
+        dest="trace_dir",
+        default=None,
+        help="Override the trace directory (default: moa.trace_dir or <hermes_home>/moa-traces)",
+    )
+    moa_evolve.add_argument(
+        "--dry-run",
+        dest="dry_run",
+        action="store_true",
+        help="Print the updated skill instead of writing it",
+    )
     moa_parser.set_defaults(func=cmd_moa)
 
     # =========================================================================

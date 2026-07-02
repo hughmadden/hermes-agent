@@ -120,6 +120,11 @@ def cmd_moa(args) -> None:
 
         raise SystemExit(cmd_moa_serve(args))
 
+    if sub == "evolve":
+        from hermes_cli.moa_evolve import cmd_moa_evolve
+
+        raise SystemExit(cmd_moa_evolve(args))
+
     if sub == "delete":
         moa = normalize_moa_config(cfg.get("moa") if isinstance(cfg, dict) else {})
         preset_name = (getattr(args, "name", None) or "").strip()

@@ -123,6 +123,67 @@ def _slot_label(slot: dict[str, str]) -> str:
     return f"{slot.get('provider', '').strip()}:{slot.get('model', '').strip()}"
 
 
+# The distilled aggregation skill: durable heuristics mined from graded MoA
+# traces (see `hermes moa evolve`). When the file exists, its body is injected
+# into the aggregator's guidance block so synthesis benefits from accumulated
+# judgement — which references to trust for what, disagreement patterns,
+# recurring pitfalls. Absent file = zero behavior change.
+AGGREGATION_SKILL_RELPATH = ("skills", "moa-aggregation", "SKILL.md")
+
+# (path, mtime) → stripped body. One entry is enough: the path only changes
+# when HERMES_HOME does (tests), and mtime invalidates on every evolve write.
+_skill_cache: dict[str, tuple[float, str]] = {}
+
+
+def _strip_frontmatter(text: str) -> str:
+    """Drop a leading ``---`` YAML frontmatter block, returning the body."""
+    if not text.startswith("---"):
+        return text.strip()
+    end = text.find("\n---", 3)
+    if end == -1:
+        return text.strip()
+    return text[end + len("\n---"):].strip()
+
+
+def load_aggregation_skill() -> str:
+    """Return the distilled aggregation-skill body, or "" when absent.
+
+    Read from ``<hermes_home>/skills/moa-aggregation/SKILL.md`` with an
+    mtime-keyed cache so the per-turn cost is one stat(). Best-effort: any
+    read error means no injection, never a broken turn.
+    """
+    try:
+        from hermes_constants import get_hermes_home
+
+        path = get_hermes_home().joinpath(*AGGREGATION_SKILL_RELPATH)
+        key = str(path)
+        mtime = path.stat().st_mtime
+        cached = _skill_cache.get(key)
+        if cached is not None and cached[0] == mtime:
+            return cached[1]
+        body = _strip_frontmatter(path.read_text(encoding="utf-8"))
+        _skill_cache.clear()
+        _skill_cache[key] = (mtime, body)
+        return body
+    except FileNotFoundError:
+        return ""
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug("MoA aggregation skill load failed: %s", exc)
+        return ""
+
+
+def aggregation_skill_block() -> str:
+    """The skill body wrapped as a guidance-block section, or ""."""
+    body = load_aggregation_skill()
+    if not body:
+        return ""
+    return (
+        "\n\n[Aggregation heuristics — distilled from graded past MoA turns; "
+        "apply where relevant]\n"
+        f"{body}"
+    )
+
+
 def _slot_runtime(slot: dict[str, str]) -> dict[str, Any]:
     """Resolve a reference/aggregator slot to real runtime call kwargs.
 
@@ -529,7 +590,8 @@ def aggregate_moa_context(
         "reference responses into concise, actionable guidance for the main "
         "Hermes agent. Focus on next steps, tool-use strategy, risks, and any "
         "disagreements. Do not answer the user directly unless that is all that "
-        "is needed; produce context the main agent should use in its normal loop.\n\n"
+        "is needed; produce context the main agent should use in its normal loop."
+        f"{aggregation_skill_block()}\n\n"
         f"Original user prompt:\n{user_prompt}\n\n"
         f"Reference responses:\n{joined}"
     )
@@ -837,7 +899,8 @@ class MoAChatCompletions:
                 f"Aggregator/acting model: {_slot_label(aggregator)}\n"
                 f"References: {', '.join(label for label, _, _ in reference_outputs)}\n\n"
                 "Use the reference responses below as private context. You are the aggregator and acting model: "
-                "answer the user directly or call tools as needed.\n\n"
+                "answer the user directly or call tools as needed."
+                f"{aggregation_skill_block()}\n\n"
                 f"{joined}"
             )
             _attach_reference_guidance(agg_messages, guidance)

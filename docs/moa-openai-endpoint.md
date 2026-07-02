@@ -127,33 +127,31 @@ guidance block) and its acting output. Proxy turns are keyed by the client's
 `x-hermes-session-id` header when supplied, else a stable hash of the first
 user message, so one client conversation lands in one trace file.
 
-That trace stream is the substrate for making MoA *get better with use*:
+That trace stream is the substrate for making MoA *get better with use*. The
+loop is implemented:
 
-1. **Grade turns after the fact.** A scheduled Hermes job (cron/kanban)
-   replays recent traces and scores them: did the aggregator follow, correct,
-   or ignore each reference? Did the client's next request show the tool call
-   succeeded or bounce back with an error? Client-side tool results arriving
-   in the *next* proxied request are free ground truth about whether the
-   previous synthesis was right.
-2. **Distill graded traces into a skill.** The grader's durable lessons —
-   "reference X is consistently wrong about SQL migrations", "when references
-   disagree on file paths, verify before acting" — belong in a Hermes skill
-   (e.g. `skills/moa-aggregation/SKILL.md`) as concrete aggregation
-   heuristics with examples mined from traces.
-3. **Feed the skill back into the aggregator.** The natural injection point
-   is the guidance block built in `_reference_guidance` /
-   `aggregate_moa_context`: prepend the distilled heuristics so the
-   aggregator synthesizes with accumulated judgement, not just this turn's
-   advice. Because the block sits at the *end* of the prompt, the
-   conversation prefix stays KV-cache-stable.
-4. **Evolve preset composition.** Longer-horizon, the same graded data ranks
+1. **Grade + distill: `hermes moa evolve`.** Reads the newest recorded turns
+   (`--max-turns`, default 30), has an LLM (`--model provider:model`, default
+   the default preset's aggregator) grade them — which references were
+   followed/ignored/right, recurring aggregation mistakes — and REWRITES
+   `skills/moa-aggregation/SKILL.md` as a bounded heuristics document
+   (existing rules merged/dropped, ~4 KB cap since it rides in every MoA
+   prompt). `--dry-run` prints instead of writing. Run it ad hoc or from a
+   Hermes cron job.
+2. **Inject: automatic.** When the skill file exists, its body is appended to
+   every aggregator guidance block — in-process MoA turns and proxied turns
+   alike (`aggregation_skill_block()` in `agent/moa_loop.py`, mtime-cached).
+   No skill file = zero behavior change. The block sits at the *end* of the
+   prompt, so the conversation prefix stays KV-cache-stable.
+3. **Ground truth for free.** Client-side tool results arriving in the *next*
+   proxied request show whether the previous synthesis was right; they are in
+   the traces the grader reads.
+4. **Evolve preset composition (future).** The same graded data ranks
    reference models per task domain — enough signal to auto-tune presets
    (drop a reference that is never followed; cap `reference_max_tokens` when
-   long advice adds latency but no lift).
-
-Steps 1–2 need no runtime changes — they are offline consumers of the trace
-files this endpoint already writes. Step 3 is a small, deliberate change to
-the guidance builder once a distilled skill exists and has been reviewed.
+   long advice adds latency but no lift). See
+   `docs/plans/moa-proxy-backlog.md`, alongside preset routing and a fast
+   Cerebras-class classifier/aggregator slot.
 
 ## Testing
 

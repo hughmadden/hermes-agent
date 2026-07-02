@@ -70,6 +70,7 @@ from agent.moa_loop import (
     _run_references_parallel,
     _slot_label,
     _slot_runtime,
+    aggregation_skill_block,
 )
 
 logger = logging.getLogger(__name__)
@@ -205,7 +206,8 @@ def _reference_guidance(preset_name: str, aggregator: dict, reference_outputs: l
         "Use the reference responses below as private context. You are the "
         "aggregator and acting model: answer the user directly or call tools "
         "as needed. Any tool you call is executed by the calling client, which "
-        "will return the result in the next request.\n\n"
+        "will return the result in the next request."
+        f"{aggregation_skill_block()}\n\n"
         f"{joined}"
     )
 
