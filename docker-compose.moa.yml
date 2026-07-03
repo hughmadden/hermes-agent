@@ -1,0 +1,38 @@
+# Standalone OpenAI-compatible MoA endpoint (`hermes moa serve`) — see
+# docs/moa-openai-endpoint.md for the full quickstart and config reference.
+#
+#   1. mkdir moa-home && $EDITOR moa-home/config.yaml   (moa.presets / router)
+#   2. export OPENROUTER_API_KEY=sk-or-...              (or whichever provider
+#      keys your preset slots resolve: ANTHROPIC_API_KEY, CEREBRAS_API_KEY, …)
+#   3. docker compose -f docker-compose.moa.yml up -d
+#   4. Point any OpenAI client at http://127.0.0.1:8646/v1,
+#      model "moa:<preset>" (or "moa:auto" with a router block).
+#
+# This is intentionally separate from docker-compose.yml (the full gateway
+# stack): the proxy image is slim (no node/playwright/s6) and needs nothing
+# but a config directory and provider keys.
+
+services:
+  moa-proxy:
+    build:
+      context: .
+      dockerfile: docker/moa-proxy/Dockerfile
+    image: hermes-moa-proxy
+    container_name: hermes-moa-proxy
+    restart: unless-stopped
+    ports:
+      # Loopback-only by default. To serve your LAN, change the bind AND set
+      # HERMES_MOA_API_KEY below — the endpoint spends your provider credit.
+      - "127.0.0.1:8646:8646"
+    volumes:
+      # Read-write so moa.save_traces can record turns for `hermes moa evolve`.
+      # Use :ro if you keep tracing off.
+      - ./moa-home:/moa-home
+    environment:
+      # Forward whichever provider keys your preset slots use.
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY:-}
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - OPENAI_API_KEY=${OPENAI_API_KEY:-}
+      - CEREBRAS_API_KEY=${CEREBRAS_API_KEY:-}
+      # Uncomment to require Bearer auth on /v1 (mandatory beyond loopback):
+      # - HERMES_MOA_API_KEY=${HERMES_MOA_API_KEY}

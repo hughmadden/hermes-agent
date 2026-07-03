@@ -30,6 +30,37 @@ resp = client.chat.completions.create(
 )
 ```
 
+### Docker (standalone proxy, fresh clone)
+
+```bash
+git clone <repo> && cd hermes-agent
+mkdir moa-home
+cat > moa-home/config.yaml <<'EOF'
+moa:
+  default_preset: heavy
+  presets:
+    heavy:
+      reference_models:
+        - {provider: openrouter, model: deepseek/deepseek-v4-pro}
+        - {provider: openrouter, model: qwen/qwen3.7-max}
+        - {provider: openrouter, model: z-ai/glm-5.2}
+      aggregator: {provider: openrouter, model: moonshotai/kimi-k2.6}
+      reference_max_tokens: 1500
+EOF
+export OPENROUTER_API_KEY=sk-or-...
+docker compose -f docker-compose.moa.yml up -d
+curl -s http://127.0.0.1:8646/v1/models | jq -r '.data[].id'
+```
+
+The image (`docker/moa-proxy/Dockerfile`) is intentionally slim — the CLI
+plus aiohttp; no gateway/dashboard/messaging stacks. Add a `moa.router`
+block (below) to also get `moa:auto`. Any harness that speaks the OpenAI
+API can now use MoA as its model: `aider --openai-api-base
+http://127.0.0.1:8646/v1 --model openai/moa:heavy`, `mini-extra swebench
+--model openai/moa:heavy` with `OPENAI_API_BASE` set, Harbor's terminus-2
+via `--ak api_base=...`, etc. (litellm-based tools pass the `moa:` model id
+through verbatim after the `openai/` provider prefix).
+
 ## API surface
 
 | Route | Behavior |
