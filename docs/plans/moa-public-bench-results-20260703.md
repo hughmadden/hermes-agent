@@ -50,8 +50,7 @@ aggregator), keep the fan-out for reasoning-heavy work** — exactly what
 |---|---|---|---|
 | open-moa-flash | 6/10 (0.60) | 2 | 1 agent-timeout + 1 harness RuntimeError among the misses |
 | open-moa-heavy | 5/10 (0.50) | 6 | ALL failures were AgentTimeoutError — heavy fan-out latency blows the 2x agent budget |
-| open-moa-heavy | TBD | TBD | |
-| open-kimi-solo | 25/25 | **19/25 resolved (76%)** | environment.timeout=300 override required (60s default aborts django/astropy suites) |
+| open-kimi-solo | TBD | TBD | |
 | frontier-gpt55-solo | TBD | TBD | |
 | moa:auto (routed) | TBD | TBD | |
 
