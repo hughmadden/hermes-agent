@@ -206,6 +206,11 @@ def normalize_moa_config(raw: Any) -> dict[str, Any]:
         "active_preset": active_name,
         "presets": presets,
         "router": normalize_moa_router(raw.get("router"), presets),
+        # Hard per-upstream-call timeout for proxied MoA turns (seconds). A
+        # wedged provider connection must not hang a client request forever;
+        # a timed-out reference degrades to a labelled failure note and a
+        # timed-out aggregator returns a clean 502. 0/negative disables.
+        "slot_timeout_s": _coerce_float(raw.get("slot_timeout_s"), 300.0),
         # Compatibility/flattened view for existing dashboard/desktop callers.
         "reference_models": deepcopy(active["reference_models"]),
         "aggregator": deepcopy(active["aggregator"]),

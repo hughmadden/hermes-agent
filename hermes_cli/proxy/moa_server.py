@@ -305,6 +305,7 @@ def _reference_stream_worker(
     *,
     temperature: float | None,
     max_tokens: int | None,
+    timeout: float | None,
     push,
     abort: threading.Event,
 ) -> tuple[str, str, Any]:
@@ -329,6 +330,7 @@ def _reference_stream_worker(
             messages=messages,
             temperature=temperature,
             max_tokens=max_tokens,
+            timeout=timeout,
             stream=True,
             stream_options={"include_usage": True},
             **runtime,
@@ -522,8 +524,15 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         created = int(time.time())
         model_name = f"moa:{preset_name}"
 
+        from hermes_cli.moa_config import normalize_moa_config as _norm_cfg
+
+        slot_timeout = float(
+            _norm_cfg((config or {}).get("moa") or {}).get("slot_timeout_s") or 0
+        )
+
         common = {
             "routing": routing,
+            "slot_timeout": slot_timeout if slot_timeout > 0 else None,
             "request_id": request_id,
             "created": created,
             "model_name": model_name,
@@ -568,6 +577,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                     ref_messages,
                     temperature=common["reference_temperature"],
                     max_tokens=common["reference_max_tokens"],
+                    timeout=common["slot_timeout"],
                 )
                 _ref_cache_put(cache_key, reference_outputs)
 
@@ -586,6 +596,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 max_tokens=common["max_tokens"],
                 tools=common["tools"],
                 extra_body=common["extra_body"] or None,
+                timeout=common["slot_timeout"],
                 **_slot_runtime(common["aggregator"]),
             )
             return reference_outputs, refs_from_cache, agg_messages, response
@@ -733,6 +744,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                             ref_messages,
                             temperature=common["reference_temperature"],
                             max_tokens=common["reference_max_tokens"],
+                            timeout=common["slot_timeout"],
                             push=_push(q),
                             abort=abort,
                         )
@@ -786,6 +798,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                         max_tokens=common["max_tokens"],
                         tools=common["tools"],
                         extra_body=common["extra_body"] or None,
+                        timeout=common["slot_timeout"],
                         stream=True,
                         stream_options={"include_usage": True},
                         **runtime,
