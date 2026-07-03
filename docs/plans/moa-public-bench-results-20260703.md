@@ -21,7 +21,8 @@ bash-only scaffold), Harbor v0.16.1 + terminus-2 (Terminal-Bench sample
 | open-kimi-solo | 73.3% | 96.7% | 173 | |
 | open-moa-heavy | 60.0% | 96.7% | 347 | 1 exhausted context window |
 | open-moa-flash | 43.3% | 93.3% | 341 | |
-| moa:auto (routed) | TBD | TBD | TBD | running |
+| moa:auto v1 (routed: coding→heavy) | 63.3% | 96.7% | 527 | inherits the fan-out penalty + routing overhead |
+| moa:auto v2 (routed: coding→kimi solo lane) | TBD | TBD | TBD | A/B running via serve-v2 |
 
 **Finding — MoA hurts precise code editing at pass@1.** `open-moa-heavy`
 scored *below its own aggregator run solo* (60% vs kimi's 73.3%) at 2× the
@@ -37,7 +38,7 @@ aggregator), keep the fan-out for reasoning-heavy work** — exactly what
 
 | Config | Submitted | Resolved | Notes |
 |---|---|---|---|
-| open-kimi-solo | TBD | TBD | |
+| open-kimi-solo | 25/25 | **19/25 resolved (76%)** | environment.timeout=300 override required (60s default aborts django/astropy suites) |
 | open-moa-heavy | TBD | TBD | |
 | frontier-gpt55-solo | TBD | TBD | |
 
@@ -48,8 +49,9 @@ aggregator), keep the fan-out for reasoning-heavy work** — exactly what
 | Config | Solved | Errors | Notes |
 |---|---|---|---|
 | open-moa-flash | 6/10 (0.60) | 2 | 1 agent-timeout + 1 harness RuntimeError among the misses |
+| open-moa-heavy | 5/10 (0.50) | 6 | ALL failures were AgentTimeoutError — heavy fan-out latency blows the 2x agent budget |
 | open-moa-heavy | TBD | TBD | |
-| open-kimi-solo | TBD | TBD | |
+| open-kimi-solo | 25/25 | **19/25 resolved (76%)** | environment.timeout=300 override required (60s default aborts django/astropy suites) |
 | frontier-gpt55-solo | TBD | TBD | |
 | moa:auto (routed) | TBD | TBD | |
 
