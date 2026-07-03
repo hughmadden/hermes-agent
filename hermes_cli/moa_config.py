@@ -140,12 +140,18 @@ def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
     """Validate the ``moa.router`` block against the normalized presets.
 
     Returns a dict with ``enabled`` False unless the block is coherent: a
-    classifier slot must resolve and at least one enabled preset must carry a
+    classifier slot must resolve and at least one preset must carry a
     ``route.description`` (otherwise there is nothing to classify onto).
     ``default`` falls back to the first routable preset when unset/unknown.
     ``self_answer`` (default true) enables the SELF class: trivial requests
     answered directly by ``self_answer_model`` (default: the classifier slot)
     with no reference fan-out — the main latency/cost win of routing.
+
+    A DISABLED preset with a ``route.description`` is still routable: disabled
+    means "aggregator acts alone, hidden from /v1/models" — exactly how solo
+    lanes are modeled — and routing coding traffic to a strong solo is a
+    first-class configuration (measured: the fan-out can hurt precise code
+    editing). Only presets without a route description are excluded.
     """
     if not isinstance(raw, dict):
         raw = {}
@@ -153,7 +159,7 @@ def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
     routable = [
         name
         for name, preset in (presets or {}).items()
-        if preset.get("enabled", True) and (preset.get("route") or {}).get("description")
+        if (preset.get("route") or {}).get("description")
     ]
     default = str(raw.get("default") or "").strip()
     if default not in (presets or {}):

@@ -301,3 +301,26 @@ def test_route_decision_trace_shape():
     assert trace["routed_preset"] == "coding"
     assert trace["method"] == "classified"
     assert trace["classifier_ms"] == 120
+
+
+def test_disabled_preset_with_route_is_routable_solo_lane(fake_classifier):
+    """A disabled preset (solo lane: aggregator acts alone, hidden from
+    /v1/models) is still a routing target when it carries a route block."""
+    raw = {
+        **ROUTED_CFG,
+        "presets": {
+            **ROUTED_CFG["presets"],
+            "coding-solo": {
+                "enabled": False,
+                "route": {"description": "precise code edits by a strong solo"},
+                "reference_models": [{"provider": "openrouter", "model": "unused"}],
+                "aggregator": {"provider": "openrouter", "model": "kimi"},
+            },
+        },
+    }
+    cfg = normalize_moa_config(raw)
+    assert "coding-solo" in cfg["router"]["routable_presets"]
+    fake_classifier["reply"] = "coding-solo"
+    decision = asyncio.run(route_request(cfg, _messages("fix this bug")))
+    assert decision.preset_name == "coding-solo"
+    assert decision.is_self is False
