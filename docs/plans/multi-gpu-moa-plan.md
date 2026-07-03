@@ -83,14 +83,27 @@ Genuinely-TP=4-class (fits 384 GB pool at 4-bit):
 `scripts/moa_gpusim_bench.py`, 40 verified exact-answer tasks (the
 moa_learning_cycle train+held-out set), identical MoA turn machinery:
 
+Measured 2026-07-03 (raw: `moa-gpusim` run, results JSON alongside):
+
 | Config (simulates) | Acc | Avg latency | Tokens/q |
 |---|---|---|---|
-| gpu4-composed (coder-next + gpt-oss-120b + 80b-thinking → qwen3.5-122b) | TBD | TBD | TBD |
-| gpu1 solo qwen3.5-122b | TBD | TBD | TBD |
-| gpu1 solo gpt-oss-120b | TBD | TBD | TBD |
-| tp4 nemotron-3-ultra-550b | TBD | TBD | TBD |
-| tp4 qwen3.5-397b | TBD | TBD | TBD |
-| tp2 deepseek-v4-flash | TBD | TBD | TBD |
+| **gpu4-composed** (coder-next + gpt-oss-120b + 80b-thinking → qwen3.5-122b) | **40/40** | 66 s | 14 598 |
+| gpu1 solo qwen3.5-122b | 37/40 | 124 s | 8 189 |
+| gpu1 solo gpt-oss-120b | 37/40 | 19 s | 1 199 |
+| tp4 nemotron-3-ultra-550b | 24/40 * | 32 s | 1 246 |
+| tp4 qwen3.5-397b | 35/40 | 383 s | 9 798 |
+| tp2 deepseek-v4-flash | 38/40 | 23 s | 2 336 |
+
+\* 11/16 nemotron misses were empty/invalid OpenRouter provider responses
+(24/29 = 83% on clean responses) — a serving-reliability datapoint for the
+frontier-open tier, not a quality verdict.
+
+Findings: the composed 4-model MoA was the only perfect config and beat its
+own aggregator solo (40 vs 37) — the fan-out adds signal, not just tokens.
+The best TP-class solo (V4-Flash, 38/40) came close at ~6× fewer tokens; the
+TP=4-class models were either slower (qwen3.5-397b: 383 s/task) or unreliable
+via their providers. On this verifiable task family the quality argument for
+one big TP=4 model over the composition did not materialize.
 
 Coding axis: aider polyglot runs through `hermes moa serve` (see
 `docs/plans/moa-public-bench-results-*.md`).
@@ -103,11 +116,27 @@ and a 4090 is *worse* than matched cards (the 4090 gates each allreduce),
 and these GeForce cards have **no P2P** — so the measured TP penalty is an
 upper bound for the PRO 6000 box, which has P2P on stock drivers.
 
+Measured 2026-07-03 (Qwen3-8B BF16, max_model_len 8192, 1024-token decodes,
+NCCL_P2P_DISABLE=1, `--disable-custom-all-reduce`):
+
 | Config | Single-stream decode tok/s | ITL p50 | Aggregate tok/s @ c=16 |
 |---|---|---|---|
-| 5090 alone | TBD | TBD | TBD |
-| 4090 alone | TBD | TBD | TBD |
-| TP=2 over PCIe (5090+4090) | TBD | TBD | TBD |
+| 5090 alone | 98.2 | 10.2 ms | 1380 |
+| 4090 alone | 58.4 | 17.1 ms | 832 |
+| TP=2 over PCIe (5090+4090) | 97.1 | 10.3 ms | 1016 |
+
+Findings, stark even as an upper bound:
+
+- **TP=2 single-stream gain: zero.** 97.1 vs 98.2 tok/s on the 5090 alone —
+  two GPUs' compute, one GPU's speed. The 4090 gates every layer and the
+  per-layer allreduce eats the rest.
+- **TP=2 batch throughput is NEGATIVE vs one card**: 1016 tok/s @16 vs 1380
+  on the 5090 alone, and **2.2× worse than independent replicas** (1380 +
+  832 = 2212 tok/s from the same two cards serving separately).
+- Caveats: mixed SKUs overstate the penalty vs matched cards; GeForce has no
+  P2P (the PRO 6000 does); an 8B dense model has proportionally high
+  allreduce overhead. TP's real use is models that don't fit one card — this
+  measurement is the *cost floor* of paying that tax when you don't have to.
 
 ## 7. Recommended configuration (draft — finalize with measurements)
 
@@ -125,13 +154,34 @@ upper bound for the PRO 6000 box, which has P2P on stock drivers.
 - Hybrid option the evidence supports: 2 cards TP=2 running DeepSeek-V4-Flash
   native (AA 40, ~190 tok/s) + coder card + router/sampler card.
 
-## 8. Verdict (draft)
+## 8. Verdict
 
-TBD after measurements. Shape of the answer from the evidence so far: the
-hypothesis holds for **latency, throughput, cost, and verifiable/agentic
-work** (per-GPU models decode 3–5× faster than a TP=4 550B-class model and
-the MoA/router composition retains most of the quality), while the one-big-
-model side keeps a real edge on **open-ended general reasoning** (AA 48 vs
-~30s tier). The box should therefore be provisioned for composition-first
-with a TP=2 "quality lane" (V4-Flash-class) rather than a single TP=4
-monolith.
+**The hypothesis holds for this box.** On the measured evidence:
+
+- **Quality**: the 4-composed-small-models MoA scored 40/40 on the
+  verifiable task set — above every solo tested, including the TP=4-class
+  models it would replace (best: V4-Flash 38/40) and its own aggregator
+  alone (37/40). The literature's caveat stands: one big model should still
+  win *open-ended* reasoning at matched compute (AA-index gap), so composed
+  is not a universal replacement — but for agentic/coding/verifiable
+  workloads (this box's purpose) composition measured better, not just
+  cheaper.
+- **Throughput**: TP=2 over PCIe on pg delivered zero single-stream gain
+  and 2.2× less aggregate throughput than the same two cards serving
+  independently. Even discounting the mixed-SKU/no-P2P pessimism, the
+  independent-per-GPU configuration is the clear throughput winner whenever
+  the model fits one card.
+- **Reliability bonus**: the composition degrades gracefully (a failed
+  reference becomes a note; the turn completes) — the nemotron provider
+  failures in the sim would have been full request failures on a monolith.
+
+**Recommended configuration** (section 7): four independent single-GPU
+models (coder / general / reasoning / router+replica) behind `hermes moa
+serve` with `moa:auto` routing — exactly the software shipped on this
+branch. Keep TP=2 as an optional "quality lane" for a V4-Flash-class model
+(2 cards, native FP4/FP8, near-frontier-open quality) rather than ever
+running a TP=4 monolith. **Buy verdict**: the 4×96 GB box is justified for
+composition-first serving; if the workload were dominated by open-ended
+frontier-quality reasoning instead, neither TP=4 on this box nor the
+composition closes the gap to the 8×96 GB tier — that workload wants API
+models or a bigger box.

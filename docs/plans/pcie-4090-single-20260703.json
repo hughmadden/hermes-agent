@@ -1,0 +1,80 @@
+{
+  "label": "4090-single",
+  "model": "Qwen/Qwen3-8B",
+  "max_tokens": 1024,
+  "single_streams": [
+    {
+      "chunks": 1024,
+      "ttft_s": 0.022,
+      "decode_s": 17.518,
+      "decode_tok_s": 58.4,
+      "itl_ms": {
+        "mean": 17.12,
+        "p50": 17.12,
+        "p90": 17.31
+      },
+      "wall_s": 17.54
+    },
+    {
+      "chunks": 1024,
+      "ttft_s": 0.022,
+      "decode_s": 17.518,
+      "decode_tok_s": 58.4,
+      "itl_ms": {
+        "mean": 17.12,
+        "p50": 17.12,
+        "p90": 17.3
+      },
+      "wall_s": 17.54
+    },
+    {
+      "chunks": 1024,
+      "ttft_s": 0.022,
+      "decode_s": 17.517,
+      "decode_tok_s": 58.4,
+      "itl_ms": {
+        "mean": 17.12,
+        "p50": 17.12,
+        "p90": 17.31
+      },
+      "wall_s": 17.54
+    }
+  ],
+  "single_decode_tok_s_best": 58.4,
+  "concurrent": [
+    {
+      "concurrency": 4,
+      "aggregate_tok_s": 221.5,
+      "wall_s": 18.49,
+      "per_stream_decode_tok_s": [
+        55.4,
+        55.5,
+        55.5,
+        55.5
+      ]
+    },
+    {
+      "concurrency": 16,
+      "aggregate_tok_s": 832.1,
+      "wall_s": 19.69,
+      "per_stream_decode_tok_s": [
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1,
+        52.1
+      ]
+    }
+  ]
+}

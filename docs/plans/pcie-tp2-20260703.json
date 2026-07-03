@@ -1,0 +1,80 @@
+{
+  "label": "tp2-pcie",
+  "model": "Qwen/Qwen3-8B",
+  "max_tokens": 1024,
+  "single_streams": [
+    {
+      "chunks": 1024,
+      "ttft_s": 0.023,
+      "decode_s": 10.538,
+      "decode_tok_s": 97.1,
+      "itl_ms": {
+        "mean": 10.3,
+        "p50": 10.3,
+        "p90": 10.38
+      },
+      "wall_s": 10.56
+    },
+    {
+      "chunks": 1024,
+      "ttft_s": 0.019,
+      "decode_s": 10.525,
+      "decode_tok_s": 97.2,
+      "itl_ms": {
+        "mean": 10.29,
+        "p50": 10.29,
+        "p90": 10.38
+      },
+      "wall_s": 10.54
+    },
+    {
+      "chunks": 1024,
+      "ttft_s": 0.018,
+      "decode_s": 10.513,
+      "decode_tok_s": 97.3,
+      "itl_ms": {
+        "mean": 10.28,
+        "p50": 10.29,
+        "p90": 10.38
+      },
+      "wall_s": 10.53
+    }
+  ],
+  "single_decode_tok_s_best": 97.3,
+  "concurrent": [
+    {
+      "concurrency": 4,
+      "aggregate_tok_s": 346.2,
+      "wall_s": 11.83,
+      "per_stream_decode_tok_s": [
+        86.8,
+        86.9,
+        86.9,
+        86.9
+      ]
+    },
+    {
+      "concurrency": 16,
+      "aggregate_tok_s": 1016.2,
+      "wall_s": 16.12,
+      "per_stream_decode_tok_s": [
+        63.7,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9,
+        63.9
+      ]
+    }
+  ]
+}
