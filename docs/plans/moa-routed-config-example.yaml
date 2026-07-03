@@ -1,0 +1,115 @@
+# serve config v2 — evidence-informed routing (2026-07-03).
+# Changes vs v1, each backed by a measured result:
+# - router.classifier -> Cerebras gemma-4-31b paid key (100% acc, p50 288ms).
+# - coding routes to open-kimi-solo, NOT open-moa-heavy: aider showed the MoA
+#   fan-out HURTS precise code editing pass@1 (60% vs kimi solo 73.3%).
+# - new cere-fast preset (all-Cerebras MoA, 38/40 @ 6.8s/task) is the default
+#   fallback + general lane: near-max quality at interactive latency.
+# - open-moa-heavy keeps the hard-reasoning lane (40/40 class on exact tasks).
+# - self_answer stays on the classifier slot (wafer-speed trivial answers).
+# Requires CEREBRAS_API_KEY in the serve container env.
+providers:
+  cerebras:
+    api: https://api.cerebras.ai/v1
+    name: cerebras
+    default_model: gemma-4-31b
+moa:
+  save_traces: true
+  default_preset: cere-fast
+  slot_timeout_s: 300
+  router:
+    enabled: true
+    classifier:
+      provider: custom:cerebras
+      model: gemma-4-31b
+    default: cere-fast
+    timeout_s: 8
+  presets:
+    frontier-opus-solo:
+      enabled: false
+      reference_models:
+        - provider: openrouter
+          model: unused/ref
+      aggregator:
+        provider: openrouter
+        model: anthropic/claude-opus-4.8
+      reference_max_tokens: 1500
+    frontier-gpt55-solo:
+      enabled: false
+      reference_models:
+        - provider: openrouter
+          model: unused/ref
+      aggregator:
+        provider: openrouter
+        model: openai/gpt-5.5
+      reference_max_tokens: 1500
+    open-deepseek-solo:
+      enabled: false
+      reference_models:
+        - provider: openrouter
+          model: unused/ref
+      aggregator:
+        provider: openrouter
+        model: deepseek/deepseek-v4-pro
+      reference_max_tokens: 1500
+    open-kimi-solo:
+      route:
+        description: writing or debugging code, software engineering, precise file edits, shell commands, refactors
+      reference_models:
+        - provider: openrouter
+          model: unused/ref
+      aggregator:
+        provider: openrouter
+        model: moonshotai/kimi-k2.6
+      reference_max_tokens: 1500
+      enabled: false
+    open-moa-heavy:
+      route:
+        description: hard reasoning, math, proofs, multi-step analysis where maximum accuracy matters more than speed
+      reference_models:
+        - provider: openrouter
+          model: deepseek/deepseek-v4-pro
+        - provider: openrouter
+          model: qwen/qwen3.7-max
+        - provider: openrouter
+          model: z-ai/glm-5.2
+      aggregator:
+        provider: openrouter
+        model: moonshotai/kimi-k2.6
+      reference_max_tokens: 1500
+    cere-fast:
+      route:
+        description: general knowledge, writing, summaries, everyday questions — everything that is not code, not hard math, and not trivial
+      reference_models:
+        - provider: custom:cerebras
+          model: gpt-oss-120b
+        - provider: custom:cerebras
+          model: gemma-4-31b
+      aggregator:
+        provider: custom:cerebras
+        model: zai-glm-4.7
+      reference_max_tokens: 1500
+    open-moa-flash:
+      reference_models:
+        - provider: openrouter
+          model: deepseek/deepseek-v4-flash
+        - provider: openrouter
+          model: qwen/qwen3.6-35b-a3b
+        - provider: openrouter
+          model: z-ai/glm-5.1
+      aggregator:
+        provider: openrouter
+        model: deepseek/deepseek-v4-flash
+      reference_max_tokens: 1500
+    open-moa-nano:
+      reference_models:
+        - provider: openrouter
+          model: meta-llama/llama-3.1-8b-instruct
+        - provider: openrouter
+          model: mistralai/ministral-8b-2512
+        - provider: openrouter
+          model: google/gemma-3-12b-it
+      aggregator:
+        provider: openrouter
+        model: google/gemma-3-27b-it
+      reference_max_tokens: 1500
