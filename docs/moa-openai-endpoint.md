@@ -234,14 +234,19 @@ Semantics:
 - `GET /v1/models` lists `moa:auto` with classifier + routable-preset
   metadata when the router is enabled.
 
-Classifier slot guidance (measured 2026-07-02, `scripts/moa_router_bench.py`,
-24 labelled cases x2): `google/gemma-4-31b-it` via OpenRouter routed at 100%
-accuracy, p50 338 ms — comfortably inside the added-latency budget. The same
-model on Cerebras (custom provider) classifies correctly but the
-free-tier key's requests-per-minute quota collapses under bursts (42/48
-fell back — served correctly via the default preset); use Cerebras for the
-classifier only with a paid tier, and prefer an OpenRouter fast host
-otherwise.
+Classifier slot guidance (measured 2026-07-02/03,
+`scripts/moa_router_bench.py`, 24 labelled cases x2): Cerebras
+`gemma-4-31b` on a **paid** key is the best measured classifier — 100%
+accuracy, p50 288 ms, p90 377 ms, zero fallbacks. `google/gemma-4-31b-it`
+via OpenRouter is the drop-in substitute (100% accuracy, p50 338 ms, but a
+long p90 tail of 1.45 s). A **free-tier** Cerebras key RPM-collapses under
+bursts (42/48 fell back — all served correctly via the default preset), so
+don't put one in production. Cerebras also benches well beyond
+classification: as a fast-merge *aggregator* over strong references it
+matched the best accuracy at the lowest full-fan-out latency, and an
+all-Cerebras preset makes a strong interactive fast lane — see
+`scripts/moa_cerebras_bench.py` and
+`docs/plans/moa-cerebras-bench-20260703.json`.
 
 ## Testing
 

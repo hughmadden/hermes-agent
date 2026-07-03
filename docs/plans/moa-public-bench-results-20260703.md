@@ -20,8 +20,8 @@ bash-only scaffold), Harbor v0.16.1 + terminus-2 (Terminal-Bench sample
 | frontier-gpt55-solo | 73.3% | 100% | 22.7 | |
 | open-kimi-solo | 73.3% | 96.7% | 173 | |
 | open-moa-heavy | 60.0% | 96.7% | 347 | 1 exhausted context window |
-| open-moa-flash | TBD | TBD | TBD | |
-| moa:auto (routed) | TBD | TBD | TBD | |
+| open-moa-flash | 43.3% | 93.3% | 341 | |
+| moa:auto (routed) | TBD | TBD | TBD | running |
 
 **Finding — MoA hurts precise code editing at pass@1.** `open-moa-heavy`
 scored *below its own aggregator run solo* (60% vs kimi's 73.3%) at 2× the
@@ -47,7 +47,7 @@ aggregator), keep the fan-out for reasoning-heavy work** — exactly what
 
 | Config | Solved | Errors | Notes |
 |---|---|---|---|
-| open-moa-flash | TBD | TBD | smoke run (2 tasks): 1/2, one agent-timeout |
+| open-moa-flash | 6/10 (0.60) | 2 | 1 agent-timeout + 1 harness RuntimeError among the misses |
 | open-moa-heavy | TBD | TBD | |
 | open-kimi-solo | TBD | TBD | |
 | frontier-gpt55-solo | TBD | TBD | |
