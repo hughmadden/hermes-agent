@@ -15,7 +15,6 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 6 | Live end-to-end: aider drives moa:auto with the escalation lane | 83.3% pass@1 / 100% pass@2 @36.6 s/case; only 3/30 exercises ever reached Fable | Confirmed in production shape |
 | 7 | Capping reference advice cuts fan-out latency for free | cap 1500→600: −17% latency, −15% tokens, same accuracy; cap 300: no further gain | Adopt 600 as guidance; latency is provider-think-time-bound below that |
 | 8 | A wafer-speed model can be the cheap coding lane | Cerebras gemma-4-31b on aider: 2.2 s/case, 10% pass@1 (50% pass@2) | Refuted — wafer models own classify/self/reasoning lanes, not editing |
-
 | 9 | Inverted MoA (draft→review→revise) rescues composition for code editing | kimi-reviewed on aider 30: 50% pass@1 / 93.3% pass@2 @279 s vs kimi solo 73.3% / 96.7% @173 s | Refuted — even review-only context degrades the reviser's precision; code lane stays solo + escalation |
 
 ## The measured lane map (shipped as moa-routed-config-example.yaml)
