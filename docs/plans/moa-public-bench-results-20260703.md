@@ -25,7 +25,8 @@ bash-only scaffold), Harbor v0.16.1 + terminus-2 (Terminal-Bench sample
 | moa:auto v2 (routed: coding→kimi solo lane) | 66.7% | 96.7% | 235 | 71/73 turns routed correctly; kimi-parity within noise |
 | fable-solo (claude-fable-5) | 86.7% | 100% | 13.6 | frontier baseline |
 | cascade (classifier→GLM-4.7 cheap lane, Fable hard lane) | 30.0% | 70.0% | 19.6 | NEGATIVE: guessed difficulty fails when cheap lane can't do the format |
-| kimi→Fable verification-gated escalation | 100% composite (pass@2-style) | — | ~180 | Fable fixed 8/8 kimi failures given test feedback (4/8 first-try); Fable on only 8/30 exercises (−73% frontier calls) |
+| kimi→Fable verification-gated escalation (offline composite) | 100% composite (pass@2-style) | — | ~180 | Fable fixed 8/8 kimi failures given test feedback (4/8 first-try) |
+| moa:auto + router.escalation LIVE (kimi→Fable on failure) | 83.3% pass@1 | 100% pass@2 | 36.6 | only 3/30 exercises ever reached Fable; feature shipped in 1883a1263 |
 
 **Finding — MoA hurts precise code editing at pass@1.** `open-moa-heavy`
 scored *below its own aggregator run solo* (60% vs kimi's 73.3%) at 2× the
