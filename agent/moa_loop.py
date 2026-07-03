@@ -347,18 +347,30 @@ def _run_references_parallel(
     temperature: float | None = None,
     max_tokens: int | None = None,
     timeout: float | None = None,
+    quorum_grace: float | None = None,
 ) -> list[tuple[str, str, Any]]:
     """Fan out all reference models in parallel, returning outputs in order.
 
-    Like ``delegate_task``'s batch mode, every reference is dispatched at once
-    and we block until all of them finish before handing the joined results to
-    the aggregator. Output order matches ``reference_models`` so the
-    ``Reference {idx}`` labelling stays stable. MoA presets that reference
-    another MoA preset are skipped here (recursion guard) with a labelled note.
+    Like ``delegate_task``'s batch mode, every reference is dispatched at once.
+    Output order matches ``reference_models`` so the ``Reference {idx}``
+    labelling stays stable. MoA presets that reference another MoA preset are
+    skipped here (recursion guard) with a labelled note.
+
+    ``quorum_grace`` enables straggler dropping: once all but one reference
+    have finished at elapsed time T, the straggler gets ``T * quorum_grace``
+    additional seconds and is then dropped with a labelled note (its thread
+    finishes in the background; the result is discarded). Turn latency is
+    ``max(reference latencies)``, and the measured pathology is one reference
+    taking 3-10x the others — the aggregator still gets N-1 full advisories,
+    which it already tolerates (identical to a failed reference). ``None``
+    (default) preserves wait-for-all behavior.
 
     Each element is ``(label, text, usage)`` where usage is a
-    ``CanonicalUsage`` (zeroed for skipped/failed references).
+    ``CanonicalUsage`` (zeroed for skipped/failed/dropped references).
     """
+    import time as _time
+    from concurrent.futures import FIRST_COMPLETED, wait
+
     from agent.usage_pricing import CanonicalUsage
 
     if not reference_models:
@@ -367,7 +379,8 @@ def _run_references_parallel(
     results: list[tuple[str, str, Any] | None] = [None] * len(reference_models)
     futures = {}
     workers = min(_MAX_REFERENCE_WORKERS, len(reference_models))
-    with ThreadPoolExecutor(max_workers=workers) as executor:
+    executor = ThreadPoolExecutor(max_workers=workers)
+    try:
         for idx, slot in enumerate(reference_models):
             if slot.get("provider") == "moa":
                 results[idx] = (
@@ -386,10 +399,42 @@ def _run_references_parallel(
                     timeout=timeout,
                 )
             ] = idx
-        # Collect every reference before returning — the aggregator needs the
-        # complete set, so there is no early-exit / first-completed path here.
-        for future, idx in futures.items():
-            results[idx] = future.result()
+
+        if quorum_grace is None or len(futures) < 2:
+            for future, idx in futures.items():
+                results[idx] = future.result()
+        else:
+            started = _time.time()
+            pending = set(futures)
+            deadline = None  # armed once the quorum (all but one) is in
+            while pending:
+                wait_timeout = None
+                if deadline is not None:
+                    wait_timeout = max(0.05, deadline - _time.time())
+                done, pending = wait(pending, timeout=wait_timeout, return_when=FIRST_COMPLETED)
+                for future in done:
+                    results[futures[future]] = future.result()
+                if not pending:
+                    break
+                if deadline is None and len(pending) == 1:
+                    deadline = _time.time() + max(
+                        1.0, (_time.time() - started) * float(quorum_grace)
+                    )
+                elif deadline is not None and _time.time() >= deadline and not done:
+                    for future in pending:
+                        idx = futures[future]
+                        slot = reference_models[idx]
+                        logger.info(
+                            "MoA quorum: dropping straggler reference %s", _slot_label(slot)
+                        )
+                        results[idx] = (
+                            _slot_label(slot),
+                            "[dropped: reference exceeded the quorum deadline]",
+                            _RefAccounting(CanonicalUsage()),
+                        )
+                    pending = set()
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
 
     return [r for r in results if r is not None]
 
@@ -843,6 +888,8 @@ class MoAChatCompletions:
                 ref_messages,
                 temperature=temperature,
                 max_tokens=reference_max_tokens,
+                timeout=api_kwargs.get("timeout"),
+                quorum_grace=preset.get("reference_quorum_grace"),
             )
             self._ref_cache_key = _cache_key
             self._ref_cache_outputs = list(reference_outputs)

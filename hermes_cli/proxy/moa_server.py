@@ -578,6 +578,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                     temperature=common["reference_temperature"],
                     max_tokens=common["reference_max_tokens"],
                     timeout=common["slot_timeout"],
+                    quorum_grace=common["preset"].get("reference_quorum_grace"),
                 )
                 _ref_cache_put(cache_key, reference_outputs)
 

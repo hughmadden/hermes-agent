@@ -133,6 +133,16 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         # judgement, so capping roughly halves per-turn wall time. Does NOT cap
         # the acting aggregator (its output is the user-visible answer).
         "reference_max_tokens": _coerce_int_or_none(raw.get("reference_max_tokens")),
+        # Optional straggler dropping for the reference fan-out: once all but
+        # one reference are done at elapsed T, the last gets T*grace extra
+        # seconds, then is dropped with a labelled note. Turn latency equals
+        # the slowest reference, and the measured pathology is one reference
+        # taking 3-10x the others. None (default) = wait for all.
+        "reference_quorum_grace": (
+            float(raw["reference_quorum_grace"])
+            if str(raw.get("reference_quorum_grace") or "").replace(".", "", 1).isdigit()
+            else None
+        ),
     }
 
 
