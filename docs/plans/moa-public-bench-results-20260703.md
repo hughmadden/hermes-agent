@@ -45,7 +45,7 @@ aggregator), keep the fan-out for reasoning-heavy work** — exactly what
 | open-kimi-solo | 25/25 | **19/25 resolved (76%)** | environment.timeout=300 override required (60s default aborts django/astropy suites) |
 | kimi→Fable verification-gated escalation | 6/6 escalated | **25/25 composite (100%)** | Fable resolved all 6 kimi-unresolved instances; Fable drove only 24% of instances |
 | open-moa-heavy | 23/25 (2 wedged on fan-out latency) | 17/23 resolved (74% of submitted) | does NOT beat its aggregator solo; ~10× cost |
-| frontier-gpt55-solo | TBD | TBD | running |
+| frontier-gpt55-solo | 25/25 | **20/25 resolved (80%)** | 4 of its 5 misses were resolved by the kimi→Fable escalation |
 
 (Resolution via local `swebench==4.1.0` docker evaluation.)
 
