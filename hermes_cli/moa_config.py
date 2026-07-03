@@ -164,6 +164,28 @@ def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
     default = str(raw.get("default") or "").strip()
     if default not in (presets or {}):
         default = routable[0] if routable else ""
+    # Optional failure-gated escalation: when a sticky conversation shows a
+    # failure signal (tests failed, traceback, ...) in its latest tool/user
+    # message, re-route it to a stronger preset instead of retrying the same
+    # lane. Measured motivation: strong-solo-first + frontier-on-failure
+    # matched full frontier quality at ~25% of the frontier calls on both
+    # aider polyglot and SWE-bench Lite (docs/plans/moa-public-bench-results).
+    esc_raw = raw.get("escalation")
+    escalation = None
+    if isinstance(esc_raw, dict):
+        esc_preset = str(esc_raw.get("preset") or "").strip()
+        if esc_preset and esc_preset in (presets or {}):
+            patterns = esc_raw.get("on_patterns")
+            if not isinstance(patterns, list) or not patterns:
+                patterns = [
+                    "FAILED", "FAIL:", "AssertionError", "Traceback (most recent call last)",
+                    "tests failed", "test failed", "SyntaxError", "does not pass",
+                ]
+            escalation = {
+                "preset": esc_preset,
+                "on_patterns": [str(p) for p in patterns if str(p).strip()],
+            }
+
     return {
         "enabled": bool(raw.get("enabled", False)) and classifier is not None and bool(routable),
         "classifier": classifier,
@@ -172,6 +194,7 @@ def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
         "self_answer_model": _clean_slot(raw.get("self_answer_model")) or classifier,
         "timeout_s": _coerce_float(raw.get("timeout_s"), 8.0),
         "routable_presets": routable,
+        "escalation": escalation,
     }
 
 

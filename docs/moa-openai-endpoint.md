@@ -226,6 +226,18 @@ Semantics:
   loops never re-classify or flip presets mid-conversation.
 - **Fallbacks.** Classifier error, timeout, or an unparseable label routes to
   `router.default`. A routing failure never fails the request.
+- **Failure-gated escalation (optional).** With
+  `router.escalation: {preset: <name>, on_patterns: [...]}`, a sticky
+  conversation whose *latest* tool/user feedback carries a failure marker
+  (default patterns: FAILED, AssertionError, Traceback, …) is re-routed to
+  the escalation preset — and stays there (escalates at most once).
+  Measured motivation: strong-open-solo-first with frontier-on-failure
+  matched full frontier quality at ~25% of the frontier calls on both aider
+  polyglot (30/30) and SWE-bench Lite (25/25) — see
+  `docs/plans/moa-public-bench-results-20260703.md`. Assistant text never
+  triggers escalation (a model *describing* a failure isn't one), and a
+  failure that was already handled earlier in the transcript doesn't
+  re-trigger.
 - **Surface.** The response `model` echoes the routed preset
   (`moa:coding`, `moa:self`); streaming announces the decision in the first
   reasoning delta; `usage.moa.routed_preset` + `usage.moa.routing`

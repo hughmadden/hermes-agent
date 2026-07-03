@@ -124,6 +124,28 @@ def sticky_clear() -> None:
         _sticky.clear()
 
 
+def _failure_signal(messages: list, patterns: list[str]) -> bool:
+    """True when the newest tool/user feedback carries a failure marker.
+
+    Only the LATEST feedback message counts — a failure earlier in the
+    conversation that was already fixed must not re-trigger escalation.
+    Assistant messages never count (the model describing a failure it is
+    fixing is not an observed failure).
+    """
+    for m in reversed(messages or []):
+        if not isinstance(m, dict):
+            continue
+        role = m.get("role")
+        if role == "assistant":
+            continue
+        if role in {"tool", "user"}:
+            content = m.get("content")
+            if not isinstance(content, str) or not content.strip():
+                return False
+            return any(p in content for p in patterns)
+    return False
+
+
 def _classifier_prompt(
     presets: dict[str, Any], router: dict[str, Any], messages: list
 ) -> list[dict[str, str]]:
@@ -226,6 +248,29 @@ async def route_request(
     key = sticky_key(messages, session_id)
     previous = sticky_get(key)
     if previous is not None:
+        # Failure-gated escalation: a conversation stuck on a cheaper lane
+        # whose latest tool/user feedback shows a failure signal is re-routed
+        # to the configured escalation preset — strong-solo-first, frontier
+        # only on observed failure. The escalated decision becomes the new
+        # sticky state, so a conversation escalates at most once.
+        escalation = router.get("escalation")
+        if (
+            escalation
+            and previous.preset_name != escalation["preset"]
+            and _failure_signal(messages, escalation["on_patterns"])
+        ):
+            decision = RouteDecision(
+                preset_name=escalation["preset"],
+                is_self=False,
+                method="escalated",
+                reason=(
+                    f"failure signal after '{previous.preset_name}' — "
+                    f"escalating to '{escalation['preset']}'"
+                ),
+                classifier_ms=None,
+            )
+            sticky_put(key, decision)
+            return decision
         decision = RouteDecision(
             preset_name=previous.preset_name,
             is_self=previous.is_self,

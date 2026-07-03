@@ -324,3 +324,102 @@ def test_disabled_preset_with_route_is_routable_solo_lane(fake_classifier):
     decision = asyncio.run(route_request(cfg, _messages("fix this bug")))
     assert decision.preset_name == "coding-solo"
     assert decision.is_self is False
+
+
+# ---------------------------------------------------------------------------
+# Failure-gated escalation
+# ---------------------------------------------------------------------------
+
+ESCALATED_CFG = {
+    **ROUTED_CFG,
+    "router": {
+        **ROUTED_CFG["router"],
+        "escalation": {"preset": "frontier"},
+    },
+    "presets": {
+        **ROUTED_CFG["presets"],
+        "frontier": {
+            "enabled": False,
+            "reference_models": [{"provider": "openrouter", "model": "unused"}],
+            "aggregator": {"provider": "openrouter", "model": "big-model"},
+        },
+    },
+}
+
+
+def _esc_cfg():
+    return normalize_moa_config(ESCALATED_CFG)
+
+
+def test_escalation_config_normalized():
+    router = _esc_cfg()["router"]
+    assert router["escalation"]["preset"] == "frontier"
+    assert "AssertionError" in router["escalation"]["on_patterns"]
+
+
+def test_escalation_ignored_for_unknown_preset():
+    raw = {**ESCALATED_CFG, "router": {**ESCALATED_CFG["router"], "escalation": {"preset": "nope"}}}
+    assert normalize_moa_config(raw)["router"]["escalation"] is None
+
+
+def test_sticky_conversation_escalates_on_failure(fake_classifier):
+    fake_classifier["reply"] = "coding"
+    convo = [{"role": "user", "content": "write a parser"}]
+    first = asyncio.run(route_request(_esc_cfg(), convo, session_id="e1"))
+    assert first.preset_name == "coding"
+    # Tool loop returns failing tests.
+    convo2 = convo + [
+        {"role": "assistant", "content": "here is the code"},
+        {"role": "user", "content": "2 tests failed:\nAssertionError: expected 3 got 2"},
+    ]
+    second = asyncio.run(route_request(_esc_cfg(), convo2, session_id="e1"))
+    assert second.preset_name == "frontier"
+    assert second.method == "escalated"
+    # Escalation is the new sticky state — no bounce-back, no re-escalation.
+    third = asyncio.run(route_request(_esc_cfg(), convo2, session_id="e1"))
+    assert third.preset_name == "frontier"
+    assert third.method == "sticky"
+    assert len(fake_classifier["calls"]) == 1  # classified exactly once
+
+
+def test_no_escalation_without_failure_signal(fake_classifier):
+    fake_classifier["reply"] = "coding"
+    convo = [{"role": "user", "content": "write a parser"}]
+    asyncio.run(route_request(_esc_cfg(), convo, session_id="e2"))
+    convo2 = convo + [
+        {"role": "assistant", "content": "done"},
+        {"role": "user", "content": "great, now add docstrings"},
+    ]
+    second = asyncio.run(route_request(_esc_cfg(), convo2, session_id="e2"))
+    assert second.preset_name == "coding"
+    assert second.method == "sticky"
+
+
+def test_stale_failure_does_not_retrigger(fake_classifier):
+    """Only the LATEST feedback counts — an old, already-handled failure
+    earlier in the transcript must not escalate."""
+    fake_classifier["reply"] = "coding"
+    convo = [
+        {"role": "user", "content": "fix this: AssertionError in test_foo"},
+    ]
+    first = asyncio.run(route_request(_esc_cfg(), convo, session_id="e3"))
+    assert first.method == "classified"  # new conversation: no escalation check
+    convo2 = convo + [
+        {"role": "assistant", "content": "fixed"},
+        {"role": "user", "content": "looks good, thanks!"},
+    ]
+    second = asyncio.run(route_request(_esc_cfg(), convo2, session_id="e3"))
+    assert second.preset_name == "coding"
+    assert second.method == "sticky"
+
+
+def test_escalation_from_assistant_text_does_not_count(fake_classifier):
+    fake_classifier["reply"] = "coding"
+    convo = [{"role": "user", "content": "write code"}]
+    asyncio.run(route_request(_esc_cfg(), convo, session_id="e4"))
+    convo2 = convo + [
+        {"role": "assistant", "content": "this avoids the AssertionError case"},
+    ]
+    second = asyncio.run(route_request(_esc_cfg(), convo2, session_id="e4"))
+    assert second.method == "sticky"
+    assert second.preset_name == "coding"
