@@ -565,7 +565,42 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         def _run_turn():
             messages = common["messages"]
             reference_models = common["reference_models"]
+            draft_review = (
+                common["preset"].get("mode") == "draft_review" and reference_models
+            )
+            draft_text = None
+            if draft_review:
+                # Inverted MoA: the aggregator drafts SOLO first (preserving
+                # solo precision on exact-format work), references then only
+                # REVIEW the draft, and the aggregator revises. Motivated by
+                # the measured pass@1 drop when advisory context precedes
+                # precise code edits.
+                draft_response = call_llm(
+                    task="moa_aggregator",
+                    messages=[dict(m) for m in messages],
+                    temperature=common["aggregator_temperature"],
+                    max_tokens=common["max_tokens"],
+                    extra_body=common["extra_body"] or None,
+                    timeout=common["slot_timeout"],
+                    **_slot_runtime(common["aggregator"]),
+                )
+                draft_text = _extract_message_fields(draft_response).get("content") or ""
+
             ref_messages = _reference_messages(messages)
+            if draft_review:
+                ref_messages = ref_messages + [
+                    {
+                        "role": "user",
+                        "content": (
+                            "[Draft answer under review]\n"
+                            "The acting model produced the draft below. Review it "
+                            "critically: identify concrete bugs, spec violations, or "
+                            "missed requirements, citing the exact spot. If it is "
+                            "correct, say APPROVE and nothing else. Do NOT rewrite "
+                            "the whole answer.\n\n" + draft_text
+                        ),
+                    }
+                ]
             cache_key = _advisory_signature(
                 common["preset_name"], ref_messages, reference_models
             )
@@ -584,12 +619,24 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
 
             agg_messages = [dict(m) for m in messages]
             if reference_outputs:
-                _attach_reference_guidance(
-                    agg_messages,
-                    _reference_guidance(
+                if draft_review:
+                    joined = "\n\n".join(
+                        f"Reviewer {idx} — {label}:\n{text}"
+                        for idx, (label, text, _acct) in enumerate(reference_outputs, start=1)
+                    )
+                    guidance = (
+                        "[Draft-review context]\n"
+                        "You drafted the answer below; independent reviewers then "
+                        "checked it. If every reviewer approved, return the draft "
+                        "essentially unchanged. Otherwise fix ONLY the concrete "
+                        "problems reviewers identified — do not rewrite working "
+                        "parts.\n\n[Your draft]\n" + (draft_text or "") + "\n\n" + joined
+                    )
+                else:
+                    guidance = _reference_guidance(
                         common["preset_name"], common["aggregator"], reference_outputs
-                    ),
-                )
+                    )
+                _attach_reference_guidance(agg_messages, guidance)
             response = call_llm(
                 task="moa_aggregator",
                 messages=agg_messages,

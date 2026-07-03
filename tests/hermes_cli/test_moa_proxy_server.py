@@ -843,3 +843,84 @@ async def test_auto_sticky_across_requests(routed_home, fake_llm):
         assert len(router_calls) == 1
     finally:
         await client.close()
+
+
+# ---------------------------------------------------------------------------
+# draft_review mode (inverted MoA)
+# ---------------------------------------------------------------------------
+
+
+def _write_draft_review_cfg(home):
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: reviewed
+  presets:
+    reviewed:
+      mode: draft_review
+      reference_models:
+        - provider: openrouter
+          model: reviewer-a
+        - provider: openrouter
+          model: reviewer-b
+      aggregator:
+        provider: openrouter
+        model: agg-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def draft_review_home(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_draft_review_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_draft_review_flow(draft_review_home, fake_llm):
+    """Draft first (no guidance), reviewers see the draft, final call carries
+    the draft + reviews."""
+    agg_calls = []
+
+    def agg_handler(kwargs):
+        agg_calls.append(kwargs)
+        if len(agg_calls) == 1:
+            return _response("DRAFT: def add(a,b): return a+b")
+        return _response("FINAL: def add(a,b): return a+b")
+
+    fake_llm.handlers["moa_aggregator"] = agg_handler
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response("APPROVE")
+
+    client = await _client(create_moa_app()) if False else None
+    server = TestServer(create_moa_app())
+    client = TestClient(server)
+    await client.start_server()
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:reviewed",
+                "messages": [{"role": "user", "content": "write add()"}],
+            },
+        )
+        assert resp.status == 200, await resp.text()
+        body = await resp.json()
+        assert body["choices"][0]["message"]["content"].startswith("FINAL")
+        # Two aggregator calls: draft (no guidance) then revise (with draft+reviews).
+        assert len(agg_calls) == 2
+        draft_prompt = json.dumps(agg_calls[0]["messages"])
+        assert "Draft-review context" not in draft_prompt
+        revise_prompt = json.dumps(agg_calls[1]["messages"])
+        assert "Draft-review context" in revise_prompt
+        assert "DRAFT: def add" in revise_prompt
+        assert "Reviewer 1" in revise_prompt
+        # Reviewers saw the draft under review.
+        ref_calls = [c for c in fake_llm.calls if c.get("task") == "moa_reference"]
+        assert all("Draft answer under review" in json.dumps(c["messages"]) for c in ref_calls)
+    finally:
+        await client.close()

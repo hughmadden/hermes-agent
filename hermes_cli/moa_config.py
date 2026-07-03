@@ -116,11 +116,20 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         if description:
             route = {"description": description}
 
+    # Turn shape: "fanout" (default — references advise before the aggregator
+    # acts) or "draft_review" (inverted: aggregator drafts solo, references
+    # review the draft, aggregator revises). draft_review targets precise
+    # code editing, where up-front advisory context measurably hurt pass@1.
+    mode = str(raw.get("mode") or "fanout").strip().lower()
+    if mode not in {"fanout", "draft_review"}:
+        mode = "fanout"
+
     return {
         "enabled": bool(raw.get("enabled", True)),
         "reference_models": refs,
         "aggregator": aggregator,
         "route": route,
+        "mode": mode,
         "reference_temperature": _coerce_float(raw.get("reference_temperature"), 0.6),
         "aggregator_temperature": _coerce_float(raw.get("aggregator_temperature"), 0.4),
         "max_tokens": _coerce_int(raw.get("max_tokens"), 4096),
