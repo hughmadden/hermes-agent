@@ -16,6 +16,17 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 7 | Capping reference advice cuts fan-out latency for free | cap 1500→600: −17% latency, −15% tokens, same accuracy; cap 300: no further gain | Adopt 600 as guidance; latency is provider-think-time-bound below that |
 | 8 | A wafer-speed model can be the cheap coding lane | Cerebras gemma-4-31b on aider: 2.2 s/case, 10% pass@1 (50% pass@2) | Refuted — wafer models own classify/self/reasoning lanes, not editing |
 | 9 | Inverted MoA (draft→review→revise) rescues composition for code editing | kimi-reviewed on aider 30: 50% pass@1 / 93.3% pass@2 @279 s vs kimi solo 73.3% / 96.7% @173 s | Refuted — even review-only context degrades the reviser's precision; code lane stays solo + escalation |
+| 10 | Python verifier tool lifts hard reasoning | v1 harness (4-round cap) collapsed to empty answers — termination artifact. v2 (8 rounds + forced final): kimi 56/60 (93%) vs 88% baseline; cere-moa 87% vs 90% | Confirmed for strong thinking solos (+5 pp, +58% latency); no gain for wafer MoA |
+| 11 | Quorum straggler-dropping costs accuracy | mixed-heavy + grace 0.5 on AIME: 60/60 vs 55/60 baseline, similar latency | No accuracy cost (straggler is often the noisy reference); keep on for latency-sensitive lanes |
+
+## AIME 24+25 retest (harder primary benchmark, 60 problems)
+
+fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
+(100% with quorum) · gpu4-composed 90% · cere-moa 90% @19 s/task ·
+kimi 88% (93% with verifier tool) · v4flash 78% · cere-gemma31 77% @1.7 s ·
+nano 32%. Composition lifts hard reasoning +4..+7 pp over component solos —
+the 40-task "no gain" was a ceiling artifact. Raw: moa-aime-results-*.json,
+moa-verifier-v{1,2}-results-*.json, moa-quorum-results-*.json.
 
 ## The measured lane map (shipped as moa-routed-config-example.yaml)
 
