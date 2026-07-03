@@ -21,13 +21,29 @@ DEFAULT_MOA_AGGREGATOR: dict[str, str] = {
 }
 
 
-def _coerce_float(value: Any, default: float) -> float:
+def _coerce_float_or_none(value: Any) -> float | None:
+    """Coerce to a float, or None when unset/blank/invalid.
+
+    Used for optional sampling params (reference_temperature /
+    aggregator_temperature) where None means 'don't send the parameter —
+    provider default applies', matching how a single-model Hermes agent
+    never sends temperature unless explicitly configured.
+    """
     if value is None or value == "":
-        return default
+        return None
     try:
         return float(value)
     except (TypeError, ValueError):
-        return default
+        return None
+
+
+def _coerce_float(value: Any, default: float) -> float:
+    """Coerce to a float with a hard default — for REQUIRED tunables
+    (router timeout_s, cascade slot_timeout_s) where 'unset' must still
+    yield a working value, unlike the optional-sampling-param semantics of
+    ``_coerce_float_or_none``."""
+    coerced = _coerce_float_or_none(value)
+    return default if coerced is None else coerced
 
 
 def _coerce_int(value: Any, default: int) -> int:
@@ -100,8 +116,10 @@ def _default_preset() -> dict[str, Any]:
     return {
         "reference_models": deepcopy(DEFAULT_MOA_REFERENCE_MODELS),
         "aggregator": deepcopy(DEFAULT_MOA_AGGREGATOR),
-        "reference_temperature": 0.6,
-        "aggregator_temperature": 0.4,
+        # None = temperature omitted from API calls (provider default),
+        # matching single-model agent behavior.
+        "reference_temperature": None,
+        "aggregator_temperature": None,
         "max_tokens": 4096,
         "reference_max_tokens": None,
         "enabled": True,
@@ -235,8 +253,8 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         "route": route,
         "mode": mode,
         "cascade": cascade,
-        "reference_temperature": _coerce_float(raw.get("reference_temperature"), 0.6),
-        "aggregator_temperature": _coerce_float(raw.get("aggregator_temperature"), 0.4),
+        "reference_temperature": _coerce_float_or_none(raw.get("reference_temperature")),
+        "aggregator_temperature": _coerce_float_or_none(raw.get("aggregator_temperature")),
         "max_tokens": _coerce_int(raw.get("max_tokens"), 4096),
         # Optional cap on how much each reference ADVISOR may generate per turn.
         # None (default) = uncapped: advisors write full-length advice, matching
