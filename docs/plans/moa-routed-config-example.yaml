@@ -1,8 +1,15 @@
-# serve config v2 — evidence-informed routing (2026-07-03).
+# Evidence-informed routed MoA config — every choice below is measured
+# (docs/plans/moa-public-bench-results-20260703.md and the quality loop):
 # Changes vs v1, each backed by a measured result:
 # - router.classifier -> Cerebras gemma-4-31b paid key (100% acc, p50 288ms).
 # - coding routes to open-kimi-solo, NOT open-moa-heavy: aider showed the MoA
-#   fan-out HURTS precise code editing pass@1 (60% vs kimi solo 73.3%).
+#   fan-out HURTS precise code editing pass@1 (60% vs kimi solo 73.3%);
+#   wafer-speed models can't edit either (gemma31 10%, glm-4.7 30% pass@1) —
+#   kimi-class is the cheapest viable coding lane.
+# - router.escalation: failure-gated escalation to a frontier lane gave full
+#   frontier quality at ~25% of the frontier calls (aider 100% pass@2 with
+#   3/30 exercises reaching Fable; SWE-bench 25/25 composite).
+# - reference_max_tokens 600: -17% fan-out latency, same accuracy.
 # - new cere-fast preset (all-Cerebras MoA, 38/40 @ 6.8s/task) is the default
 #   fallback + general lane: near-max quality at interactive latency.
 # - open-moa-heavy keeps the hard-reasoning lane (40/40 class on exact tasks).
@@ -24,6 +31,8 @@ moa:
       model: gemma-4-31b
     default: cere-fast
     timeout_s: 8
+    escalation:
+      preset: frontier-lane
   presets:
     frontier-opus-solo:
       enabled: false
@@ -33,7 +42,7 @@ moa:
       aggregator:
         provider: openrouter
         model: anthropic/claude-opus-4.8
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
     frontier-gpt55-solo:
       enabled: false
       reference_models:
@@ -42,7 +51,7 @@ moa:
       aggregator:
         provider: openrouter
         model: openai/gpt-5.5
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
     open-deepseek-solo:
       enabled: false
       reference_models:
@@ -51,7 +60,7 @@ moa:
       aggregator:
         provider: openrouter
         model: deepseek/deepseek-v4-pro
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
     open-kimi-solo:
       route:
         description: writing or debugging code, software engineering, precise file edits, shell commands, refactors
@@ -61,7 +70,7 @@ moa:
       aggregator:
         provider: openrouter
         model: moonshotai/kimi-k2.6
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
       enabled: false
     open-moa-heavy:
       route:
@@ -76,7 +85,7 @@ moa:
       aggregator:
         provider: openrouter
         model: moonshotai/kimi-k2.6
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
     cere-fast:
       route:
         description: general knowledge, writing, summaries, everyday questions — everything that is not code, not hard math, and not trivial
@@ -88,7 +97,7 @@ moa:
       aggregator:
         provider: custom:cerebras
         model: zai-glm-4.7
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
     open-moa-flash:
       reference_models:
         - provider: openrouter
@@ -100,7 +109,16 @@ moa:
       aggregator:
         provider: openrouter
         model: deepseek/deepseek-v4-flash
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
+    frontier-lane:
+      enabled: false
+      reference_models:
+        - provider: openrouter
+          model: unused/ref
+      aggregator:
+        provider: openrouter
+        model: anthropic/claude-fable-5
+      reference_max_tokens: 600
     open-moa-nano:
       reference_models:
         - provider: openrouter
@@ -112,4 +130,4 @@ moa:
       aggregator:
         provider: openrouter
         model: google/gemma-3-27b-it
-      reference_max_tokens: 1500
+      reference_max_tokens: 600
