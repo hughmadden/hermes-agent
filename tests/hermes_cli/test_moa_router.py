@@ -423,3 +423,42 @@ def test_escalation_from_assistant_text_does_not_count(fake_classifier):
     second = asyncio.run(route_request(_esc_cfg(), convo2, session_id="e4"))
     assert second.method == "sticky"
     assert second.preset_name == "coding"
+
+
+def test_multi_tier_escalation_climbs_one_tier_per_failure(fake_classifier):
+    raw = {
+        **ESCALATED_CFG,
+        "router": {
+            **ESCALATED_CFG["router"],
+            "escalation": {"tiers": ["mid", "frontier"]},
+        },
+        "presets": {
+            **ESCALATED_CFG["presets"],
+            "mid": {
+                "enabled": False,
+                "reference_models": [{"provider": "openrouter", "model": "unused"}],
+                "aggregator": {"provider": "openrouter", "model": "mid-model"},
+            },
+        },
+    }
+    cfg = normalize_moa_config(raw)
+    assert cfg["router"]["escalation"]["tiers"] == ["mid", "frontier"]
+    fake_classifier["reply"] = "coding"
+    convo = [{"role": "user", "content": "write a parser"}]
+    first = asyncio.run(route_request(cfg, convo, session_id="t1"))
+    assert first.preset_name == "coding"
+    fail1 = convo + [
+        {"role": "assistant", "content": "attempt"},
+        {"role": "user", "content": "tests failed: AssertionError"},
+    ]
+    second = asyncio.run(route_request(cfg, fail1, session_id="t1"))
+    assert (second.preset_name, second.method) == ("mid", "escalated")
+    fail2 = fail1 + [
+        {"role": "assistant", "content": "attempt 2"},
+        {"role": "user", "content": "still 1 test failed"},
+    ]
+    third = asyncio.run(route_request(cfg, fail2, session_id="t1"))
+    assert (third.preset_name, third.method) == ("frontier", "escalated")
+    # Top tier absorbs further failures.
+    fourth = asyncio.run(route_request(cfg, fail2, session_id="t1"))
+    assert (fourth.preset_name, fourth.method) == ("frontier", "sticky")

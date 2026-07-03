@@ -254,23 +254,30 @@ async def route_request(
         # only on observed failure. The escalated decision becomes the new
         # sticky state, so a conversation escalates at most once.
         escalation = router.get("escalation")
-        if (
-            escalation
-            and previous.preset_name != escalation["preset"]
-            and _failure_signal(messages, escalation["on_patterns"])
-        ):
-            decision = RouteDecision(
-                preset_name=escalation["preset"],
-                is_self=False,
-                method="escalated",
-                reason=(
-                    f"failure signal after '{previous.preset_name}' — "
-                    f"escalating to '{escalation['preset']}'"
-                ),
-                classifier_ms=None,
-            )
-            sticky_put(key, decision)
-            return decision
+        if escalation and _failure_signal(messages, escalation["on_patterns"]):
+            tiers = escalation.get("tiers") or [escalation["preset"]]
+            # Advance one tier per NEW failure signal: a lane outside the
+            # ladder enters at tier 0; a lane on the ladder steps up; the top
+            # tier absorbs everything after that (no further escalation).
+            if previous.preset_name in tiers:
+                tier_idx = tiers.index(previous.preset_name) + 1
+            else:
+                tier_idx = 0
+            if tier_idx < len(tiers):
+                target = tiers[tier_idx]
+                decision = RouteDecision(
+                    preset_name=target,
+                    is_self=False,
+                    method="escalated",
+                    reason=(
+                        f"failure signal after '{previous.preset_name}' — "
+                        f"escalating to '{target}'"
+                        + (f" (tier {tier_idx + 1}/{len(tiers)})" if len(tiers) > 1 else "")
+                    ),
+                    classifier_ms=None,
+                )
+                sticky_put(key, decision)
+                return decision
         decision = RouteDecision(
             preset_name=previous.preset_name,
             is_self=previous.is_self,

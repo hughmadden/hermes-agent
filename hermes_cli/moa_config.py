@@ -183,8 +183,18 @@ def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
     esc_raw = raw.get("escalation")
     escalation = None
     if isinstance(esc_raw, dict):
-        esc_preset = str(esc_raw.get("preset") or "").strip()
-        if esc_preset and esc_preset in (presets or {}):
+        # Tiers: either a single `preset` or an ordered `tiers` list — each
+        # NEW failure signal advances the conversation one tier (mid-tier
+        # models absorb most escalations at a fraction of frontier price).
+        tiers_raw = esc_raw.get("tiers")
+        if not isinstance(tiers_raw, list):
+            tiers_raw = [esc_raw.get("preset")]
+        tiers = [
+            str(t).strip()
+            for t in tiers_raw
+            if str(t or "").strip() and str(t).strip() in (presets or {})
+        ]
+        if tiers:
             patterns = esc_raw.get("on_patterns")
             if not isinstance(patterns, list) or not patterns:
                 patterns = [
@@ -192,7 +202,8 @@ def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
                     "tests failed", "test failed", "SyntaxError", "does not pass",
                 ]
             escalation = {
-                "preset": esc_preset,
+                "preset": tiers[0],  # back-compat single-tier view
+                "tiers": tiers,
                 "on_patterns": [str(p) for p in patterns if str(p).strip()],
             }
 
