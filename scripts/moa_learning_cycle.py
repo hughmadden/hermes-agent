@@ -147,6 +147,9 @@ def run_turn(config_name: str, task: dict, *, trace: bool, session_id: str) -> d
         response = facade.create(
             messages=[{"role": "user", "content": task["q"] + _ANSWER_INSTRUCTION}],
             max_tokens=8000,
+            # Bound each upstream call: without this a hung provider ties up a
+            # worker for the SDK's 600s default x retries and stalls the phase.
+            timeout=240,
         )
         text = _extract_text(response)
         ref_usage, _cost = facade.consume_reference_usage()
@@ -198,14 +201,18 @@ def run_set(
     workers: int,
 ) -> list[dict]:
     results = []
-    with ThreadPoolExecutor(max_workers=workers) as pool:
-        futures = {
-            pool.submit(
-                run_turn, config_name, t, trace=trace, session_id=f"learn-{label}"
-            ): t["id"]
-            for t in tasks
-        }
-        for done, fut in enumerate(as_completed(futures), start=1):
+    pool = ThreadPoolExecutor(max_workers=workers)
+    futures = {
+        pool.submit(
+            run_turn, config_name, t, trace=trace, session_id=f"learn-{label}"
+        ): t["id"]
+        for t in tasks
+    }
+    try:
+        # Phase deadline: a single wedged upstream call must not stall the
+        # whole run. Stragglers are recorded as phase-timeout failures; their
+        # threads finish (and are discarded) in the background.
+        for done, fut in enumerate(as_completed(futures, timeout=900), start=1):
             r = fut.result()
             results.append(r)
             status = "ok " if r["correct"] else ("ERR" if r.get("error") else "X  ")
@@ -214,6 +221,26 @@ def run_set(
                 f"-> {str(r.get('answer'))[:32]!r} ({r.get('latency_s')}s)",
                 flush=True,
             )
+    except TimeoutError:
+        finished_ids = {r["task"] for r in results}
+        for task_id in futures.values():
+            if task_id not in finished_ids:
+                print(f"  [{label}] TIMEOUT {task_id} (phase deadline)", flush=True)
+                results.append(
+                    {
+                        "config": config_name,
+                        "task": task_id,
+                        "expected": next(
+                            t["a"] for t in tasks if t["id"] == task_id
+                        ),
+                        "answer": None,
+                        "correct": False,
+                        "error": "phase deadline exceeded",
+                        "latency_s": None,
+                    }
+                )
+    finally:
+        pool.shutdown(wait=False, cancel_futures=True)
     return results
 
 

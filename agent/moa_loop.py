@@ -935,19 +935,18 @@ class MoAChatCompletions:
         # stream so the acting model's output reaches the user live. The consumer
         # reassembles chunks + tool_calls, runs stale-stream detection, and falls
         # back to a non-streaming retry on error. The non-streaming path
-        # (stream=False) is unchanged — no stream/stream_options/timeout are
-        # forwarded, so its behavior is byte-for-byte identical to before.
+        # (stream=False) forwards only an explicit caller timeout (eval
+        # harnesses bound their turns with it); with no timeout given its
+        # behavior is byte-for-byte identical to before.
         stream = bool(api_kwargs.get("stream"))
         stream_kwargs: dict[str, Any] = {}
+        if api_kwargs.get("timeout") is not None:
+            stream_kwargs["timeout"] = api_kwargs["timeout"]
         if stream:
             stream_kwargs["stream"] = True
             stream_kwargs["stream_options"] = (
                 api_kwargs.get("stream_options") or {"include_usage": True}
             )
-            # Forward the consumer's per-request (stream read) timeout so it
-            # actually governs the aggregator stream, not just call_llm's default.
-            if api_kwargs.get("timeout") is not None:
-                stream_kwargs["timeout"] = api_kwargs["timeout"]
         _agg_response = call_llm(
             task="moa_aggregator",
             messages=agg_messages,
