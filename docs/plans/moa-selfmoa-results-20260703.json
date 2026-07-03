@@ -1,0 +1,1204 @@
+{
+  "results": [
+    {
+      "config": "kimi-solo",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 4.8,
+      "ref_tokens": 0,
+      "agg_tokens": 696
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 7.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1056
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 16.4,
+      "ref_tokens": 0,
+      "agg_tokens": 905
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 17.5,
+      "ref_tokens": 0,
+      "agg_tokens": 847
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 23.8,
+      "ref_tokens": 0,
+      "agg_tokens": 1163
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 7.4,
+      "ref_tokens": 0,
+      "agg_tokens": 330
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 27.6,
+      "ref_tokens": 0,
+      "agg_tokens": 5991
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 19.6,
+      "ref_tokens": 0,
+      "agg_tokens": 854
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 40.9,
+      "ref_tokens": 0,
+      "agg_tokens": 1610
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 18.1,
+      "ref_tokens": 0,
+      "agg_tokens": 780
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 5.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1258
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 19.7,
+      "ref_tokens": 0,
+      "agg_tokens": 896
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 12.1,
+      "ref_tokens": 0,
+      "agg_tokens": 2321
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "mpps",
+      "correct": true,
+      "latency_s": 15.6,
+      "ref_tokens": 0,
+      "agg_tokens": 850
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 77.3,
+      "ref_tokens": 0,
+      "agg_tokens": 4925
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 43.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1760
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 46.7,
+      "ref_tokens": 0,
+      "agg_tokens": 3060
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 3.1,
+      "ref_tokens": 0,
+      "agg_tokens": 862
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 9.6,
+      "ref_tokens": 0,
+      "agg_tokens": 608
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "igec",
+      "correct": true,
+      "latency_s": 6.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1050
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 95.3,
+      "ref_tokens": 0,
+      "agg_tokens": 4319
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 21.6,
+      "ref_tokens": 0,
+      "agg_tokens": 1253
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 29.1,
+      "ref_tokens": 0,
+      "agg_tokens": 1403
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 22.6,
+      "ref_tokens": 0,
+      "agg_tokens": 1103
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 6.7,
+      "ref_tokens": 0,
+      "agg_tokens": 262
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 24.6,
+      "ref_tokens": 0,
+      "agg_tokens": 2368
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 14.9,
+      "ref_tokens": 0,
+      "agg_tokens": 3827
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 77.3,
+      "ref_tokens": 0,
+      "agg_tokens": 21248
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 107.4,
+      "ref_tokens": 0,
+      "agg_tokens": 5109
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355",
+      "correct": true,
+      "latency_s": 27.4,
+      "ref_tokens": 0,
+      "agg_tokens": 1297
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 23.7,
+      "ref_tokens": 0,
+      "agg_tokens": 6290
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 27.5,
+      "ref_tokens": 0,
+      "agg_tokens": 1173
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 25.7,
+      "ref_tokens": 0,
+      "agg_tokens": 552
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "tubn",
+      "correct": true,
+      "latency_s": 8.2,
+      "ref_tokens": 0,
+      "agg_tokens": 760
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 26.5,
+      "ref_tokens": 0,
+      "agg_tokens": 1765
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 27.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1219
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 72.0,
+      "ref_tokens": 0,
+      "agg_tokens": 4826
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 41.3,
+      "ref_tokens": 4184,
+      "agg_tokens": 2055
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 44.1,
+      "ref_tokens": 4566,
+      "agg_tokens": 2105
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 55.2,
+      "ref_tokens": 8998,
+      "agg_tokens": 1879
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 45.9,
+      "ref_tokens": 2972,
+      "agg_tokens": 1191
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 58.7,
+      "ref_tokens": 6479,
+      "agg_tokens": 2083
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 188.7,
+      "ref_tokens": 0,
+      "agg_tokens": 6321
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 33.8,
+      "ref_tokens": 3438,
+      "agg_tokens": 1453
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 101.5,
+      "ref_tokens": 12483,
+      "agg_tokens": 2402
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 55.0,
+      "ref_tokens": 6439,
+      "agg_tokens": 1955
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 196.5,
+      "ref_tokens": 9344,
+      "agg_tokens": 3592
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 46.8,
+      "ref_tokens": 5496,
+      "agg_tokens": 1605
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 96.1,
+      "ref_tokens": 6353,
+      "agg_tokens": 2632
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 353.2,
+      "ref_tokens": 33492,
+      "agg_tokens": 4581
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 121.2,
+      "ref_tokens": 21223,
+      "agg_tokens": 4121
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 231.7,
+      "ref_tokens": 17125,
+      "agg_tokens": 4714
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 87.0,
+      "ref_tokens": 9536,
+      "agg_tokens": 2436
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 45.6,
+      "ref_tokens": 13507,
+      "agg_tokens": 3499
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 73.4,
+      "ref_tokens": 7547,
+      "agg_tokens": 2291
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "'mpps'",
+      "correct": true,
+      "latency_s": 120.0,
+      "ref_tokens": 5414,
+      "agg_tokens": 2905
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 187.1,
+      "ref_tokens": 7449,
+      "agg_tokens": 2467
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 33.2,
+      "ref_tokens": 3212,
+      "agg_tokens": 1661
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 64.4,
+      "ref_tokens": 4948,
+      "agg_tokens": 2257
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 540.5,
+      "ref_tokens": 70217,
+      "agg_tokens": 7926
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 70.2,
+      "ref_tokens": 5673,
+      "agg_tokens": 2011
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 74.6,
+      "ref_tokens": 7644,
+      "agg_tokens": 1698
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "'igec'",
+      "correct": true,
+      "latency_s": 126.6,
+      "ref_tokens": 10852,
+      "agg_tokens": 2648
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 122.1,
+      "ref_tokens": 7185,
+      "agg_tokens": 2715
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 57.4,
+      "ref_tokens": 4467,
+      "agg_tokens": 1126
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355",
+      "correct": true,
+      "latency_s": 62.2,
+      "ref_tokens": 7014,
+      "agg_tokens": 1588
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 327.3,
+      "ref_tokens": 29720,
+      "agg_tokens": 7497
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 33.3,
+      "ref_tokens": 3107,
+      "agg_tokens": 1675
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 81.7,
+      "ref_tokens": 8564,
+      "agg_tokens": 2560
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 246.3,
+      "ref_tokens": 9178,
+      "agg_tokens": 2433
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 91.2,
+      "ref_tokens": 11585,
+      "agg_tokens": 2641
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "'tubn'",
+      "correct": true,
+      "latency_s": 48.9,
+      "ref_tokens": 4632,
+      "agg_tokens": 1600
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 251.0,
+      "ref_tokens": 14939,
+      "agg_tokens": 5127
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 202.5,
+      "ref_tokens": 20318,
+      "agg_tokens": 4106
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 74.8,
+      "ref_tokens": 8393,
+      "agg_tokens": 1753
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 79.0,
+      "ref_tokens": 5601,
+      "agg_tokens": 4112
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 30.2,
+      "ref_tokens": 2743,
+      "agg_tokens": 1570
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 38.2,
+      "ref_tokens": 3114,
+      "agg_tokens": 1678
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 127.2,
+      "ref_tokens": 14391,
+      "agg_tokens": 3599
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 18.4,
+      "ref_tokens": 2231,
+      "agg_tokens": 864
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 50.8,
+      "ref_tokens": 5512,
+      "agg_tokens": 1472
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 31.6,
+      "ref_tokens": 2478,
+      "agg_tokens": 1305
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 46.5,
+      "ref_tokens": 3623,
+      "agg_tokens": 2139
+    },
+    {
+      "config": "kimi-solo",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "142",
+      "correct": true,
+      "latency_s": 1158.0,
+      "ref_tokens": 0,
+      "agg_tokens": 27379
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 73.6,
+      "ref_tokens": 5274,
+      "agg_tokens": 3429
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 25.8,
+      "ref_tokens": 2472,
+      "agg_tokens": 1133
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 48.0,
+      "ref_tokens": 3323,
+      "agg_tokens": 1326
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 50.7,
+      "ref_tokens": 3606,
+      "agg_tokens": 2264
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 32.4,
+      "ref_tokens": 2713,
+      "agg_tokens": 1584
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 122.4,
+      "ref_tokens": 6337,
+      "agg_tokens": 4375
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 32.4,
+      "ref_tokens": 2526,
+      "agg_tokens": 1699
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 68.0,
+      "ref_tokens": 5267,
+      "agg_tokens": 2737
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "mpps",
+      "correct": true,
+      "latency_s": 49.3,
+      "ref_tokens": 3490,
+      "agg_tokens": 1451
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 88.5,
+      "ref_tokens": 7632,
+      "agg_tokens": 3163
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 479.9,
+      "ref_tokens": 23039,
+      "agg_tokens": 4322
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 63.5,
+      "ref_tokens": 4588,
+      "agg_tokens": 2723
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 20.8,
+      "ref_tokens": 2265,
+      "agg_tokens": 1256
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 123.1,
+      "ref_tokens": 7024,
+      "agg_tokens": 4171
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 45.1,
+      "ref_tokens": 3949,
+      "agg_tokens": 1815
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 39.9,
+      "ref_tokens": 4179,
+      "agg_tokens": 1769
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "'igec'",
+      "correct": true,
+      "latency_s": 38.3,
+      "ref_tokens": 2442,
+      "agg_tokens": 1973
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 408.9,
+      "ref_tokens": 18624,
+      "agg_tokens": 10598
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 52.4,
+      "ref_tokens": 4376,
+      "agg_tokens": 2618
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 19.6,
+      "ref_tokens": 1767,
+      "agg_tokens": 853
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 173.8,
+      "ref_tokens": 12372,
+      "agg_tokens": 5491
+    },
+    {
+      "config": "kimi-solo",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 1541.1,
+      "ref_tokens": 0,
+      "agg_tokens": 35300
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 94.7,
+      "ref_tokens": 3294,
+      "agg_tokens": 2395
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 98.1,
+      "ref_tokens": 3801,
+      "agg_tokens": 2038
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 75.1,
+      "ref_tokens": 5707,
+      "agg_tokens": 2766
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 24.6,
+      "ref_tokens": 2102,
+      "agg_tokens": 1183
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355",
+      "correct": true,
+      "latency_s": 51.7,
+      "ref_tokens": 3845,
+      "agg_tokens": 2203
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 49.8,
+      "ref_tokens": 3777,
+      "agg_tokens": 1967
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "'tubn'",
+      "correct": true,
+      "latency_s": 68.1,
+      "ref_tokens": 3539,
+      "agg_tokens": 2915
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 80.0,
+      "ref_tokens": 4828,
+      "agg_tokens": 3082
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 88.9,
+      "ref_tokens": 7560,
+      "agg_tokens": 5396
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 117.1,
+      "ref_tokens": 7020,
+      "agg_tokens": 2799
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 109.5,
+      "ref_tokens": 5294,
+      "agg_tokens": 3356
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 165.2,
+      "ref_tokens": 11528,
+      "agg_tokens": 4908
+    },
+    {
+      "config": "mixed-heavy",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "142",
+      "correct": true,
+      "latency_s": 1124.0,
+      "ref_tokens": 23408,
+      "agg_tokens": 22935
+    },
+    {
+      "config": "kimi-selfmoa3",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "142",
+      "correct": true,
+      "latency_s": 1976.7,
+      "ref_tokens": 69155,
+      "agg_tokens": 54597
+    }
+  ]
+}

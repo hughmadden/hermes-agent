@@ -22,7 +22,10 @@ bash-only scaffold), Harbor v0.16.1 + terminus-2 (Terminal-Bench sample
 | open-moa-heavy | 60.0% | 96.7% | 347 | 1 exhausted context window |
 | open-moa-flash | 43.3% | 93.3% | 341 | |
 | moa:auto v1 (routed: coding→heavy) | 63.3% | 96.7% | 527 | inherits the fan-out penalty + routing overhead |
-| moa:auto v2 (routed: coding→kimi solo lane) | TBD | TBD | TBD | A/B running via serve-v2 |
+| moa:auto v2 (routed: coding→kimi solo lane) | 66.7% | 96.7% | 235 | 71/73 turns routed correctly; kimi-parity within noise |
+| fable-solo (claude-fable-5) | 86.7% | 100% | 13.6 | frontier baseline |
+| cascade (classifier→GLM-4.7 cheap lane, Fable hard lane) | 30.0% | 70.0% | 19.6 | NEGATIVE: guessed difficulty fails when cheap lane can't do the format |
+| kimi→Fable verification-gated escalation | 86.7% composite | — | ~180 | = Fable-solo pass@1 with Fable on only 8/30 exercises (−73% frontier calls) |
 
 **Finding — MoA hurts precise code editing at pass@1.** `open-moa-heavy`
 scored *below its own aggregator run solo* (60% vs kimi's 73.3%) at 2× the
