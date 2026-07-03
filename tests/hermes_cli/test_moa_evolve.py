@@ -274,3 +274,61 @@ def test_evolve_bad_model_arg_exits(moa_home):
     _write_traces(moa_home, [_trace_record(1)])
     with pytest.raises(SystemExit):
         cmd_moa_evolve(_args(model="not-a-slot"))
+
+
+def test_per_preset_distillation(monkeypatch, tmp_path):
+    """--per-preset writes one skill per preset with enough turns; injection
+    prefers the per-preset file over the global one."""
+    import json as _json
+    from types import SimpleNamespace
+
+    import agent.moa_loop as moa_loop
+    from hermes_cli.moa_evolve import cmd_moa_evolve
+
+    home = tmp_path / ".hermes"
+    (home / "moa-traces").mkdir(parents=True)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_loop._skill_cache.clear()
+
+    def rec(preset, i):
+        return {
+            "ts": i,
+            "preset": preset,
+            "references": [{"label": "r", "output": "advice"}],
+            "aggregator": {"label": "a", "input_messages": [
+                {"role": "user", "content": f"task {i}"}], "output": "acted"},
+        }
+
+    lines = [rec("coding", i) for i in range(6)] + [rec("mathy", i + 10) for i in range(6)]
+    lines += [rec("rare", 100)]  # below the per-preset minimum
+    (home / "moa-traces" / "s.jsonl").write_text(
+        "\n".join(_json.dumps(r) for r in lines), encoding="utf-8"
+    )
+
+    def fake_call_llm(**kwargs):
+        digest = kwargs["messages"][1]["content"]
+        which = "CODING-RULES" if "coding" in digest else "MATHY-RULES"
+        msg = SimpleNamespace(content=f"## {which}", tool_calls=[], reasoning_content=None)
+        return SimpleNamespace(
+            choices=[SimpleNamespace(message=msg, finish_reason="stop")], usage=None
+        )
+
+    monkeypatch.setattr(moa_loop, "call_llm", fake_call_llm)
+
+    rc = cmd_moa_evolve(
+        SimpleNamespace(
+            trace_dir=str(home / "moa-traces"), max_turns=30, dry_run=False,
+            model="openrouter:distiller", per_preset=True,
+        )
+    )
+    assert rc == 0
+    skills = home / "skills" / "moa-aggregation"
+    assert (skills / "coding.SKILL.md").exists()
+    assert (skills / "mathy.SKILL.md").exists()
+    assert not (skills / "rare.SKILL.md").exists()
+
+    # Injection precedence: per-preset body wins for its preset...
+    assert "CODING-RULES" in moa_loop.load_aggregation_skill("coding")
+    assert "MATHY-RULES" in moa_loop.load_aggregation_skill("mathy")
+    # ...and a preset without its own skill falls back to the global (absent -> "").
+    assert moa_loop.load_aggregation_skill("rare") == ""

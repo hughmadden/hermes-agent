@@ -221,13 +221,26 @@ def distill_skill(
     return stripped[:_SKILL_BODY_MAX_CHARS]
 
 
+# Minimum graded turns a preset needs before it earns its own skill file;
+# below this the evidence is too thin and the global skill serves it.
+_PER_PRESET_MIN_TURNS = 5
+
+
 def cmd_moa_evolve(args: Any) -> int:
-    """Grade recent MoA traces and update the aggregation skill."""
+    """Grade recent MoA traces and update the aggregation skill(s).
+
+    Default: one global skill from all recent turns. ``--per-preset``: group
+    turns by the preset that produced them and distill a separate
+    ``<preset>.SKILL.md`` per preset with enough evidence — per-route
+    heuristics keep one lane's habits (e.g. heavy verification) from taxing
+    another lane's turns. Injection precedence: per-preset file, else global.
+    """
     from agent.moa_loop import _slot_label, load_aggregation_skill
 
     trace_dir = Path(getattr(args, "trace_dir", None) or _trace_dir())
     max_turns = int(getattr(args, "max_turns", None) or 30)
     dry_run = bool(getattr(args, "dry_run", False))
+    per_preset = bool(getattr(args, "per_preset", False))
 
     turns = _load_recent_turns(trace_dir, max_turns)
     if not turns:
@@ -239,33 +252,63 @@ def cmd_moa_evolve(args: Any) -> int:
         return 1
 
     slot = _resolve_distiller_slot(getattr(args, "model", None))
-    existing_body = load_aggregation_skill()
-    print(
-        f"Distilling {len(turns)} MoA turn(s) from {trace_dir} "
-        f"with {_slot_label(slot)} "
-        f"({'updating' if existing_body else 'creating'} the moa-aggregation skill)..."
-    )
 
-    try:
-        body = distill_skill(turns, existing_body, slot)
-    except Exception as exc:
-        print(f"moa evolve: distillation failed: {exc}")
-        return 1
+    groups: list[tuple[str | None, list[dict[str, Any]]]] = [(None, turns)]
+    if per_preset:
+        by_preset: dict[str, list[dict[str, Any]]] = {}
+        for rec in turns:
+            by_preset.setdefault(str(rec.get("preset") or "unknown"), []).append(rec)
+        groups = [
+            (name, recs)
+            for name, recs in sorted(by_preset.items())
+            if len(recs) >= _PER_PRESET_MIN_TURNS
+        ]
+        skipped = sorted(
+            name for name, recs in by_preset.items() if len(recs) < _PER_PRESET_MIN_TURNS
+        )
+        if skipped:
+            print(
+                f"Skipping presets with <{_PER_PRESET_MIN_TURNS} turns "
+                f"(global skill serves them): {', '.join(skipped)}"
+            )
+        if not groups:
+            print("No preset has enough turns for per-preset distillation.")
+            return 1
 
-    rendered = _render_skill_file(body, len(turns))
-    if dry_run:
-        print("\n--- moa-aggregation SKILL.md (dry run, not written) ---\n")
-        print(rendered)
-        return 0
+    failures = 0
+    for preset_name, recs in groups:
+        existing_body = load_aggregation_skill(preset_name)
+        label = f"preset '{preset_name}'" if preset_name else "the global skill"
+        print(
+            f"Distilling {len(recs)} MoA turn(s) from {trace_dir} "
+            f"with {_slot_label(slot)} for {label}..."
+        )
+        try:
+            body = distill_skill(recs, existing_body, slot)
+        except Exception as exc:
+            print(f"moa evolve: distillation failed for {label}: {exc}")
+            failures += 1
+            continue
 
-    path = _skill_path()
-    path.parent.mkdir(parents=True, exist_ok=True)
-    path.write_text(rendered, encoding="utf-8")
-    print(
-        f"Wrote {path} ({len(body)} chars).\n"
-        "It is now injected into every MoA aggregator guidance block."
-    )
-    return 0
+        rendered = _render_skill_file(body, len(recs))
+        if dry_run:
+            print(f"\n--- {label} (dry run, not written) ---\n")
+            print(rendered)
+            continue
+
+        path = _skill_path()
+        if preset_name:
+            safe = "".join(
+                c if (c.isalnum() or c in "-_") else "_" for c in preset_name
+            )
+            path = path.parent / f"{safe}.SKILL.md"
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.write_text(rendered, encoding="utf-8")
+        print(f"Wrote {path} ({len(body)} chars).")
+
+    if not dry_run and not failures:
+        print("Skills are injected into matching MoA aggregator guidance blocks.")
+    return 1 if failures == len(groups) else 0
 
 
 __all__ = ["cmd_moa_evolve", "distill_skill"]

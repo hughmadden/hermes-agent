@@ -207,7 +207,7 @@ def _reference_guidance(preset_name: str, aggregator: dict, reference_outputs: l
         "aggregator and acting model: answer the user directly or call tools "
         "as needed. Any tool you call is executed by the calling client, which "
         "will return the result in the next request."
-        f"{aggregation_skill_block()}\n\n"
+        f"{aggregation_skill_block(preset_name)}\n\n"
         f"{joined}"
     )
 

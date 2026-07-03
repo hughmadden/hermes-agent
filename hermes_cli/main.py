@@ -12518,6 +12518,16 @@ def main():
         action="store_true",
         help="Print the updated skill instead of writing it",
     )
+    moa_evolve.add_argument(
+        "--per-preset",
+        dest="per_preset",
+        action="store_true",
+        help=(
+            "Distill a separate <preset>.SKILL.md per preset (>=5 turns each) "
+            "instead of one global skill; per-preset skills take precedence "
+            "at injection time"
+        ),
+    )
     moa_parser.set_defaults(func=cmd_moa)
 
     # =========================================================================

@@ -145,36 +145,54 @@ def _strip_frontmatter(text: str) -> str:
     return text[end + len("\n---"):].strip()
 
 
-def load_aggregation_skill() -> str:
-    """Return the distilled aggregation-skill body, or "" when absent.
-
-    Read from ``<hermes_home>/skills/moa-aggregation/SKILL.md`` with an
-    mtime-keyed cache so the per-turn cost is one stat(). Best-effort: any
-    read error means no injection, never a broken turn.
-    """
+def _read_skill_cached(path) -> str:
+    """mtime-cached read of one skill file body ("" when absent/broken)."""
     try:
-        from hermes_constants import get_hermes_home
-
-        path = get_hermes_home().joinpath(*AGGREGATION_SKILL_RELPATH)
         key = str(path)
         mtime = path.stat().st_mtime
         cached = _skill_cache.get(key)
         if cached is not None and cached[0] == mtime:
             return cached[1]
         body = _strip_frontmatter(path.read_text(encoding="utf-8"))
-        _skill_cache.clear()
         _skill_cache[key] = (mtime, body)
         return body
     except FileNotFoundError:
+        _skill_cache.pop(str(path), None)
         return ""
     except Exception as exc:  # pragma: no cover - defensive
         logger.debug("MoA aggregation skill load failed: %s", exc)
         return ""
 
 
-def aggregation_skill_block() -> str:
+def load_aggregation_skill(preset_name: str | None = None) -> str:
+    """Return the distilled aggregation-skill body, or "" when absent.
+
+    With ``preset_name``, a per-preset skill
+    (``skills/moa-aggregation/<preset>.SKILL.md``, written by
+    ``hermes moa evolve --per-preset``) takes precedence over the global
+    ``SKILL.md`` — per-route heuristics avoid taxing every lane with another
+    lane's habits (e.g. the reasoning lane's verification latency on the
+    coding lane). Best-effort: any read error means no injection, never a
+    broken turn.
+    """
+    try:
+        from hermes_constants import get_hermes_home
+
+        base = get_hermes_home().joinpath(*AGGREGATION_SKILL_RELPATH).parent
+        if preset_name:
+            safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in preset_name)
+            body = _read_skill_cached(base / f"{safe}.SKILL.md")
+            if body:
+                return body
+        return _read_skill_cached(base / "SKILL.md")
+    except Exception as exc:  # pragma: no cover - defensive
+        logger.debug("MoA aggregation skill load failed: %s", exc)
+        return ""
+
+
+def aggregation_skill_block(preset_name: str | None = None) -> str:
     """The skill body wrapped as a guidance-block section, or ""."""
-    body = load_aggregation_skill()
+    body = load_aggregation_skill(preset_name)
     if not body:
         return ""
     return (
@@ -958,7 +976,7 @@ class MoAChatCompletions:
                 f"References: {', '.join(label for label, _, _ in reference_outputs)}\n\n"
                 "Use the reference responses below as private context. You are the aggregator and acting model: "
                 "answer the user directly or call tools as needed."
-                f"{aggregation_skill_block()}\n\n"
+                f"{aggregation_skill_block(self.preset_name)}\n\n"
                 f"{joined}"
             )
             _attach_reference_guidance(agg_messages, guidance)
