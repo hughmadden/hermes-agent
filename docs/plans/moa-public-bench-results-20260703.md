@@ -42,6 +42,7 @@ aggregator), keep the fan-out for reasoning-heavy work** — exactly what
 | Config | Submitted | Resolved | Notes |
 |---|---|---|---|
 | open-kimi-solo | 25/25 | **19/25 resolved (76%)** | environment.timeout=300 override required (60s default aborts django/astropy suites) |
+| kimi→Fable verification-gated escalation | 6/6 escalated | **25/25 composite (100%)** | Fable resolved all 6 kimi-unresolved instances; Fable drove only 24% of instances |
 | open-moa-heavy | TBD | TBD | |
 | frontier-gpt55-solo | TBD | TBD | |
 
