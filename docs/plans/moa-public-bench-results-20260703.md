@@ -55,9 +55,9 @@ aggregator), keep the fan-out for reasoning-heavy work** — exactly what
 |---|---|---|---|
 | open-moa-flash | 6/10 (0.60) | 2 | 1 agent-timeout + 1 harness RuntimeError among the misses |
 | open-moa-heavy | 5/10 (0.50) | 6 | ALL failures were AgentTimeoutError — heavy fan-out latency blows the 2x agent budget |
-| open-kimi-solo | TBD | TBD | |
-| frontier-gpt55-solo | TBD | TBD | |
-| moa:auto (routed) | TBD | TBD | |
+| open-kimi-solo | 6/10 (0.60) | 2 | both misses incl. 2 agent-timeouts |
+| frontier-gpt55-solo | **9/10 (0.90)** | 0 | frontier dominates the terminal benchmark |
+| moa:auto (routed, v1 config) | 6/10 (0.60) | 2 | matches best open configs; fewer timeouts than heavy (routing avoids the fan-out on time-budgeted work) |
 
 ## Methodology notes
 
