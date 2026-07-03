@@ -1,0 +1,2404 @@
+{
+  "results": [
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 1.1,
+      "ref_tokens": 0,
+      "agg_tokens": 537
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 1.1,
+      "ref_tokens": 0,
+      "agg_tokens": 793
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 1.2,
+      "ref_tokens": 0,
+      "agg_tokens": 578
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 0,
+      "agg_tokens": 1105
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 1.6,
+      "ref_tokens": 0,
+      "agg_tokens": 1819
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 598
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 1.7,
+      "ref_tokens": 0,
+      "agg_tokens": 292
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 824
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 637
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 0.4,
+      "ref_tokens": 0,
+      "agg_tokens": 358
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 574
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 753
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 0.9,
+      "ref_tokens": 0,
+      "agg_tokens": 1285
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 884
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 0.9,
+      "ref_tokens": 0,
+      "agg_tokens": 1403
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 578
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 528
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "'mpps'",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 518
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 714
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 517
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 1.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1114
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 720
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 0.4,
+      "ref_tokens": 0,
+      "agg_tokens": 319
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 564
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 0.8,
+      "ref_tokens": 0,
+      "agg_tokens": 757
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "'igec'",
+      "correct": true,
+      "latency_s": 0.9,
+      "ref_tokens": 0,
+      "agg_tokens": 530
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 0.8,
+      "ref_tokens": 0,
+      "agg_tokens": 442
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 1.7,
+      "ref_tokens": 0,
+      "agg_tokens": 2754
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 0.4,
+      "ref_tokens": 0,
+      "agg_tokens": 267
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 1031
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 732
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 710
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 1019
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 0.8,
+      "ref_tokens": 0,
+      "agg_tokens": 1018
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "'tubn'",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 497
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 0.8,
+      "ref_tokens": 0,
+      "agg_tokens": 960
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 0.8,
+      "ref_tokens": 0,
+      "agg_tokens": 987
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 1.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1421
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 1.1,
+      "ref_tokens": 0,
+      "agg_tokens": 857
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 719
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 1.1,
+      "ref_tokens": 0,
+      "agg_tokens": 1761
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 1.0,
+      "ref_tokens": 0,
+      "agg_tokens": 793
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 438
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 1.6,
+      "ref_tokens": 0,
+      "agg_tokens": 2126
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 850
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 0.9,
+      "ref_tokens": 0,
+      "agg_tokens": 1251
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 0.4,
+      "ref_tokens": 0,
+      "agg_tokens": 389
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "\\(\\frac{1}{2}\\)",
+      "correct": false,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 692
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 879
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 909
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 716
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703711",
+      "correct": false,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 833
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 493
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 1.1,
+      "ref_tokens": 0,
+      "agg_tokens": 2172
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 1022
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 1.8,
+      "ref_tokens": 0,
+      "agg_tokens": 3821
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "mpps",
+      "correct": true,
+      "latency_s": 0.8,
+      "ref_tokens": 0,
+      "agg_tokens": 882
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 529
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 1.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1847
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 1142
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 674
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 781
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "igec",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 697
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 1.8,
+      "ref_tokens": 0,
+      "agg_tokens": 3744
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "\\(\\frac{1}{5}\\)",
+      "correct": false,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 630
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 1005
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 770
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 0.4,
+      "ref_tokens": 0,
+      "agg_tokens": 358
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "142",
+      "correct": true,
+      "latency_s": 2.4,
+      "ref_tokens": 0,
+      "agg_tokens": 4769
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355_7",
+      "correct": false,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 827
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 1113
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 550
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "tubn",
+      "correct": true,
+      "latency_s": 0.5,
+      "ref_tokens": 0,
+      "agg_tokens": 662
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 0,
+      "agg_tokens": 2202
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 1.2,
+      "ref_tokens": 0,
+      "agg_tokens": 2128
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 1.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1457
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 903
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 1.4,
+      "ref_tokens": 0,
+      "agg_tokens": 2893
+    },
+    {
+      "config": "cere-gptoss-solo",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 1.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1287
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 1.4,
+      "ref_tokens": 0,
+      "agg_tokens": 1038
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 0,
+      "agg_tokens": 1147
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 1.4,
+      "ref_tokens": 0,
+      "agg_tokens": 1444
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 1.7,
+      "ref_tokens": 0,
+      "agg_tokens": 1167
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 1.7,
+      "ref_tokens": 0,
+      "agg_tokens": 1239
+    },
+    {
+      "config": "cere-gemma31-solo",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "$7^{40} = 6366805723123071113311065241344001 \\times 117649 = 74895332",
+      "correct": false,
+      "latency_s": 13.6,
+      "ref_tokens": 0,
+      "agg_tokens": 40056
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 0.8,
+      "ref_tokens": 0,
+      "agg_tokens": 388
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 2.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1292
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 1.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1392
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 690
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 1.1,
+      "ref_tokens": 0,
+      "agg_tokens": 936
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 4.2,
+      "ref_tokens": 0,
+      "agg_tokens": 4015
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 1.8,
+      "ref_tokens": 0,
+      "agg_tokens": 1126
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 2.8,
+      "ref_tokens": 0,
+      "agg_tokens": 3079
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 4.0,
+      "ref_tokens": 0,
+      "agg_tokens": 2907
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 4.4,
+      "ref_tokens": 0,
+      "agg_tokens": 3238
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 1.9,
+      "ref_tokens": 0,
+      "agg_tokens": 1205
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 27.0,
+      "ref_tokens": 0,
+      "agg_tokens": 27044
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 0.7,
+      "ref_tokens": 0,
+      "agg_tokens": 529
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 1.0,
+      "ref_tokens": 0,
+      "agg_tokens": 783
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 0.9,
+      "ref_tokens": 0,
+      "agg_tokens": 797
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 29.9,
+      "ref_tokens": 0,
+      "agg_tokens": 24243
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 1.2,
+      "ref_tokens": 0,
+      "agg_tokens": 900
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "igec",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 0,
+      "agg_tokens": 1206
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 1.4,
+      "ref_tokens": 0,
+      "agg_tokens": 718
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 2.7,
+      "ref_tokens": 0,
+      "agg_tokens": 1884
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 0.6,
+      "ref_tokens": 0,
+      "agg_tokens": 248
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 3.3,
+      "ref_tokens": 0,
+      "agg_tokens": 2679
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 1.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1226
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355_7",
+      "correct": false,
+      "latency_s": 3.2,
+      "ref_tokens": 0,
+      "agg_tokens": 2236
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 0.9,
+      "ref_tokens": 0,
+      "agg_tokens": 459
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 6.1,
+      "ref_tokens": 0,
+      "agg_tokens": 4194
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 12.3,
+      "ref_tokens": 0,
+      "agg_tokens": 9500
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "'tubn'",
+      "correct": true,
+      "latency_s": 1.0,
+      "ref_tokens": 0,
+      "agg_tokens": 709
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 7.2,
+      "ref_tokens": 0,
+      "agg_tokens": 3864
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 2.6,
+      "ref_tokens": 0,
+      "agg_tokens": 1903
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "",
+      "correct": false,
+      "latency_s": 45.1,
+      "ref_tokens": 0,
+      "agg_tokens": 65056
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 2.8,
+      "ref_tokens": 0,
+      "agg_tokens": 1549
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "",
+      "correct": false,
+      "latency_s": 63.2,
+      "ref_tokens": 0,
+      "agg_tokens": 65073
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 53.6,
+      "ref_tokens": 0,
+      "agg_tokens": 36904
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 17.8,
+      "ref_tokens": 2573,
+      "agg_tokens": 1279
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 19.5,
+      "ref_tokens": 4141,
+      "agg_tokens": 1108
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 23.5,
+      "ref_tokens": 2388,
+      "agg_tokens": 1114
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 38.9,
+      "ref_tokens": 3005,
+      "agg_tokens": 1594
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 15.2,
+      "ref_tokens": 2331,
+      "agg_tokens": 1203
+    },
+    {
+      "config": "cere-glm47-solo",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "ANSWWER: 142",
+      "correct": true,
+      "latency_s": 117.3,
+      "ref_tokens": 0,
+      "agg_tokens": 55933
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 48.0,
+      "ref_tokens": 4942,
+      "agg_tokens": 2244
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 35.7,
+      "ref_tokens": 3665,
+      "agg_tokens": 1731
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 29.6,
+      "ref_tokens": 2623,
+      "agg_tokens": 940
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 36.6,
+      "ref_tokens": 3458,
+      "agg_tokens": 1410
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 23.3,
+      "ref_tokens": 3145,
+      "agg_tokens": 1649
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 48.3,
+      "ref_tokens": 3336,
+      "agg_tokens": 1810
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 26.2,
+      "ref_tokens": 2433,
+      "agg_tokens": 1644
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 63.9,
+      "ref_tokens": 7630,
+      "agg_tokens": 2228
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "mpps",
+      "correct": true,
+      "latency_s": 28.3,
+      "ref_tokens": 3134,
+      "agg_tokens": 1285
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 67.4,
+      "ref_tokens": 4587,
+      "agg_tokens": 1273
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 208.2,
+      "ref_tokens": 24292,
+      "agg_tokens": 1740
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 41.4,
+      "ref_tokens": 4102,
+      "agg_tokens": 2082
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 17.5,
+      "ref_tokens": 1941,
+      "agg_tokens": 1128
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 196.3,
+      "ref_tokens": 11528,
+      "agg_tokens": 1990
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 71.9,
+      "ref_tokens": 6903,
+      "agg_tokens": 2283
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 27.7,
+      "ref_tokens": 3022,
+      "agg_tokens": 1386
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "'igec'",
+      "correct": true,
+      "latency_s": 27.9,
+      "ref_tokens": 2876,
+      "agg_tokens": 1213
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 36.4,
+      "ref_tokens": 4935,
+      "agg_tokens": 1083
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 14.8,
+      "ref_tokens": 2662,
+      "agg_tokens": 1292
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 32.0,
+      "ref_tokens": 3585,
+      "agg_tokens": 2287
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 19.4,
+      "ref_tokens": 2514,
+      "agg_tokens": 1430
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 16.9,
+      "ref_tokens": 1810,
+      "agg_tokens": 757
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 321.2,
+      "ref_tokens": 21210,
+      "agg_tokens": 2927
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355",
+      "correct": true,
+      "latency_s": 25.4,
+      "ref_tokens": 3319,
+      "agg_tokens": 1386
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 20.0,
+      "ref_tokens": 2303,
+      "agg_tokens": 1433
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 47.9,
+      "ref_tokens": 7325,
+      "agg_tokens": 1942
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 36.6,
+      "ref_tokens": 4433,
+      "agg_tokens": 1926
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "'tubn'",
+      "correct": true,
+      "latency_s": 28.4,
+      "ref_tokens": 2802,
+      "agg_tokens": 1135
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 65.6,
+      "ref_tokens": 8216,
+      "agg_tokens": 1895
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 69.0,
+      "ref_tokens": 8117,
+      "agg_tokens": 2923
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 34.3,
+      "ref_tokens": 3429,
+      "agg_tokens": 1665
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 22.9,
+      "ref_tokens": 1771,
+      "agg_tokens": 1685
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "1082152022374638",
+      "correct": true,
+      "latency_s": 40.6,
+      "ref_tokens": 2003,
+      "agg_tokens": 1969
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 53.4,
+      "ref_tokens": 5541,
+      "agg_tokens": 2595
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 20.7,
+      "ref_tokens": 2510,
+      "agg_tokens": 1262
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 19.9,
+      "ref_tokens": 2931,
+      "agg_tokens": 1442
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 18.3,
+      "ref_tokens": 2241,
+      "agg_tokens": 858
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 26.7,
+      "ref_tokens": 3663,
+      "agg_tokens": 1180
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 14.1,
+      "ref_tokens": 1767,
+      "agg_tokens": 1190
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 170.3,
+      "ref_tokens": 14163,
+      "agg_tokens": 2877
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 15.8,
+      "ref_tokens": 1851,
+      "agg_tokens": 922
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40**",
+      "correct": true,
+      "latency_s": 31.1,
+      "ref_tokens": 3541,
+      "agg_tokens": 1600
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 55.6,
+      "ref_tokens": 5629,
+      "agg_tokens": 2317
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 18.2,
+      "ref_tokens": 2201,
+      "agg_tokens": 1227
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 43.3,
+      "ref_tokens": 5429,
+      "agg_tokens": 1567
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 22.3,
+      "ref_tokens": 2854,
+      "agg_tokens": 1283
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 58.5,
+      "ref_tokens": 3897,
+      "agg_tokens": 1653
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 40.4,
+      "ref_tokens": 2446,
+      "agg_tokens": 1135
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 43.6,
+      "ref_tokens": 4219,
+      "agg_tokens": 1289
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 55.7,
+      "ref_tokens": 6647,
+      "agg_tokens": 1747
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "mpps",
+      "correct": true,
+      "latency_s": 33.5,
+      "ref_tokens": 3308,
+      "agg_tokens": 1053
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 26.2,
+      "ref_tokens": 818,
+      "agg_tokens": 2096
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 442.4,
+      "ref_tokens": 43011,
+      "agg_tokens": 3738
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 27.5,
+      "ref_tokens": 2166,
+      "agg_tokens": 1203
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 87.3,
+      "ref_tokens": 8005,
+      "agg_tokens": 2258
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 35.4,
+      "ref_tokens": 3313,
+      "agg_tokens": 1433
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 39.7,
+      "ref_tokens": 4682,
+      "agg_tokens": 1536
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "igec",
+      "correct": true,
+      "latency_s": 28.3,
+      "ref_tokens": 3007,
+      "agg_tokens": 1143
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 15.7,
+      "ref_tokens": 2470,
+      "agg_tokens": 1091
+    },
+    {
+      "config": "cere-agg-openrefs-gemma",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "142",
+      "correct": true,
+      "latency_s": 501.3,
+      "ref_tokens": 58694,
+      "agg_tokens": 2198
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 121.1,
+      "ref_tokens": 5977,
+      "agg_tokens": 2226
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 25.3,
+      "ref_tokens": 2719,
+      "agg_tokens": 1604
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 43.5,
+      "ref_tokens": 4415,
+      "agg_tokens": 2276
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 26.2,
+      "ref_tokens": 2126,
+      "agg_tokens": 896
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 16.0,
+      "ref_tokens": 1947,
+      "agg_tokens": 932
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355",
+      "correct": true,
+      "latency_s": 33.1,
+      "ref_tokens": 3379,
+      "agg_tokens": 1597
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 45.8,
+      "ref_tokens": 5791,
+      "agg_tokens": 2002
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 36.9,
+      "ref_tokens": 4328,
+      "agg_tokens": 1701
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "tubn",
+      "correct": true,
+      "latency_s": 27.4,
+      "ref_tokens": 2667,
+      "agg_tokens": 1130
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 25.6,
+      "ref_tokens": 3408,
+      "agg_tokens": 1414
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 45.9,
+      "ref_tokens": 4494,
+      "agg_tokens": 1707
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 60.2,
+      "ref_tokens": 6011,
+      "agg_tokens": 2199
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-zeros",
+      "expected": "505",
+      "answer": "505",
+      "correct": true,
+      "latency_s": 2.0,
+      "ref_tokens": 1128,
+      "agg_tokens": 2033
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-divisors",
+      "expected": "64",
+      "answer": "64",
+      "correct": true,
+      "latency_s": 2.6,
+      "ref_tokens": 1531,
+      "agg_tokens": 2114
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-lettercount",
+      "expected": "17",
+      "answer": "17",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 1221,
+      "agg_tokens": 1494
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-codetrace",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 2.3,
+      "ref_tokens": 969,
+      "agg_tokens": 1539
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "1098",
+      "correct": true,
+      "latency_s": 81.0,
+      "ref_tokens": 4335,
+      "agg_tokens": 2427
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-prob",
+      "expected": "1/2",
+      "answer": "1/2",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 974,
+      "agg_tokens": 880
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-digitsum",
+      "expected": "144",
+      "answer": "144",
+      "correct": true,
+      "latency_s": 15.5,
+      "ref_tokens": 6333,
+      "agg_tokens": 12945
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-crt",
+      "expected": "346",
+      "answer": "346",
+      "correct": true,
+      "latency_s": 4.0,
+      "ref_tokens": 1869,
+      "agg_tokens": 3706
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-weekday",
+      "expected": "sunday",
+      "answer": "Sunday",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 1057,
+      "agg_tokens": 1215
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-comb",
+      "expected": "40",
+      "answer": "40",
+      "correct": true,
+      "latency_s": 2.6,
+      "ref_tokens": 1342,
+      "agg_tokens": 1762
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-base",
+      "expected": "703710",
+      "answer": "703710",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 1163,
+      "agg_tokens": 1181
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-recur",
+      "expected": "6143",
+      "answer": "6143",
+      "correct": true,
+      "latency_s": 2.8,
+      "ref_tokens": 2136,
+      "agg_tokens": 2919
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-gcdlcm",
+      "expected": "2310",
+      "answer": "2310",
+      "correct": true,
+      "latency_s": 3.6,
+      "ref_tokens": 1272,
+      "agg_tokens": 2902
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-floorsum",
+      "expected": "482",
+      "answer": "482",
+      "correct": true,
+      "latency_s": 2.9,
+      "ref_tokens": 3362,
+      "agg_tokens": 2434
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-geom",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "latency_s": 2.9,
+      "ref_tokens": 1261,
+      "agg_tokens": 2649
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 90.1,
+      "ref_tokens": 8653,
+      "agg_tokens": 2614
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-logic",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 2.7,
+      "ref_tokens": 1376,
+      "agg_tokens": 1892
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-bigmul",
+      "expected": "1082152022374638",
+      "answer": "",
+      "correct": false,
+      "latency_s": 27.4,
+      "ref_tokens": 3135,
+      "agg_tokens": 65528
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-count",
+      "expected": "152",
+      "answer": "152",
+      "correct": true,
+      "latency_s": 2.1,
+      "ref_tokens": 1682,
+      "agg_tokens": 2572
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-string",
+      "expected": "mpps",
+      "answer": "mpps",
+      "correct": true,
+      "latency_s": 3.2,
+      "ref_tokens": 1177,
+      "agg_tokens": 2078
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-modexp",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 4.7,
+      "ref_tokens": 1687,
+      "agg_tokens": 4634
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-zeros",
+      "expected": "137",
+      "answer": "137",
+      "correct": true,
+      "latency_s": 2.0,
+      "ref_tokens": 1129,
+      "agg_tokens": 1794
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-lettercount",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "latency_s": 1.4,
+      "ref_tokens": 1421,
+      "agg_tokens": 1479
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-divisors",
+      "expected": "112",
+      "answer": "112",
+      "correct": true,
+      "latency_s": 2.7,
+      "ref_tokens": 1904,
+      "agg_tokens": 2732
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-crt",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 2.8,
+      "ref_tokens": 1370,
+      "agg_tokens": 3122
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-codetrace",
+      "expected": "igec",
+      "answer": "igec",
+      "correct": true,
+      "latency_s": 3.9,
+      "ref_tokens": 1405,
+      "agg_tokens": 2296
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-prob",
+      "expected": "1/5",
+      "answer": "1/5",
+      "correct": true,
+      "latency_s": 1.7,
+      "ref_tokens": 1099,
+      "agg_tokens": 1100
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-comb",
+      "expected": "120",
+      "answer": "120",
+      "correct": true,
+      "latency_s": 2.9,
+      "ref_tokens": 1234,
+      "agg_tokens": 2392
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-weekday",
+      "expected": "tuesday",
+      "answer": "Tuesday",
+      "correct": true,
+      "latency_s": 1.4,
+      "ref_tokens": 671,
+      "agg_tokens": 979
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-base",
+      "expected": "564355",
+      "answer": "564355",
+      "correct": true,
+      "latency_s": 2.3,
+      "ref_tokens": 1890,
+      "agg_tokens": 2579
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-det",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 7.2,
+      "ref_tokens": 3213,
+      "agg_tokens": 8860
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-recur",
+      "expected": "73811",
+      "answer": "73811",
+      "correct": true,
+      "latency_s": 2.6,
+      "ref_tokens": 2152,
+      "agg_tokens": 3179
+    },
+    {
+      "config": "cere-moa",
+      "task": "t-det",
+      "expected": "155",
+      "answer": "155",
+      "correct": true,
+      "latency_s": 30.9,
+      "ref_tokens": 3473,
+      "agg_tokens": 20882
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-gcdlcm",
+      "expected": "546",
+      "answer": "546",
+      "correct": true,
+      "latency_s": 2.3,
+      "ref_tokens": 1231,
+      "agg_tokens": 1848
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-logic",
+      "expected": "3980",
+      "answer": "3980",
+      "correct": true,
+      "latency_s": 4.4,
+      "ref_tokens": 3703,
+      "agg_tokens": 3224
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-geom",
+      "expected": "4",
+      "answer": "4",
+      "correct": true,
+      "latency_s": 6.0,
+      "ref_tokens": 2897,
+      "agg_tokens": 4667
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-string",
+      "expected": "tubn",
+      "answer": "tubn",
+      "correct": true,
+      "latency_s": 1.5,
+      "ref_tokens": 916,
+      "agg_tokens": 1005
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-modexp",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 2.6,
+      "ref_tokens": 1574,
+      "agg_tokens": 2545
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-count",
+      "expected": "195",
+      "answer": "195",
+      "correct": true,
+      "latency_s": 3.4,
+      "ref_tokens": 1672,
+      "agg_tokens": 3722
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-bigmul",
+      "expected": "20560889214007011",
+      "answer": "20560889214007011",
+      "correct": true,
+      "latency_s": 30.7,
+      "ref_tokens": 4029,
+      "agg_tokens": 27410
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "142",
+      "correct": true,
+      "latency_s": 40.1,
+      "ref_tokens": 8467,
+      "agg_tokens": 18230
+    },
+    {
+      "config": "cere-moa",
+      "task": "h-floorsum",
+      "expected": "1098",
+      "answer": "",
+      "correct": false,
+      "latency_s": 31.1,
+      "ref_tokens": 3675,
+      "agg_tokens": 66053
+    },
+    {
+      "config": "cere-agg-openrefs-gptoss",
+      "task": "h-digitsum",
+      "expected": "142",
+      "answer": "142",
+      "correct": true,
+      "latency_s": 938.0,
+      "ref_tokens": 69946,
+      "agg_tokens": 1733
+    }
+  ]
+}
