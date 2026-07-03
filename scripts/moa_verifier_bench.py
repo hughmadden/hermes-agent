@@ -90,12 +90,23 @@ def run_turn(config_name: str, task: dict) -> dict:
     try:
         facade = MoAChatCompletions(config_name)
         text = ""
-        for _round in range(5):
+        # Up to 8 tool rounds, then one FORCED final round with the tool
+        # removed — v1 of this harness capped at 4 and took whatever text was
+        # present, and thinking models over-verified straight through the cap
+        # (31/36 kimi failures were empty answers at the cap, not wrong math).
+        for _round in range(10):
+            final_round = _round >= 8
+            if final_round and messages[-1]["role"] == "tool":
+                messages = messages + [{
+                    "role": "user",
+                    "content": ("The python tool is no longer available. State "
+                                 "your final answer NOW as a line: ANSWER: <integer>"),
+                }]
             response = facade.create(
                 messages=messages,
                 max_tokens=16000,
                 timeout=360,
-                tools=[PYTHON_TOOL],
+                tools=None if final_round else [PYTHON_TOOL],
             )
             ref_usage, _ = facade.consume_reference_usage()
             agg_usage = getattr(response, "usage", None)
@@ -108,7 +119,7 @@ def run_turn(config_name: str, task: dict) -> dict:
             message = response.choices[0].message
             tool_calls = getattr(message, "tool_calls", None) or []
             text = _extract_text(response) or ""
-            if not tool_calls or _round == 4:
+            if not tool_calls or final_round:
                 break
             tool_rounds += 1
             rendered_calls = []
