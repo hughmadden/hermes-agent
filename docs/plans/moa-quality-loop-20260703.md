@@ -60,6 +60,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 38 | RLM lifts modern open models (AIME 2026, post-cutoff) | deepseek-v4-pro 53→90% (+37pp, 93% py-rate), glm-5.2 53→80%, minimax-m3 40→60%; solos far below reputation on fresh problems | LAW REVISED: RLM loop is a general open-model quality multiplier (gpt-oss exception was format friction); deepseek-v4-pro-RLM = best fully-open single model; all-open escalation ladder queued |
 
+| 37 | Production cascade (streaming/tools/context) | Streaming tier-0 verified live @1.3s w/ RLM voters; tools→acting-solo; oversized→context-solo (100k guard); 170 tests; 2 event-loop defects caught in review | Cascade presets are now real-world models — turbo runs on cascade economics |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
