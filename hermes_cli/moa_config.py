@@ -179,6 +179,13 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
             "verify": verify,
             "verifier": verifier,
             "verify_when": verify_when,
+            # When true, the disagreement arbiter (tier-1 aggregator and the
+            # tier-2 escalate slot) is called CLEAN — client messages only,
+            # no voter context. Measured motivation (2026-07-04): voter
+            # context anchors even a frontier arbiter — GPT-5.5 judging
+            # disagreements scored 7/9 where GPT-5.5 solo runs ~98%, the
+            # same contamination measured on code editing.
+            "clean_arbiter": bool(cascade_raw.get("clean_arbiter", False)),
         }
 
     return {

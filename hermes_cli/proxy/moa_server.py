@@ -550,10 +550,23 @@ def _run_cascade_turn(common: dict) -> dict:
     # unlike the judge entry above, the aggregator MUST see why its exact
     # consensus was rejected, not just have it billed.
     agg_messages = [dict(m) for m in messages]
-    guidance = _reference_guidance(
-        common["preset_name"], common["aggregator"], voters + verify_extra
-    )
-    _attach_reference_guidance(agg_messages, guidance)
+    if cascade_cfg.get("clean_arbiter"):
+        # Clean arbitration: the aggregator re-solves from scratch. Voter
+        # context anchors arbiters (measured: a frontier arbiter scored 7/9
+        # on disagreements vs ~98% solo); only a verifier strike note is
+        # ever attached (it names no candidate answers beyond the struck one).
+        if verify_extra:
+            _attach_reference_guidance(
+                agg_messages,
+                _reference_guidance(
+                    common["preset_name"], common["aggregator"], verify_extra
+                ),
+            )
+    else:
+        guidance = _reference_guidance(
+            common["preset_name"], common["aggregator"], voters + verify_extra
+        )
+        _attach_reference_guidance(agg_messages, guidance)
     agg_response = call_llm(
         task="moa_aggregator",
         messages=agg_messages,
@@ -650,10 +663,11 @@ def _run_cascade_turn(common: dict) -> dict:
 
     escalate_aggregator = escalate_preset.get("aggregator") or {}
     escalate_messages = [dict(m) for m in messages]
-    escalate_guidance = _reference_guidance(
-        common["preset_name"], escalate_aggregator, reference_outputs
-    )
-    _attach_reference_guidance(escalate_messages, escalate_guidance)
+    if not cascade_cfg.get("clean_arbiter"):
+        escalate_guidance = _reference_guidance(
+            common["preset_name"], escalate_aggregator, reference_outputs
+        )
+        _attach_reference_guidance(escalate_messages, escalate_guidance)
     escalate_response = call_llm(
         task="moa_aggregator",
         messages=escalate_messages,

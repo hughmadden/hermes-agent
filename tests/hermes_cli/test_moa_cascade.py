@@ -1492,3 +1492,65 @@ def test_run_verification_distrusts_verdict_after_crash():
         run_verification("print('VERDICT: WRONG')\nimport sys; sys.exit(3)")
         == "inconclusive"
     )
+
+
+def _write_clean_arbiter_cfg(home):
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: cleanc
+  presets:
+    cleanc:
+      mode: cascade
+      cascade: {clean_arbiter: true}
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+      aggregator:
+        provider: openrouter
+        model: mid-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_clean(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_clean_arbiter_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_clean_arbiter_gets_no_voter_context(moa_home_clean, fake_llm):
+    """With cascade.clean_arbiter, a disagreement arbiter re-solves from
+    scratch — its messages carry NO voter outputs (anchoring guard)."""
+    replies = {"voter-a": "ANSWER: 1", "voter-b": "ANSWER: 2"}
+
+    def ref_handler(kwargs):
+        return _response(replies[kwargs.get("model")])
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response("ANSWER: 2")
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:cleanc", "messages": [{"role": "user", "content": "q"}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["usage"]["moa"]["cascade"]["tier"] == 1
+        agg_calls = [c for c in fake_llm.calls if c.get("task") == "moa_aggregator"]
+        assert len(agg_calls) == 1
+        import json as _json
+        joined = _json.dumps(agg_calls[0]["messages"])
+        assert "ANSWER: 1" not in joined and "voter-a" not in joined
+        assert "Mixture of Agents reference context" not in joined
+    finally:
+        await client.close()
