@@ -11,6 +11,9 @@ server (``hermes_cli/proxy/moa_server.py``) uses to implement them.
 from __future__ import annotations
 
 import re
+import subprocess
+import sys
+import tempfile
 from collections import Counter
 from fractions import Fraction
 
@@ -18,6 +21,12 @@ _ANSWER_RE = re.compile(r"ANSWER\s*:\s*(.+)", re.IGNORECASE)
 _INT_RE = re.compile(r"^-?\d+$")
 _SLASH_FRAC_RE = re.compile(r"^(-?\d+)\s*/\s*(-?\d+)$")
 _LATEX_FRAC_RE = re.compile(r"^\\frac\{(-?\d+)\}\{(-?\d+)\}$")
+_PY_FENCE_RE = re.compile(r"```python\s*\n(.*?)```", re.IGNORECASE | re.DOTALL)
+_VERDICT_RE = re.compile(r"VERDICT\s*:\s*(CORRECT|WRONG|UNCHECKABLE)", re.IGNORECASE)
+# Wall-clock cap on the sandboxed verifier subprocess (addendum v1.2). The
+# verifier LLM is asked for "under 5 seconds of compute"; 12s leaves headroom
+# for interpreter startup without letting a runaway script hang a turn.
+_VERIFY_SUBPROCESS_TIMEOUT_S = 12
 
 # Runtime boilerplate a failed/dropped/skipped reference leaves as its whole
 # output (see agent/moa_loop.py). These must NEVER become answer candidates:
@@ -178,10 +187,71 @@ def is_boilerplate(text: str) -> bool:
     return str(text or "").strip().lower().startswith(_BOILERPLATE_PREFIXES)
 
 
+def extract_python_block(text: str) -> str:
+    """First ` ```python ` fenced code block in an LLM reply, or the whole
+    reply verbatim when no such fence is present.
+
+    Used by the addendum v1.2 verifier: the verifier LLM is asked to write a
+    standalone check script, almost always inside a fenced block; falling
+    back to the whole reply keeps a plain (unfenced) script executable too
+    instead of discarding it.
+    """
+    if not text:
+        return ""
+    match = _PY_FENCE_RE.search(text)
+    return match.group(1) if match else text
+
+
+def run_verification(code: str) -> str:
+    """Execute an LLM-generated verification script and return its verdict.
+
+    Runs ``code`` as untrusted, model-generated Python in an isolated
+    subprocess: ``-I`` (isolated mode — ignores ``PYTHON*`` env vars and does
+    not add the script's directory or the user site-packages to
+    ``sys.path``), an empty environment, a scratch temp directory as ``cwd``,
+    and a hard wall-clock timeout. Parses the LAST ``VERDICT:\\s*(CORRECT|
+    WRONG|UNCHECKABLE)`` line from stdout: ``WRONG`` -> ``"wrong"``,
+    ``CORRECT`` -> ``"correct"``. Anything else — no verdict line at all,
+    ``UNCHECKABLE``, a non-zero exit, an execution error, or a timeout —
+    returns ``"inconclusive"``. Verification is a signal, never a blocker, so
+    infrastructure failure must never raise out of this function.
+    """
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = subprocess.run(
+                [sys.executable, "-I", "-c", code],
+                capture_output=True,
+                text=True,
+                timeout=_VERIFY_SUBPROCESS_TIMEOUT_S,
+                env={},
+                cwd=tmpdir,
+            )
+    except Exception:
+        return "inconclusive"
+
+    if result.returncode != 0:
+        # A check script that crashed after printing a verdict cannot be
+        # trusted — the crash may be the very computation the verdict
+        # depended on (adversarial-review finding, 2026-07-04).
+        return "inconclusive"
+
+    matches = _VERDICT_RE.findall(result.stdout or "")
+    if not matches:
+        return "inconclusive"
+    verdict = matches[-1].upper()
+    if verdict == "CORRECT":
+        return "correct"
+    if verdict == "WRONG":
+        return "wrong"
+    return "inconclusive"
+
+
 __all__ = [
     "extract_candidate",
     "normalize_candidate",
     "consensus",
     "agrees",
     "is_boilerplate",
+    "extract_python_block",
+    "run_verification",
 ]

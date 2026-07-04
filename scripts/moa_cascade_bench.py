@@ -94,13 +94,18 @@ def run_turn(base: str, model: str, task: dict, ds: dict) -> dict:
         text = message.get("content") or ""
         extracted = ds["extract"](text)
         usage = body.get("usage") or {}
-        cascade = (usage.get("moa") or {}).get("cascade") or {}
+        cascade = (usage.get("moa") or {}).get("cascade")
         result.update(
             {
                 "answer": extracted,
                 "correct": ds["is_correct"](extracted, task["a"]),
                 "latency_s": latency,
-                "tier": cascade.get("tier"),
+                # Whole usage.moa.cascade block (tier, gate_used, verify, ...)
+                # rather than just tier, so a rerun of print_report from a
+                # saved JSON file can also report verify verdict counts —
+                # absent (None) for non-cascade models, matching the field's
+                # absence in the response itself.
+                "cascade": cascade,
                 "total_tokens": usage.get("total_tokens"),
             }
         )
@@ -133,14 +138,27 @@ def print_report(results: list[dict], dataset_name: str) -> None:
         toks = [r["total_tokens"] for r in rows if r.get("total_tokens") is not None]
         mean_tok = sum(toks) / len(toks) if toks else 0.0
         tier_counts: dict[str, int] = {}
+        # Addendum v1.2: verify verdict histogram (only present for rows
+        # whose cascade block actually ran a verifier — absent for
+        # non-cascade models and for cascade turns with verify off).
+        verify_counts: dict[str, int] = {}
         for r in rows:
-            key = "n/a" if r.get("tier") is None else str(r["tier"])
+            cascade = r.get("cascade") or {}
+            tier = cascade.get("tier")
+            key = "n/a" if tier is None else str(tier)
             tier_counts[key] = tier_counts.get(key, 0) + 1
+            verify = cascade.get("verify")
+            if verify and verify.get("ran"):
+                verdict = str(verify.get("verdict") or "none")
+                verify_counts[verdict] = verify_counts.get(verdict, 0) + 1
         tier_str = " ".join(f"{k}:{v}" for k, v in sorted(tier_counts.items()))
         print(
             f"{name:28s} {ok:>3d}/{n:<4d} {mean_lat:>8.1f}s {med_lat:>7.1f}s "
             f"{mean_tok:>9.0f}  {tier_str}"
         )
+        if verify_counts:
+            verify_str = " ".join(f"{k}:{v}" for k, v in sorted(verify_counts.items()))
+            print(f"{'':28s} verify: {verify_str}")
     print()
 
 
@@ -185,9 +203,10 @@ def main() -> int:
             r = fut.result()
             results.append(r)
             status = "ok " if r["correct"] else ("ERR" if r.get("error") else "X  ")
+            tier = (r.get("cascade") or {}).get("tier")
             print(
                 f"[{done:>3d}/{len(jobs)}] {status} {r['model']:28s} {r['task']:12s} "
-                f"tier={r.get('tier')} -> {str(r.get('answer'))[:8]!r} ({r.get('latency_s')}s)",
+                f"tier={tier} -> {str(r.get('answer'))[:8]!r} ({r.get('latency_s')}s)",
                 flush=True,
             )
             if done % 20 == 0:

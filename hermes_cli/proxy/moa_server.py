@@ -72,10 +72,12 @@ from agent.moa_loop import (
     _slot_runtime,
     aggregation_skill_block,
 )
+from hermes_cli.proxy import moa_cascade
 from hermes_cli.proxy.moa_cascade import (
     agrees,
     consensus,
     extract_candidate,
+    extract_python_block,
     is_boilerplate,
     normalize_candidate,
 )
@@ -255,6 +257,104 @@ def _judge_messages(messages: list, answer_a: str, answer_b: str) -> list[dict]:
     ]
 
 
+# Addendum v1.2 (verified cascade): an independent sandboxed check of an
+# exact-candidate answer. Orthogonal to agreement — it catches the residual
+# "confident consensus/aggregator, wrong anyway" failure mode that voter
+# agreement alone cannot see.
+_VERIFIER_SYSTEM_PROMPT = (
+    "You write a short standalone Python 3 program that CHECKS a candidate "
+    "answer. The program must recompute or verify the answer independently "
+    "and print exactly one final line: VERDICT: CORRECT or VERDICT: WRONG. "
+    "If the claim cannot be checked by computation, print VERDICT: "
+    "UNCHECKABLE. No network, no files, stdlib only, under 5 seconds of "
+    "compute."
+)
+_VERIFIER_PROBLEM_CHARS = 4000
+
+
+def _verifier_messages(messages: list, candidate: str) -> list[dict]:
+    last_user = next(
+        (m.get("content") for m in reversed(messages) if m.get("role") == "user"),
+        "",
+    )
+    problem = str(last_user or "")[:_VERIFIER_PROBLEM_CHARS]
+    user = f"{problem}\n\nCandidate answer: {candidate}"
+    return [
+        {"role": "system", "content": _VERIFIER_SYSTEM_PROMPT},
+        {"role": "user", "content": user},
+    ]
+
+
+def _verifier_note_text(verdict: str, on: str, candidate: str) -> str:
+    """Human-readable summary of a verifier run, folded into reference
+    context so the aggregator sees WHY a consensus/tier-1 answer was struck
+    (or confirmed) rather than just a bare tier flip."""
+    if verdict == "wrong":
+        return (
+            f"Automated check REJECTED the {on} answer {candidate}: "
+            "independent verification returned WRONG."
+        )
+    if verdict == "correct":
+        return f"Automated check CONFIRMED the {on} answer {candidate}."
+    return f"Automated check was inconclusive for the {on} answer {candidate}."
+
+
+def _run_cascade_verifier(
+    *,
+    messages: list,
+    candidate: str,
+    verifier_slot: dict,
+    slot_timeout: float | None,
+    on: str,
+) -> tuple[str, tuple[str, str, Any] | None]:
+    """One verifier LLM call (writes a standalone check script) plus a
+    sandboxed execution of that script for ``candidate``. Returns
+    ``(verdict, reference_entry)``:
+
+    - ``verdict`` is always one of ``"correct"``/``"wrong"``/``"inconclusive"``
+      — an LLM failure degrades to ``"inconclusive"`` the same as an
+      execution failure (``moa_cascade.run_verification`` never raises), so a
+      broken verifier never blocks the cascade.
+    - ``reference_entry`` is a ``(label, text, _RefAccounting)`` tuple folding
+      the verifier LLM's real usage into billing (labelled
+      ``"verifier — <slot>"``), or ``None`` when the LLM call itself never
+      returned (nothing to bill).
+    """
+    verifier_runtime = _slot_runtime(verifier_slot)
+    verifier_timeout = min(60.0, slot_timeout) if slot_timeout else 60.0
+    verifier_msgs = _verifier_messages(messages, candidate)
+    try:
+        response = call_llm(
+            task="moa_verifier",
+            messages=verifier_msgs,
+            temperature=0.0,
+            max_tokens=2000,
+            timeout=verifier_timeout,
+            **verifier_runtime,
+        )
+    except Exception as exc:
+        logger.warning("MoA cascade verifier call failed: %s", exc)
+        return "inconclusive", None
+
+    reply = _extract_message_fields(response).get("content") or ""
+    usage = _normalize_chunk_usage(getattr(response, "usage", None), verifier_runtime)
+    code = extract_python_block(reply)
+    verdict = moa_cascade.run_verification(code)
+    entry = (
+        f"verifier — {_slot_label(verifier_slot)}",
+        _verifier_note_text(verdict, on, candidate),
+        _RefAccounting(
+            usage,
+            messages=verifier_msgs,
+            output=reply,
+            model=verifier_slot.get("model"),
+            provider=verifier_runtime.get("provider") or verifier_slot.get("provider"),
+            temperature=0.0,
+        ),
+    )
+    return verdict, entry
+
+
 def _run_cascade_turn(common: dict) -> dict:
     """Lazy MoA turn: tier-0 wafer-voter consensus, tier-1 aggregator, tier-2
     escalation. See docs/plans/moa-cascade-spec.md.
@@ -291,6 +391,19 @@ def _run_cascade_turn(common: dict) -> dict:
     ]
     voter_labels = [label for label, _text, _acct in voters]
 
+    # Addendum v1.2 (verified cascade): resolved once, reused at both the
+    # tier-0 consensus check below and the tier-1 aggregator-candidate check
+    # further down. `verify` is only ever "python" once a verifier slot has
+    # actually resolved (config normalization nulls it out otherwise), so
+    # `verify_active` alone gates every verifier call in this turn.
+    verify_mode = cascade_cfg.get("verify")
+    verifier_slot = cascade_cfg.get("verifier")
+    verify_when = cascade_cfg.get("verify_when") or "weak"
+    verify_active = verify_mode == "python" and bool(verifier_slot)
+    verify_extra: list[tuple[str, str, Any]] = []
+    struck_consensus: str | None = None
+    verify_surface: dict[str, Any] = {"ran": False, "verdict": None, "on": None}
+
     if cons is not None:
         # Exact consensus is tried first regardless of gate — it's free — and
         # always wins tier 0 with gate_used "exact" (addendum v1.1 §1).
@@ -300,23 +413,54 @@ def _run_cascade_turn(common: dict) -> dict:
             if c is not None and normalize_candidate(c) == cons
         )
         _winner_label, winner_text, _winner_acct = voters[winner_idx]
-        return {
-            "reference_outputs": voters,
-            "refs_from_cache": False,
-            "agg_messages": [dict(m) for m in messages],
-            "response": None,
-            "agg_usage": CanonicalUsage(),
-            "acting_slot": reference_models[winner_idx],
-            "cascade": {
+
+        if verify_active:
+            # "weak" (default) only pays for verification when the consensus
+            # isn't unanimous — a unanimous vote across every configured
+            # reference slot is the strongest signal the cheap path already
+            # has. "always" verifies every consensus regardless.
+            should_verify = verify_when == "always" or votes < len(reference_models)
+            if should_verify:
+                verdict, entry = _run_cascade_verifier(
+                    messages=messages,
+                    candidate=cons,
+                    verifier_slot=verifier_slot,
+                    slot_timeout=common["slot_timeout"],
+                    on="consensus",
+                )
+                verify_surface = {"ran": True, "verdict": verdict, "on": "consensus"}
+                if entry is not None:
+                    verify_extra = [entry]
+                if verdict == "wrong":
+                    struck_consensus = cons
+
+        if struck_consensus is None:
+            cascade_result = {
                 "tier": 0,
                 "consensus": cons,
                 "votes": votes,
                 "voters": voter_labels,
                 "candidates": normalized_candidates,
                 "gate_used": "exact",
-            },
-            "winner_text": winner_text,
-        }
+            }
+            if verify_mode == "python":
+                cascade_result["verify"] = verify_surface
+                cascade_result["struck_consensus"] = None
+            return {
+                "reference_outputs": voters + verify_extra,
+                "refs_from_cache": False,
+                "agg_messages": [dict(m) for m in messages],
+                "response": None,
+                "agg_usage": CanonicalUsage(),
+                "acting_slot": reference_models[winner_idx],
+                "cascade": cascade_result,
+                "winner_text": winner_text,
+            }
+        # Verdict "wrong": the consensus answer is struck — fall through to
+        # the same no-consensus path (judge gate, then tier 1) as if the
+        # voters had never agreed at all. `verify_extra` (the verifier LLM's
+        # billing entry) and `struck_consensus` carry forward into whichever
+        # tier ultimately returns.
 
     # Addendum v1.1: judge gate for freeform traffic. Exact consensus just
     # missed (no comparable short candidates agreed) — with gate == "judge",
@@ -401,9 +545,14 @@ def _run_cascade_turn(common: dict) -> dict:
 
     # Tier 1: no consensus among voters — run the preset's own aggregator with
     # the voter outputs attached as reference context (existing guidance
-    # builder), tool-free (cascade only serves tool-free requests).
+    # builder), tool-free (cascade only serves tool-free requests). A
+    # tier-0 strike's verifier note (addendum v1.2) rides along here too —
+    # unlike the judge entry above, the aggregator MUST see why its exact
+    # consensus was rejected, not just have it billed.
     agg_messages = [dict(m) for m in messages]
-    guidance = _reference_guidance(common["preset_name"], common["aggregator"], voters)
+    guidance = _reference_guidance(
+        common["preset_name"], common["aggregator"], voters + verify_extra
+    )
     _attach_reference_guidance(agg_messages, guidance)
     agg_response = call_llm(
         task="moa_aggregator",
@@ -431,29 +580,63 @@ def _run_cascade_turn(common: dict) -> dict:
     # aggregator that simply agreed with a voter.
     judge_discord = gate_used in {"judge-different", "judge-error"}
 
-    if agrees_any or not escalate_preset or judge_discord:
+    # Addendum v1.2: verify the aggregator's own candidate. Exact-gate flows
+    # only — a judge-gated freeform "discord" never had a comparable
+    # candidate in the first place, and there is nothing to verify when the
+    # aggregator produced none. Unlike the tier-0 knob, tier 1 ALWAYS
+    # verifies when active: tier 1 is already the slow path, so
+    # `verify_when` only guards the fast (tier-0) path.
+    tier1_verify_wrong = False
+    if verify_active and not judge_discord and agg_candidate is not None:
+        verdict, entry = _run_cascade_verifier(
+            messages=messages,
+            candidate=agg_candidate,
+            verifier_slot=verifier_slot,
+            slot_timeout=common["slot_timeout"],
+            on="tier1",
+        )
+        verify_surface = {"ran": True, "verdict": verdict, "on": "tier1"}
+        if entry is not None:
+            verify_extra = verify_extra + [entry]
+        tier1_verify_wrong = verdict == "wrong"
+
+    # A tier-1 "wrong" verdict escalates regardless of voter agreement, same
+    # as the existing no-voter-agreement trigger — both need an escalate
+    # preset configured and no judge-gated discord already settling at tier 1.
+    escalate_now = (
+        bool(escalate_preset)
+        and not judge_discord
+        and (not agrees_any or tier1_verify_wrong)
+    )
+
+    if not escalate_now:
+        cascade_result = {
+            "tier": 1,
+            "consensus": None,
+            "votes": votes,
+            "voters": voter_labels,
+            "candidates": normalized_candidates,
+            "tier1_candidate": tier1_candidate_norm,
+            "gate_used": gate_used,
+        }
+        if verify_mode == "python":
+            cascade_result["verify"] = verify_surface
+            cascade_result["struck_consensus"] = struck_consensus
         return {
-            "reference_outputs": voters + judge_extra,
+            "reference_outputs": voters + judge_extra + verify_extra,
             "refs_from_cache": False,
             "agg_messages": agg_messages,
             "response": agg_response,
             "agg_usage": agg_usage,
             "acting_slot": None,  # preset aggregator acted — default is right
-            "cascade": {
-                "tier": 1,
-                "consensus": None,
-                "votes": votes,
-                "voters": voter_labels,
-                "candidates": normalized_candidates,
-                "tier1_candidate": tier1_candidate_norm,
-                "gate_used": gate_used,
-            },
+            "cascade": cascade_result,
             "winner_text": None,
         }
 
-    # Tier 2: the aggregator agreed with NO voter and an escalate preset is
-    # configured — call THAT preset's aggregator solo, with the voters PLUS
-    # the tier-1 aggregator's own output attached as reference context.
+    # Tier 2: the aggregator agreed with NO voter (or a verifier struck its
+    # candidate) and an escalate preset is configured — call THAT preset's
+    # aggregator solo, with the voters PLUS the tier-1 aggregator's own
+    # output (and any verifier note) attached as reference context.
     tier1_label = f"tier1-aggregator — {_slot_label(common['aggregator'])}"
     tier1_acct = _RefAccounting(
         agg_usage,
@@ -463,7 +646,7 @@ def _run_cascade_turn(common: dict) -> dict:
         provider=agg_runtime.get("provider") or common["aggregator"].get("provider"),
         temperature=common["aggregator_temperature"],
     )
-    reference_outputs = voters + judge_extra + [(tier1_label, agg_text, tier1_acct)]
+    reference_outputs = voters + judge_extra + verify_extra + [(tier1_label, agg_text, tier1_acct)]
 
     escalate_aggregator = escalate_preset.get("aggregator") or {}
     escalate_messages = [dict(m) for m in messages]
@@ -483,6 +666,18 @@ def _run_cascade_turn(common: dict) -> dict:
     escalate_usage = _normalize_chunk_usage(
         getattr(escalate_response, "usage", None), escalate_runtime
     )
+    cascade_result = {
+        "tier": 2,
+        "consensus": None,
+        "votes": votes,
+        "voters": voter_labels,
+        "candidates": normalized_candidates,
+        "tier1_candidate": tier1_candidate_norm,
+        "gate_used": gate_used,
+    }
+    if verify_mode == "python":
+        cascade_result["verify"] = verify_surface
+        cascade_result["struck_consensus"] = struck_consensus
     return {
         "reference_outputs": reference_outputs,
         "refs_from_cache": False,
@@ -490,15 +685,7 @@ def _run_cascade_turn(common: dict) -> dict:
         "response": escalate_response,
         "agg_usage": escalate_usage,
         "acting_slot": escalate_aggregator,
-        "cascade": {
-            "tier": 2,
-            "consensus": None,
-            "votes": votes,
-            "voters": voter_labels,
-            "candidates": normalized_candidates,
-            "tier1_candidate": tier1_candidate_norm,
-            "gate_used": gate_used,
-        },
+        "cascade": cascade_result,
         "winner_text": None,
     }
 

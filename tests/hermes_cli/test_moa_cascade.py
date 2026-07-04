@@ -869,3 +869,626 @@ async def test_tier0_trace_attributes_winner_voter(moa_home, fake_llm, monkeypat
         assert captured.get("aggregator_model") != "mid-model"
     finally:
         await client.close()
+
+
+# ---------------------------------------------------------------------------
+# Addendum v1.2 -- verified cascade (iteration 19)
+#
+# Config fixtures below use 3 reference slots with `min_consensus: 2` so a
+# "weak" (non-unanimous, 2-of-3) consensus and a unanimous (3-of-3) consensus
+# are both constructible from the same preset shape -- the addendum's
+# `verify_when: "weak"` default treats those two cases differently (only the
+# former pays for a verifier call). Per the task brief, end-to-end tests
+# monkeypatch `hermes_cli.proxy.moa_cascade.run_verification` directly rather
+# than exercising a real subprocess; only the dedicated run_verification unit
+# tests near the bottom of this section use the real function.
+# ---------------------------------------------------------------------------
+
+
+def _write_verify_cascade_cfg(home):
+    """3-voter cascade preset (`min_consensus: 2` => 2-of-3 is a WEAK
+    majority, not unanimity) with an explicit `verify: python` + `verifier`
+    slot, plus an `escalate_to` target -- covers every addendum v1.2 branch
+    (weak-consensus strike, tier-1-forced escalation) from one config."""
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: casc3
+  presets:
+    casc3:
+      mode: cascade
+      cascade:
+        escalate_to: big
+        min_consensus: 2
+        verify: python
+        verifier:
+          provider: openrouter
+          model: verifier-model
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+        - provider: openrouter
+          model: voter-c
+      aggregator:
+        provider: openrouter
+        model: mid-model
+    big:
+      enabled: false
+      reference_models:
+        - provider: openrouter
+          model: unused
+      aggregator:
+        provider: openrouter
+        model: big-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_verify3(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_verify_cascade_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+def _write_verify_cascade_cfg_no_escalate(home):
+    """Same 3-voter verify config, but with no `escalate_to` target --
+    isolates the tier-0-strike -> tier-1-final path from tier-2 escalation
+    so a forced tier-1 re-verification (verify_when "weak" verifies tier 1
+    unconditionally, per the addendum) can never additionally escalate and
+    complicate the assertions for the pure strike behavior."""
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: casc3
+  presets:
+    casc3:
+      mode: cascade
+      cascade:
+        min_consensus: 2
+        verify: python
+        verifier:
+          provider: openrouter
+          model: verifier-model
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+        - provider: openrouter
+          model: voter-c
+      aggregator:
+        provider: openrouter
+        model: mid-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_verify3_no_escalate(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_verify_cascade_cfg_no_escalate(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_verify_weak_consensus_correct_stays_tier0(
+    moa_home_verify3, fake_llm, monkeypatch
+):
+    """2-of-3 consensus is WEAK (votes < len(reference_models)), so the
+    default verify_when="weak" triggers exactly one verifier call; a
+    CORRECT verdict changes nothing -- tier 0 still returns the consensus
+    voter's text and no aggregator call is made."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model == "voter-c":
+            return _response("Different path.\nANSWER: 2")
+        return _response("Shared path.\nANSWER: 1")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_verifier"] = lambda kwargs: _response(
+        "```python\nprint('VERDICT: CORRECT')\n```"
+    )
+    monkeypatch.setattr(
+        "hermes_cli.proxy.moa_cascade.run_verification",
+        lambda code: "correct",
+        raising=False,
+    )
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc3",
+                "messages": [{"role": "user", "content": "what is the shared answer?"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_verifier") == 1
+        assert "moa_aggregator" not in tasks
+
+        verifier_calls = [c for c in fake_llm.calls if c["task"] == "moa_verifier"]
+        assert verifier_calls[0].get("model") == "verifier-model"
+        assert verifier_calls[0].get("temperature") == 0.0
+        verifier_text = str(verifier_calls[0]["messages"])
+        assert "Candidate answer: 1" in verifier_text
+
+        content = body["choices"][0]["message"]["content"]
+        assert "Shared path" in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["consensus"] == "1"
+        assert cascade["votes"] == 2
+        assert cascade["verify"] == {"ran": True, "verdict": "correct", "on": "consensus"}
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_verify_unanimous_consensus_skips_verifier_call(
+    moa_home_verify3, fake_llm, monkeypatch
+):
+    """All 3 voters agree (unanimity: votes == len(reference_models)) --
+    verify_when "weak" only checks NON-unanimous consensus, so no verifier
+    call is made at all and verify.ran is false."""
+    run_verification_calls = []
+    monkeypatch.setattr(
+        "hermes_cli.proxy.moa_cascade.run_verification",
+        lambda code: run_verification_calls.append(code) or "correct",
+        raising=False,
+    )
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response("ANSWER: 42")
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc3",
+                "messages": [{"role": "user", "content": "what is 6*7?"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_verifier" not in tasks
+        assert run_verification_calls == []
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["votes"] == 3
+        assert cascade["verify"] == {"ran": False, "verdict": None, "on": None}
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_verify_weak_consensus_wrong_strikes_to_tier1(
+    moa_home_verify3_no_escalate, fake_llm, monkeypatch
+):
+    """A 2-of-3 consensus verified WRONG must not be returned -- the struck
+    value is recorded and the cascade proceeds to tier 1 as if there had
+    been no consensus at all; the aggregator's guidance carries an explicit
+    rejection note naming the struck answer."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model == "voter-c":
+            return _response("Different path.\nANSWER: 3")
+        return _response("Shared path.\nANSWER: 1")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_verifier"] = lambda kwargs: _response(
+        "```python\nprint('VERDICT: WRONG')\n```"
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        "Tier1 after strike.\nANSWER: 3"
+    )
+    monkeypatch.setattr(
+        "hermes_cli.proxy.moa_cascade.run_verification",
+        lambda code: "wrong",
+        raising=False,
+    )
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc3",
+                "messages": [{"role": "user", "content": "what is the shared answer?"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        agg_calls = [c for c in fake_llm.calls if c["task"] == "moa_aggregator"]
+        assert len(agg_calls) == 1
+        agg_text = str(agg_calls[0]["messages"])
+        assert "REJECTED" in agg_text
+        assert "consensus" in agg_text and "1" in agg_text
+        assert "verifier —" in agg_text
+
+        content = body["choices"][0]["message"]["content"]
+        assert "Tier1 after strike" in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 1
+        assert cascade["struck_consensus"] == "1"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_verify_tier1_wrong_escalates_to_tier2(
+    moa_home_verify3, fake_llm, monkeypatch
+):
+    """No exact consensus among the 3 voters; the aggregator's tier-1
+    candidate agrees with one voter (which alone would settle at tier 1
+    under the addendum v1.1 rules) -- but a verified WRONG verdict forces
+    escalation regardless of that agreement, since an escalate preset is
+    configured, and the verifier note rides along in the tier-2 guidance."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model == "voter-a":
+            return _response("Path A.\nANSWER: 1")
+        if model == "voter-b":
+            return _response("Path B.\nANSWER: 2")
+        return _response("Path C.\nANSWER: 3")
+
+    def agg_handler(kwargs):
+        if kwargs.get("model") == "big-model":
+            return _response("Escalated after verify.\nANSWER: 9")
+        return _response("Tier1 agrees with B.\nANSWER: 2")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_aggregator"] = agg_handler
+    fake_llm.handlers["moa_verifier"] = lambda kwargs: _response(
+        "```python\nprint('VERDICT: WRONG')\n```"
+    )
+    monkeypatch.setattr(
+        "hermes_cli.proxy.moa_cascade.run_verification",
+        lambda code: "wrong",
+        raising=False,
+    )
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc3",
+                "messages": [{"role": "user", "content": "what is 1, 2 or 3?"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        big_calls = [c for c in fake_llm.calls if c.get("model") == "big-model"]
+        assert len(big_calls) == 1
+        assert "verifier" in str(big_calls[0]["messages"]).lower()
+
+        content = body["choices"][0]["message"]["content"]
+        assert "Escalated after verify" in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 2
+        assert cascade.get("tier1_candidate") == "2"
+        assert cascade["verify"] == {"ran": True, "verdict": "wrong", "on": "tier1"}
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_verify_llm_call_raises_is_inconclusive(moa_home_verify3, fake_llm):
+    """The verifier's own call_llm() raising (upstream error/timeout) must
+    never block the cascade: it degrades to an "inconclusive" verdict and
+    tier 0 still returns the consensus exactly as an unverified weak
+    consensus would."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model == "voter-c":
+            return _response("Different path.\nANSWER: 2")
+        return _response("Shared path.\nANSWER: 1")
+
+    def raising_verifier(kwargs):
+        raise RuntimeError("verifier upstream failure")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_verifier"] = raising_verifier
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc3",
+                "messages": [{"role": "user", "content": "what is the shared answer?"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        assert "moa_aggregator" not in [c["task"] for c in fake_llm.calls]
+
+        content = body["choices"][0]["message"]["content"]
+        assert "Shared path" in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["verify"] == {
+            "ran": True,
+            "verdict": "inconclusive",
+            "on": "consensus",
+        }
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_verify_run_verification_no_verdict_is_inconclusive(
+    moa_home_verify3, fake_llm, monkeypatch
+):
+    """run_verification itself finding no parseable VERDICT line (exec
+    error/timeout inside the sandboxed check) also degrades to
+    "inconclusive" without blocking the cascade -- exercised separately from
+    the verifier LLM call raising above, since it is a distinct failure
+    point in the pipeline."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model == "voter-c":
+            return _response("Different path.\nANSWER: 2")
+        return _response("Shared path.\nANSWER: 1")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_verifier"] = lambda kwargs: _response(
+        "```python\nprint('no parseable verdict here')\n```"
+    )
+    monkeypatch.setattr(
+        "hermes_cli.proxy.moa_cascade.run_verification",
+        lambda code: "inconclusive",
+        raising=False,
+    )
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc3",
+                "messages": [{"role": "user", "content": "what is the shared answer?"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        content = body["choices"][0]["message"]["content"]
+        assert "Shared path" in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["verify"] == {
+            "ran": True,
+            "verdict": "inconclusive",
+            "on": "consensus",
+        }
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# run_verification direct unit tests -- real subprocess, no monkeypatching
+# (per the task brief: end-to-end tests fake run_verification, but these
+# exercise the actual sandboxed-execution helper against trivial code).
+# ---------------------------------------------------------------------------
+
+
+def test_run_verification_correct_verdict_real_subprocess():
+    from hermes_cli.proxy.moa_cascade import run_verification
+
+    assert run_verification("print('VERDICT: CORRECT')") == "correct"
+
+
+def test_run_verification_wrong_verdict_real_subprocess():
+    from hermes_cli.proxy.moa_cascade import run_verification
+
+    assert run_verification("print('VERDICT: WRONG')") == "wrong"
+
+
+def test_run_verification_exec_error_is_inconclusive_real_subprocess():
+    from hermes_cli.proxy.moa_cascade import run_verification
+
+    assert run_verification("raise ValueError('boom')") == "inconclusive"
+
+
+def test_run_verification_timeout_is_inconclusive_real_subprocess():
+    from hermes_cli.proxy.moa_cascade import run_verification
+
+    assert run_verification("import time\ntime.sleep(20)") == "inconclusive"
+
+
+# ---------------------------------------------------------------------------
+# Config: verifier slot fallback chain (explicit -> judge slot -> router
+# classifier -> disabled), mirroring the judge-gate fallback chain tests.
+# ---------------------------------------------------------------------------
+
+
+def test_verify_config_no_resolvable_verifier_slot_disables_verify():
+    """`verify: python` with no explicit verifier slot, no judge slot, and no
+    router configured has nothing to call -- normalizes to fully disabled,
+    mirroring the judge-gate fallback's terminal "nothing to call" case."""
+    from hermes_cli.moa_config import normalize_moa_config
+
+    presets = {
+        "casc": {
+            "mode": "cascade",
+            "cascade": {"escalate_to": "big", "verify": "python"},
+            "reference_models": [
+                {"provider": "openrouter", "model": "voter-a"},
+                {"provider": "openrouter", "model": "voter-b"},
+            ],
+            "aggregator": {"provider": "openrouter", "model": "mid-model"},
+        },
+        "big": {
+            "enabled": False,
+            "reference_models": [{"provider": "openrouter", "model": "unused"}],
+            "aggregator": {"provider": "openrouter", "model": "big-model"},
+        },
+    }
+    cfg = normalize_moa_config({"default_preset": "casc", "presets": presets})
+    cascade = cfg["presets"]["casc"]["cascade"]
+    assert cascade["verify"] is None
+    assert cascade.get("verifier") is None
+
+
+def test_verify_config_fallback_chain_explicit_then_judge_then_router():
+    """Config-time verifier resolution chain (addendum v1.2): an explicit
+    `cascade.verifier` slot wins outright; absent that, a resolved
+    `cascade.judge` slot is reused; absent both, the router's classifier
+    (when routing is enabled) is the last resort before disabling verify."""
+    from hermes_cli.moa_config import normalize_moa_config
+
+    base_presets = {
+        "casc": {
+            "mode": "cascade",
+            "cascade": {"escalate_to": "big", "verify": "python"},
+            "route": {"description": "verify fallback chain testing"},
+            "reference_models": [
+                {"provider": "openrouter", "model": "voter-a"},
+                {"provider": "openrouter", "model": "voter-b"},
+            ],
+            "aggregator": {"provider": "openrouter", "model": "mid-model"},
+        },
+        "big": {
+            "enabled": False,
+            "reference_models": [{"provider": "openrouter", "model": "unused"}],
+            "aggregator": {"provider": "openrouter", "model": "big-model"},
+        },
+    }
+
+    # 1) Explicit verifier slot always wins.
+    explicit_presets = {
+        **base_presets,
+        "casc": {
+            **base_presets["casc"],
+            "cascade": {
+                **base_presets["casc"]["cascade"],
+                "verifier": {"provider": "openrouter", "model": "explicit-verifier"},
+            },
+        },
+    }
+    cfg = normalize_moa_config({"default_preset": "casc", "presets": explicit_presets})
+    cascade = cfg["presets"]["casc"]["cascade"]
+    assert cascade["verify"] == "python"
+    assert cascade["verifier"] == {"provider": "openrouter", "model": "explicit-verifier"}
+
+    # 2) No explicit verifier, but gate: judge resolved its own slot -> reused.
+    judge_presets = {
+        **base_presets,
+        "casc": {
+            **base_presets["casc"],
+            "cascade": {
+                **base_presets["casc"]["cascade"],
+                "gate": "judge",
+                "judge": {"provider": "openrouter", "model": "judge-slot"},
+            },
+        },
+    }
+    cfg = normalize_moa_config({"default_preset": "casc", "presets": judge_presets})
+    cascade = cfg["presets"]["casc"]["cascade"]
+    assert cascade["verify"] == "python"
+    assert cascade["verifier"] == {"provider": "openrouter", "model": "judge-slot"}
+
+    # 3) No explicit verifier, no judge slot, router enabled -> classifier.
+    cfg = normalize_moa_config(
+        {
+            "default_preset": "casc",
+            "router": {
+                "enabled": True,
+                "classifier": {"provider": "openrouter", "model": "router-classifier"},
+                "default": "casc",
+            },
+            "presets": base_presets,
+        }
+    )
+    cascade = cfg["presets"]["casc"]["cascade"]
+    assert cascade["verify"] == "python"
+    assert cascade["verifier"] == {"provider": "openrouter", "model": "router-classifier"}
+
+
+def test_verify_when_normalization_default_and_explicit():
+    """`verify_when` defaults to "weak"; an explicit "always" is preserved;
+    anything unrecognized falls back to the "weak" default."""
+    from hermes_cli.moa_config import normalize_moa_config
+
+    def _cfg(verify_when=None):
+        cascade = {
+            "escalate_to": "big",
+            "verify": "python",
+            "verifier": {"provider": "openrouter", "model": "verifier-model"},
+        }
+        if verify_when is not None:
+            cascade["verify_when"] = verify_when
+        return {
+            "default_preset": "casc",
+            "presets": {
+                "casc": {
+                    "mode": "cascade",
+                    "cascade": cascade,
+                    "reference_models": [
+                        {"provider": "openrouter", "model": "voter-a"},
+                        {"provider": "openrouter", "model": "voter-b"},
+                    ],
+                    "aggregator": {"provider": "openrouter", "model": "mid-model"},
+                },
+                "big": {
+                    "enabled": False,
+                    "reference_models": [{"provider": "openrouter", "model": "unused"}],
+                    "aggregator": {"provider": "openrouter", "model": "big-model"},
+                },
+            },
+        }
+
+    cfg = normalize_moa_config(_cfg())
+    assert cfg["presets"]["casc"]["cascade"]["verify_when"] == "weak"
+
+    cfg = normalize_moa_config(_cfg("always"))
+    assert cfg["presets"]["casc"]["cascade"]["verify_when"] == "always"
+
+    cfg = normalize_moa_config(_cfg("bogus"))
+    assert cfg["presets"]["casc"]["cascade"]["verify_when"] == "weak"
+
+
+def test_run_verification_distrusts_verdict_after_crash():
+    """A script that prints a verdict then exits non-zero is inconclusive —
+    the crash may be the very computation the verdict depended on."""
+    from hermes_cli.proxy.moa_cascade import run_verification
+
+    assert (
+        run_verification("print('VERDICT: CORRECT')\nraise RuntimeError('late crash')")
+        == "inconclusive"
+    )
+    assert (
+        run_verification("print('VERDICT: WRONG')\nimport sys; sys.exit(3)")
+        == "inconclusive"
+    )

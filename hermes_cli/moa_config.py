@@ -155,11 +155,30 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         if gate not in {"exact", "judge"}:
             gate = "exact"
         judge = _clean_slot(cascade_raw.get("judge"))
+        # Addendum v1.2 (verified cascade): "python" opts a preset into the
+        # sandboxed-verifier check on exact-candidate answers (see
+        # hermes_cli/proxy/moa_cascade.py:run_verification and
+        # moa_server._run_cascade_turn). Any other/absent value is "off" — the
+        # verifier slot fallback (explicit -> judge slot -> router classifier)
+        # can only be resolved once the router block is normalized, so — like
+        # the judge-gate fallback above — it is finished in
+        # `normalize_moa_config` below; here we just record the request and
+        # any explicit slot.
+        verify = str(cascade_raw.get("verify") or "").strip().lower() or None
+        if verify != "python":
+            verify = None
+        verify_when = str(cascade_raw.get("verify_when") or "weak").strip().lower()
+        if verify_when not in {"weak", "always"}:
+            verify_when = "weak"
+        verifier = _clean_slot(cascade_raw.get("verifier"))
         cascade = {
             "escalate_to": escalate_to,
             "min_consensus": min_consensus,
             "gate": gate,
             "judge": judge,
+            "verify": verify,
+            "verifier": verifier,
+            "verify_when": verify_when,
         }
 
     return {
@@ -323,6 +342,26 @@ def normalize_moa_config(raw: Any) -> dict[str, Any]:
                 cascade["judge"] = deepcopy(router["classifier"])
             else:
                 cascade["gate"] = "exact"
+
+    # Addendum v1.2: resolve the verifier fallback chain now that both the
+    # router AND the judge-gate default above are settled. An explicit
+    # `cascade.verifier` slot wins; otherwise a resolved `cascade.judge` slot
+    # is reused (already-warm classifier-shaped model, same rationale as the
+    # judge-gate default); otherwise the router classifier; otherwise there is
+    # nothing to call it with, so `verify` degrades to disabled (None) here —
+    # the server never has to guess at request time whether a verifier slot
+    # exists.
+    for preset in presets.values():
+        cascade = preset.get("cascade")
+        if not cascade or cascade.get("verify") != "python":
+            continue
+        if cascade.get("verifier") is None:
+            if cascade.get("judge") is not None:
+                cascade["verifier"] = deepcopy(cascade["judge"])
+            elif router.get("enabled") and router.get("classifier"):
+                cascade["verifier"] = deepcopy(router["classifier"])
+            else:
+                cascade["verify"] = None
 
     default_name = str(raw.get("default_preset") or "").strip()
     if not default_name or default_name not in presets:
