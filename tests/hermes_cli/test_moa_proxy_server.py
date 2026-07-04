@@ -924,3 +924,30 @@ async def test_draft_review_flow(draft_review_home, fake_llm):
         assert all("Draft answer under review" in json.dumps(c["messages"]) for c in ref_calls)
     finally:
         await client.close()
+
+
+def test_as_chunk_stream_adapts_non_iterable_response():
+    """Providers that ignore stream=True (openai-codex plan OAuth) return one
+    complete response; the adapter must synthesize a usable chunk stream."""
+    from types import SimpleNamespace
+
+    from hermes_cli.proxy.moa_server import _as_chunk_stream
+
+    msg = SimpleNamespace(
+        content="hello", reasoning_content="thought", tool_calls=None
+    )
+    resp = SimpleNamespace(
+        choices=[SimpleNamespace(message=msg, finish_reason="stop")],
+        usage=SimpleNamespace(prompt_tokens=1, completion_tokens=2),
+    )
+    chunks = list(_as_chunk_stream(resp))
+    assert len(chunks) == 1
+    delta = chunks[0].choices[0].delta
+    assert delta.content == "hello"
+    assert delta.reasoning_content == "thought"
+    assert chunks[0].choices[0].finish_reason == "stop"
+    assert chunks[0].usage.completion_tokens == 2
+
+    # real iterators pass through untouched
+    it = iter([1, 2])
+    assert _as_chunk_stream(it) is it

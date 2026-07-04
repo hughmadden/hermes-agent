@@ -51,6 +51,7 @@ import threading
 import time
 import uuid
 from collections import OrderedDict
+from types import SimpleNamespace
 from typing import Any, Optional
 
 try:
@@ -778,6 +779,33 @@ def _finish_reason(response: Any) -> str:
 _DONE = object()
 
 
+
+def _as_chunk_stream(response: Any):
+    """Adapt a call_llm(stream=True) return value into a chunk iterator.
+
+    Some providers (openai-codex plan OAuth, measured 2026-07-05) ignore
+    stream=True and hand back one complete response object; iterating it
+    raises "'types.SimpleNamespace' object is not iterable" and the turn
+    surfaces as an empty completion to streaming clients. When the return
+    value is not iterable, synthesize a single stream chunk carrying the
+    full message as a delta (content + reasoning + tool_calls) plus usage.
+    """
+    if hasattr(response, "__iter__"):
+        return response
+    choices = getattr(response, "choices", None) or []
+    message = getattr(choices[0], "message", None) if choices else None
+    delta = SimpleNamespace(
+        content=getattr(message, "content", None),
+        reasoning_content=getattr(message, "reasoning_content", None),
+        tool_calls=getattr(message, "tool_calls", None) or None,
+    )
+    finish = getattr(choices[0], "finish_reason", None) if choices else "stop"
+    chunk = SimpleNamespace(
+        choices=[SimpleNamespace(delta=delta, finish_reason=finish or "stop")],
+        usage=getattr(response, "usage", None),
+    )
+    return iter([chunk])
+
 def _delta_reasoning_text(delta: Any) -> str | None:
     """Reasoning text from a stream delta, across provider spellings."""
     for key in ("reasoning_content", "reasoning"):
@@ -827,7 +855,7 @@ def _reference_stream_worker(
             stream_options={"include_usage": True},
             **runtime,
         )
-        for chunk in stream:
+        for chunk in _as_chunk_stream(stream):
             if abort.is_set():
                 break
             raw_usage = getattr(chunk, "usage", None)
@@ -1395,7 +1423,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                         stream_options={"include_usage": True},
                         **runtime,
                     )
-                    for chunk in stream:
+                    for chunk in _as_chunk_stream(stream):
                         if abort.is_set():
                             break
                         raw_usage = getattr(chunk, "usage", None)
