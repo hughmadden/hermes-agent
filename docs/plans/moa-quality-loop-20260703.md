@@ -50,6 +50,9 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 30 | RLM agent loop on wafer beats single-pass | gemma-4-31b: RLM 49/60 (82%) vs solo 41/60 (68%), +14pp @2.5s mean, 2 rounds median, 63% python-rate; gpt-oss-120b: no benefit (48% vs 55%, FINAL-extraction artifacts) | Law: externalized reasoning lifts non-thinking models; thinking models don't need it. Best small-model result of the campaign; RLM-as-cascade-voter queued |
 
+| 31 | RLM voters raise the all-wafer cascade | cascade-rlm 55/60 (92%) @3.6s, tier-0 45/60, frontier 1/60 (1.7%) | Efficiency win (frontier 5%→1.7% at equal accuracy); 92% wafer ceiling still holds — correlated errors survive better voters |
+| 32 | Compose RLM voters + clean $0 arbitration | cascade-rlm-conv 58/60 (97%) @3.9s median — CAMPAIGN RECORD; tier-0 49/50 (98% precision, 83% coverage); clean GPT-5.5 tail 9/10; 17% frontier @$0; 0 errors; pure cloud | THE recipe: frontier-solo accuracy (98% @40s) at 10× lower latency and wafer cost |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
