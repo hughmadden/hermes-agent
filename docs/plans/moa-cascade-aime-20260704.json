@@ -1,0 +1,605 @@
+{
+  "dataset": "aime",
+  "n_tasks": 60,
+  "results": [
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-2",
+      "expected": "116",
+      "answer": "116",
+      "correct": true,
+      "latency_s": 0.9,
+      "tier": 0,
+      "total_tokens": 2241
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-3",
+      "expected": "809",
+      "answer": "809",
+      "correct": true,
+      "latency_s": 1.4,
+      "tier": 0,
+      "total_tokens": 3488
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-0",
+      "expected": "33",
+      "answer": "33",
+      "correct": true,
+      "latency_s": 1.8,
+      "tier": 0,
+      "total_tokens": 3090
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-9",
+      "expected": "55",
+      "answer": "55",
+      "correct": true,
+      "latency_s": 0.9,
+      "tier": 0,
+      "total_tokens": 2407
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-8",
+      "expected": "25",
+      "answer": "25",
+      "correct": true,
+      "latency_s": 1.5,
+      "tier": 0,
+      "total_tokens": 3738
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-10",
+      "expected": "540",
+      "answer": "540",
+      "correct": true,
+      "latency_s": 1.0,
+      "tier": 0,
+      "total_tokens": 2319
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-12",
+      "expected": "204",
+      "answer": "204",
+      "correct": true,
+      "latency_s": 0.8,
+      "tier": 0,
+      "total_tokens": 2585
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-14",
+      "expected": "294",
+      "answer": "294",
+      "correct": true,
+      "latency_s": 1.1,
+      "tier": 0,
+      "total_tokens": 2060
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-13",
+      "expected": "699",
+      "answer": "699",
+      "correct": true,
+      "latency_s": 2.7,
+      "tier": 0,
+      "total_tokens": 7654
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-11",
+      "expected": "45",
+      "answer": "45",
+      "correct": true,
+      "latency_s": 9.3,
+      "tier": 1,
+      "total_tokens": 7944
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-15",
+      "expected": "110",
+      "answer": "110",
+      "correct": true,
+      "latency_s": 11.2,
+      "tier": 1,
+      "total_tokens": 10273
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-1",
+      "expected": "23",
+      "answer": "23",
+      "correct": true,
+      "latency_s": 16.5,
+      "tier": 1,
+      "total_tokens": 15786
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-16",
+      "expected": "721",
+      "answer": "721",
+      "correct": true,
+      "latency_s": 11.5,
+      "tier": 1,
+      "total_tokens": 10645
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-6",
+      "expected": "371",
+      "answer": "371",
+      "correct": true,
+      "latency_s": 18.2,
+      "tier": 1,
+      "total_tokens": 17817
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-7",
+      "expected": "601",
+      "answer": "601",
+      "correct": true,
+      "latency_s": 19.3,
+      "tier": 1,
+      "total_tokens": 14375
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-18",
+      "expected": "468",
+      "answer": "468",
+      "correct": true,
+      "latency_s": 4.9,
+      "tier": 1,
+      "total_tokens": 5037
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-4",
+      "expected": "197",
+      "answer": "197",
+      "correct": true,
+      "latency_s": 25.0,
+      "tier": 1,
+      "total_tokens": 23576
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-24",
+      "expected": "73",
+      "answer": "73",
+      "correct": true,
+      "latency_s": 1.5,
+      "tier": 0,
+      "total_tokens": 3554
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-23",
+      "expected": "236",
+      "answer": "236",
+      "correct": true,
+      "latency_s": 7.7,
+      "tier": 1,
+      "total_tokens": 7073
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-22",
+      "expected": "480",
+      "answer": "480",
+      "correct": true,
+      "latency_s": 9.4,
+      "tier": 1,
+      "total_tokens": 8898
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-21",
+      "expected": "80",
+      "answer": "80",
+      "correct": true,
+      "latency_s": 11.3,
+      "tier": 1,
+      "total_tokens": 11830
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-5",
+      "expected": "385",
+      "answer": "384",
+      "correct": false,
+      "latency_s": 32.4,
+      "tier": 1,
+      "total_tokens": 29590
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-27",
+      "expected": "104",
+      "answer": "104",
+      "correct": true,
+      "latency_s": 6.3,
+      "tier": 1,
+      "total_tokens": 5670
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-0",
+      "expected": "70",
+      "answer": "70",
+      "correct": true,
+      "latency_s": 1.5,
+      "tier": 0,
+      "total_tokens": 1801
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-28",
+      "expected": "104",
+      "answer": "104",
+      "correct": true,
+      "latency_s": 7.0,
+      "tier": 1,
+      "total_tokens": 5962
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-2",
+      "expected": "16",
+      "answer": "16",
+      "correct": true,
+      "latency_s": 0.9,
+      "tier": 0,
+      "total_tokens": 2241
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-29",
+      "expected": "321",
+      "answer": "321",
+      "correct": true,
+      "latency_s": 5.5,
+      "tier": 1,
+      "total_tokens": 5297
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-3",
+      "expected": "117",
+      "answer": "117",
+      "correct": true,
+      "latency_s": 1.4,
+      "tier": 0,
+      "total_tokens": 2626
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-5",
+      "expected": "504",
+      "answer": "504",
+      "correct": true,
+      "latency_s": 1.4,
+      "tier": 0,
+      "total_tokens": 2924
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-25",
+      "expected": "113",
+      "answer": "113",
+      "correct": true,
+      "latency_s": 22.3,
+      "tier": 1,
+      "total_tokens": 16105
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-26",
+      "expected": "127",
+      "answer": "127",
+      "correct": true,
+      "latency_s": 21.7,
+      "tier": 1,
+      "total_tokens": 13951
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-7",
+      "expected": "77",
+      "answer": "77",
+      "correct": true,
+      "latency_s": 1.3,
+      "tier": 0,
+      "total_tokens": 3041
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-1",
+      "expected": "588",
+      "answer": "588",
+      "correct": true,
+      "latency_s": 15.8,
+      "tier": 1,
+      "total_tokens": 16954
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-8",
+      "expected": "62",
+      "answer": "62",
+      "correct": true,
+      "latency_s": 10.5,
+      "tier": 1,
+      "total_tokens": 19025
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-19",
+      "expected": "902",
+      "answer": "902",
+      "correct": true,
+      "latency_s": 55.8,
+      "tier": 2,
+      "total_tokens": 21429
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-10",
+      "expected": "259",
+      "answer": "259",
+      "correct": true,
+      "latency_s": 26.5,
+      "tier": 1,
+      "total_tokens": 21635
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-9",
+      "expected": "81",
+      "answer": "81",
+      "correct": true,
+      "latency_s": 46.5,
+      "tier": 2,
+      "total_tokens": 19124
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-4",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "latency_s": 63.3,
+      "tier": 2,
+      "total_tokens": 67727
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-15",
+      "expected": "468",
+      "answer": "468",
+      "correct": true,
+      "latency_s": 1.2,
+      "tier": 0,
+      "total_tokens": 2964
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-16",
+      "expected": "49",
+      "answer": "49",
+      "correct": true,
+      "latency_s": 0.8,
+      "tier": 0,
+      "total_tokens": 2065
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-20",
+      "expected": "211",
+      "answer": "211",
+      "correct": true,
+      "latency_s": 94.8,
+      "tier": 2,
+      "total_tokens": 25504
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-18",
+      "expected": "106",
+      "answer": "106",
+      "correct": true,
+      "latency_s": 1.7,
+      "tier": 0,
+      "total_tokens": 3570
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-19",
+      "expected": "336",
+      "answer": "336",
+      "correct": true,
+      "latency_s": 3.7,
+      "tier": 0,
+      "total_tokens": 11023
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-6",
+      "expected": "821",
+      "answer": "821",
+      "correct": true,
+      "latency_s": 77.4,
+      "tier": 1,
+      "total_tokens": 17567
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-17",
+      "expected": "82",
+      "answer": "82",
+      "correct": true,
+      "latency_s": 15.8,
+      "tier": 1,
+      "total_tokens": 14133
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-14",
+      "expected": "735",
+      "answer": "735",
+      "correct": true,
+      "latency_s": 24.7,
+      "tier": 1,
+      "total_tokens": 25394
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-20",
+      "expected": "293",
+      "answer": "293",
+      "correct": true,
+      "latency_s": 5.1,
+      "tier": 1,
+      "total_tokens": 6417
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-24",
+      "expected": "907",
+      "answer": "907",
+      "correct": true,
+      "latency_s": 5.6,
+      "tier": 1,
+      "total_tokens": 4845
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-21",
+      "expected": "237",
+      "answer": "237",
+      "correct": true,
+      "latency_s": 11.2,
+      "tier": 1,
+      "total_tokens": 10296
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-23",
+      "expected": "149",
+      "answer": "149",
+      "correct": true,
+      "latency_s": 7.6,
+      "tier": 1,
+      "total_tokens": 11390
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-22",
+      "expected": "610",
+      "answer": "610",
+      "correct": true,
+      "latency_s": 12.5,
+      "tier": 1,
+      "total_tokens": 16816
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-28",
+      "expected": "104",
+      "answer": "104",
+      "correct": true,
+      "latency_s": 2.1,
+      "tier": 0,
+      "total_tokens": 6595
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime24-17",
+      "expected": "315",
+      "answer": "315",
+      "correct": true,
+      "latency_s": 128.6,
+      "tier": 2,
+      "total_tokens": 34295
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-26",
+      "expected": "19",
+      "answer": "19",
+      "correct": true,
+      "latency_s": 14.7,
+      "tier": 1,
+      "total_tokens": 17281
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-25",
+      "expected": "113",
+      "answer": "113",
+      "correct": true,
+      "latency_s": 16.7,
+      "tier": 1,
+      "total_tokens": 16402
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-11",
+      "expected": "510",
+      "answer": "510",
+      "correct": true,
+      "latency_s": 89.7,
+      "tier": 2,
+      "total_tokens": 79534
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-29",
+      "expected": "240",
+      "answer": "188",
+      "correct": false,
+      "latency_s": 45.8,
+      "tier": 1,
+      "total_tokens": 37666
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-27",
+      "expected": "248",
+      "answer": "248",
+      "correct": true,
+      "latency_s": 63.7,
+      "tier": 2,
+      "total_tokens": 39500
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-13",
+      "expected": "60",
+      "answer": "61",
+      "correct": false,
+      "latency_s": 290.3,
+      "tier": 2,
+      "total_tokens": 75674
+    },
+    {
+      "model": "moa:cascade-wafer",
+      "task": "aime25-12",
+      "expected": "204",
+      "answer": null,
+      "correct": false,
+      "error": "HTTP 502: {\"error\": {\"message\": \"MoA aggregator call failed: Connection error.\", \"type\": \"api_error\", \"code\": \"api_error\"}}",
+      "latency_s": 352.3
+    }
+  ]
+}
