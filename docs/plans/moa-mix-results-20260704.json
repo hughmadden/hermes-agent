@@ -1,0 +1,1984 @@
+{
+  "n_tasks": 20,
+  "results": [
+    {
+      "config": "fable-solo",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 10.6,
+      "ref_tokens": 0,
+      "agg_tokens": 578
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 10.8,
+      "ref_tokens": 0,
+      "agg_tokens": 755
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 17.8,
+      "ref_tokens": 0,
+      "agg_tokens": 1503
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 22.2,
+      "ref_tokens": 0,
+      "agg_tokens": 2329
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 22.4,
+      "ref_tokens": 0,
+      "agg_tokens": 1841
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 15.3,
+      "ref_tokens": 0,
+      "agg_tokens": 1214
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 26.8,
+      "ref_tokens": 0,
+      "agg_tokens": 2346
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 27.9,
+      "ref_tokens": 0,
+      "agg_tokens": 2639
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 30.2,
+      "ref_tokens": 0,
+      "agg_tokens": 2939
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 8.4,
+      "ref_tokens": 0,
+      "agg_tokens": 823
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 22.3,
+      "ref_tokens": 0,
+      "agg_tokens": 2102
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 23.2,
+      "ref_tokens": 0,
+      "agg_tokens": 1872
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 30.8,
+      "ref_tokens": 0,
+      "agg_tokens": 2679
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 20.8,
+      "ref_tokens": 0,
+      "agg_tokens": 1775
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "105",
+      "correct": true,
+      "latency_s": 55.4,
+      "ref_tokens": 0,
+      "agg_tokens": 5207
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 24.6,
+      "ref_tokens": 0,
+      "agg_tokens": 2971
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 10.8,
+      "ref_tokens": 0,
+      "agg_tokens": 689
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "4/9",
+      "correct": true,
+      "latency_s": 49.4,
+      "ref_tokens": 0,
+      "agg_tokens": 4422
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 20.3,
+      "ref_tokens": 0,
+      "agg_tokens": 752
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 35.4,
+      "ref_tokens": 0,
+      "agg_tokens": 3705
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 65.5,
+      "ref_tokens": 0,
+      "agg_tokens": 6259
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 19.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1105
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 22.6,
+      "ref_tokens": 0,
+      "agg_tokens": 1333
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 26.8,
+      "ref_tokens": 0,
+      "agg_tokens": 1571
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 15.6,
+      "ref_tokens": 0,
+      "agg_tokens": 908
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 27.3,
+      "ref_tokens": 0,
+      "agg_tokens": 1563
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 26.0,
+      "ref_tokens": 0,
+      "agg_tokens": 1478
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 35.7,
+      "ref_tokens": 0,
+      "agg_tokens": 2126
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 26.4,
+      "ref_tokens": 0,
+      "agg_tokens": 1482
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "105",
+      "correct": true,
+      "latency_s": 43.9,
+      "ref_tokens": 0,
+      "agg_tokens": 2531
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 10.5,
+      "ref_tokens": 0,
+      "agg_tokens": 650
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 44.1,
+      "ref_tokens": 0,
+      "agg_tokens": 2540
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 21.1,
+      "ref_tokens": 0,
+      "agg_tokens": 1154
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 62.1,
+      "ref_tokens": 0,
+      "agg_tokens": 3268
+    },
+    {
+      "config": "fable-solo",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "448/3",
+      "correct": true,
+      "latency_s": 129.2,
+      "ref_tokens": 0,
+      "agg_tokens": 9898
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 59.0,
+      "ref_tokens": 0,
+      "agg_tokens": 3376
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 16.1,
+      "ref_tokens": 757,
+      "agg_tokens": 1048
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 16.7,
+      "ref_tokens": 787,
+      "agg_tokens": 1024
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "23/59",
+      "correct": false,
+      "latency_s": 40.7,
+      "ref_tokens": 0,
+      "agg_tokens": 2110
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 25.8,
+      "ref_tokens": 1404,
+      "agg_tokens": 2140
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 57.6,
+      "ref_tokens": 0,
+      "agg_tokens": 3518
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 37.4,
+      "ref_tokens": 1647,
+      "agg_tokens": 3520
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "448/3",
+      "correct": true,
+      "latency_s": 91.7,
+      "ref_tokens": 0,
+      "agg_tokens": 4518
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 39.0,
+      "ref_tokens": 1996,
+      "agg_tokens": 2740
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 37.8,
+      "ref_tokens": 1932,
+      "agg_tokens": 2936
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 24.0,
+      "ref_tokens": 1541,
+      "agg_tokens": 2335
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 40.9,
+      "ref_tokens": 1456,
+      "agg_tokens": 3425
+    },
+    {
+      "config": "gpt55-plan-solo",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "4/9",
+      "correct": true,
+      "latency_s": 138.5,
+      "ref_tokens": 0,
+      "agg_tokens": 7740
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 63.0,
+      "ref_tokens": 2405,
+      "agg_tokens": 4592
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 42.3,
+      "ref_tokens": 749,
+      "agg_tokens": 3647
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 38.9,
+      "ref_tokens": 1154,
+      "agg_tokens": 2763
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 46.4,
+      "ref_tokens": 1536,
+      "agg_tokens": 3119
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 16.4,
+      "ref_tokens": 749,
+      "agg_tokens": 1280
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 45.2,
+      "ref_tokens": 1620,
+      "agg_tokens": 3089
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 8.8,
+      "ref_tokens": 2575,
+      "agg_tokens": 1883
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 17.6,
+      "ref_tokens": 2587,
+      "agg_tokens": 1858
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 37.1,
+      "ref_tokens": 1830,
+      "agg_tokens": 2617
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 17.2,
+      "ref_tokens": 1574,
+      "agg_tokens": 3457
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "4/9",
+      "correct": true,
+      "latency_s": 70.1,
+      "ref_tokens": 739,
+      "agg_tokens": 5106
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "105",
+      "correct": true,
+      "latency_s": 96.5,
+      "ref_tokens": 1626,
+      "agg_tokens": 8176
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 13.5,
+      "ref_tokens": 4327,
+      "agg_tokens": 2913
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 51.4,
+      "ref_tokens": 2328,
+      "agg_tokens": 4717
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 20.5,
+      "ref_tokens": 1691,
+      "agg_tokens": 3532
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 22.0,
+      "ref_tokens": 4224,
+      "agg_tokens": 4596
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 24.9,
+      "ref_tokens": 1936,
+      "agg_tokens": 4614
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 58.7,
+      "ref_tokens": 1920,
+      "agg_tokens": 5386
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 21.7,
+      "ref_tokens": 4048,
+      "agg_tokens": 6424
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 22.6,
+      "ref_tokens": 2025,
+      "agg_tokens": 4016
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 20.5,
+      "ref_tokens": 1848,
+      "agg_tokens": 3866
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 42.4,
+      "ref_tokens": 1863,
+      "agg_tokens": 6026
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 9.6,
+      "ref_tokens": 2009,
+      "agg_tokens": 1935
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 34.8,
+      "ref_tokens": 1136,
+      "agg_tokens": 4042
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 16.4,
+      "ref_tokens": 2356,
+      "agg_tokens": 3992
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 20.3,
+      "ref_tokens": 7662,
+      "agg_tokens": 6898
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 6.6,
+      "ref_tokens": 2396,
+      "agg_tokens": 1288
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 22.8,
+      "ref_tokens": 18760,
+      "agg_tokens": 14580
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "105",
+      "correct": true,
+      "latency_s": 69.5,
+      "ref_tokens": 1553,
+      "agg_tokens": 8007
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 54.3,
+      "ref_tokens": 3084,
+      "agg_tokens": 8184
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 12.1,
+      "ref_tokens": 2012,
+      "agg_tokens": 1442
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 14.9,
+      "ref_tokens": 1204,
+      "agg_tokens": 2028
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 15.5,
+      "ref_tokens": 1103,
+      "agg_tokens": 1928
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 23.7,
+      "ref_tokens": 5623,
+      "agg_tokens": 3943
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 21.9,
+      "ref_tokens": 6177,
+      "agg_tokens": 3305
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 16.0,
+      "ref_tokens": 1691,
+      "agg_tokens": 2582
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 20.0,
+      "ref_tokens": 2192,
+      "agg_tokens": 3274
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 35.6,
+      "ref_tokens": 1246,
+      "agg_tokens": 2087
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 24.3,
+      "ref_tokens": 1687,
+      "agg_tokens": 2854
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "4/9",
+      "correct": true,
+      "latency_s": 110.2,
+      "ref_tokens": 1305,
+      "agg_tokens": 12047
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 58.8,
+      "ref_tokens": 1530,
+      "agg_tokens": 4689
+    },
+    {
+      "config": "council-fable",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "448/3",
+      "correct": true,
+      "latency_s": 219.0,
+      "ref_tokens": 1200,
+      "agg_tokens": 17429
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "110",
+      "correct": false,
+      "latency_s": 73.0,
+      "ref_tokens": 1555,
+      "agg_tokens": 5427
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 69.4,
+      "ref_tokens": 6508,
+      "agg_tokens": 6354
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 14.1,
+      "ref_tokens": 1527,
+      "agg_tokens": 1168
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 75.8,
+      "ref_tokens": 5574,
+      "agg_tokens": 5733
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 3.4,
+      "ref_tokens": 2233,
+      "agg_tokens": 2952
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 3.6,
+      "ref_tokens": 2003,
+      "agg_tokens": 3337
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 5.5,
+      "ref_tokens": 1171,
+      "agg_tokens": 6443
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 18.9,
+      "ref_tokens": 3842,
+      "agg_tokens": 2348
+    },
+    {
+      "config": "wafer-fable",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "448/3",
+      "correct": true,
+      "latency_s": 168.6,
+      "ref_tokens": 1869,
+      "agg_tokens": 15804
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 10.7,
+      "ref_tokens": 3582,
+      "agg_tokens": 11380
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 8.6,
+      "ref_tokens": 1244,
+      "agg_tokens": 7884
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 10.2,
+      "ref_tokens": 4393,
+      "agg_tokens": 7678
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 29.2,
+      "ref_tokens": 2529,
+      "agg_tokens": 3993
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 16.8,
+      "ref_tokens": 1705,
+      "agg_tokens": 14342
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 21.6,
+      "ref_tokens": 1753,
+      "agg_tokens": 18343
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "105",
+      "correct": true,
+      "latency_s": 35.5,
+      "ref_tokens": 1566,
+      "agg_tokens": 26350
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 41.0,
+      "ref_tokens": 4765,
+      "agg_tokens": 28964
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 25.9,
+      "ref_tokens": 1008,
+      "agg_tokens": 18552
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "2200",
+      "correct": false,
+      "latency_s": 23.4,
+      "ref_tokens": 3011,
+      "agg_tokens": 21125
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 2.4,
+      "ref_tokens": 1756,
+      "agg_tokens": 1751
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 9.1,
+      "ref_tokens": 1438,
+      "agg_tokens": 8105
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "4/9",
+      "correct": true,
+      "latency_s": 123.1,
+      "ref_tokens": 5704,
+      "agg_tokens": 9533
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 89.5,
+      "ref_tokens": 12065,
+      "agg_tokens": 5103
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "210",
+      "correct": false,
+      "latency_s": 26.8,
+      "ref_tokens": 3121,
+      "agg_tokens": 22446
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "675/67",
+      "correct": false,
+      "latency_s": 36.4,
+      "ref_tokens": 1108,
+      "agg_tokens": 27317
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": null,
+      "correct": false,
+      "latency_s": 66.6,
+      "ref_tokens": 756,
+      "agg_tokens": 66031
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 20.7,
+      "ref_tokens": 7414,
+      "agg_tokens": 11578
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "1/2",
+      "correct": false,
+      "latency_s": 72.6,
+      "ref_tokens": 1054,
+      "agg_tokens": 41039
+    },
+    {
+      "config": "cere-moa",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 67.3,
+      "ref_tokens": 5822,
+      "agg_tokens": 35135
+    },
+    {
+      "config": "wafer-gpt55plan",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "630",
+      "correct": false,
+      "latency_s": 195.0,
+      "ref_tokens": 2504,
+      "agg_tokens": 11397
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 96.7,
+      "ref_tokens": 0,
+      "agg_tokens": 5220
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.2
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.1
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.1
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 307.4,
+      "ref_tokens": 0,
+      "agg_tokens": 18358
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.4
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.3
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": null,
+      "correct": false,
+      "error": "Expecting value: line 2721 column 1 (char 14960)",
+      "latency_s": 571.8
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 779.5,
+      "ref_tokens": 0,
+      "agg_tokens": 44547
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 527.7,
+      "ref_tokens": 0,
+      "agg_tokens": 27831
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.3
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.2
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 150.7,
+      "ref_tokens": 0,
+      "agg_tokens": 7239
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 983.3,
+      "ref_tokens": 0,
+      "agg_tokens": 53667
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 305.5,
+      "ref_tokens": 0,
+      "agg_tokens": 16007
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.5
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1174.0,
+      "ref_tokens": 0,
+      "agg_tokens": 65633
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.2
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 245.2,
+      "ref_tokens": 0,
+      "agg_tokens": 15787
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 223.1,
+      "ref_tokens": 0,
+      "agg_tokens": 16836
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 1169.2,
+      "ref_tokens": 0,
+      "agg_tokens": 62542
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": null,
+      "correct": false,
+      "latency_s": 250.8,
+      "ref_tokens": 0,
+      "agg_tokens": 19841
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 602.3,
+      "ref_tokens": 0,
+      "agg_tokens": 24285
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": null,
+      "correct": false,
+      "error": "Expecting value: line 2085 column 1 (char 11462)",
+      "latency_s": 437.8
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 419.2,
+      "ref_tokens": 0,
+      "agg_tokens": 30705
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": null,
+      "correct": false,
+      "latency_s": 107.4,
+      "ref_tokens": 0,
+      "agg_tokens": 8545
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1183.2,
+      "ref_tokens": 0,
+      "agg_tokens": 65627
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 586.2,
+      "ref_tokens": 0,
+      "agg_tokens": 26043
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "105",
+      "correct": true,
+      "latency_s": 487.1,
+      "ref_tokens": 0,
+      "agg_tokens": 35232
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 681.0,
+      "ref_tokens": 0,
+      "agg_tokens": 28712
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 834.4,
+      "ref_tokens": 0,
+      "agg_tokens": 36875
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 486.4,
+      "ref_tokens": 0,
+      "agg_tokens": 21269
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "448/3",
+      "correct": true,
+      "latency_s": 772.7,
+      "ref_tokens": 0,
+      "agg_tokens": 55032
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 915.7,
+      "ref_tokens": 0,
+      "agg_tokens": 65428
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 96.5,
+      "ref_tokens": 6718,
+      "agg_tokens": 3404
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 142.2,
+      "ref_tokens": 5708,
+      "agg_tokens": 3677
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 353.2,
+      "ref_tokens": 0,
+      "agg_tokens": 27056
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 670.4,
+      "ref_tokens": 0,
+      "agg_tokens": 27444
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 214.5,
+      "ref_tokens": 14026,
+      "agg_tokens": 5403
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 611.4
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": null,
+      "correct": false,
+      "error": "Expecting value: line 825 column 1 (char 4532)",
+      "latency_s": 490.4
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 571.2
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 381.1,
+      "ref_tokens": 35472,
+      "agg_tokens": 13329
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 438.5,
+      "ref_tokens": 50014,
+      "agg_tokens": 17653
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 558.4
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 2163.9,
+      "ref_tokens": 0,
+      "agg_tokens": 31928
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 527.2
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 848.2,
+      "ref_tokens": 55446,
+      "agg_tokens": 27141
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 562.9,
+      "ref_tokens": 32385,
+      "agg_tokens": 24089
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 530.6
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": null,
+      "correct": false,
+      "error": "Expecting value: line 1867 column 1 (char 10263)",
+      "latency_s": 848.3
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 2449.0,
+      "ref_tokens": 0,
+      "agg_tokens": 39904
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 352.3
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 3234.6,
+      "ref_tokens": 0,
+      "agg_tokens": 41259
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 121.4,
+      "ref_tokens": 8553,
+      "agg_tokens": 2933
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 66.7,
+      "ref_tokens": 9897,
+      "agg_tokens": 2908
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 466.3
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 232.8,
+      "ref_tokens": 17619,
+      "agg_tokens": 2179
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 248.5,
+      "ref_tokens": 24894,
+      "agg_tokens": 2284
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1218.9,
+      "ref_tokens": 28528,
+      "agg_tokens": 77540
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 323.1,
+      "ref_tokens": 21439,
+      "agg_tokens": 7991
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 646.6,
+      "ref_tokens": 24925,
+      "agg_tokens": 22514
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 247.6,
+      "ref_tokens": 20653,
+      "agg_tokens": 2628
+    },
+    {
+      "config": "qwen27-solo",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": null,
+      "correct": false,
+      "latency_s": 3600.6,
+      "ref_tokens": 0,
+      "agg_tokens": 58954
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 834.9,
+      "ref_tokens": 32002,
+      "agg_tokens": 34048
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 456.4,
+      "ref_tokens": 28537,
+      "agg_tokens": 1471
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 1464.7
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 770.4,
+      "ref_tokens": 24344,
+      "agg_tokens": 16360
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 685.2,
+      "ref_tokens": 34331,
+      "agg_tokens": 2778
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 529.9,
+      "ref_tokens": 46375,
+      "agg_tokens": 13770
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 87.1,
+      "ref_tokens": 12148,
+      "agg_tokens": 1342
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "105",
+      "correct": true,
+      "latency_s": 925.2,
+      "ref_tokens": 97747,
+      "agg_tokens": 26895
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": null,
+      "correct": false,
+      "latency_s": 969.4,
+      "ref_tokens": 19361,
+      "agg_tokens": 66096
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 286.0,
+      "ref_tokens": 31067,
+      "agg_tokens": 4741
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 357.2,
+      "ref_tokens": 14346,
+      "agg_tokens": 12240
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 1587.6,
+      "ref_tokens": 92288,
+      "agg_tokens": 4475
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": null,
+      "correct": false,
+      "latency_s": 843.6,
+      "ref_tokens": 76577,
+      "agg_tokens": 66222
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 599.0,
+      "ref_tokens": 55812,
+      "agg_tokens": 4154
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 1613.0,
+      "ref_tokens": 137418,
+      "agg_tokens": 26440
+    },
+    {
+      "config": "local-trio-glm52agg",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "1/3",
+      "correct": false,
+      "latency_s": 2224.5,
+      "ref_tokens": 199791,
+      "agg_tokens": 42540
+    }
+  ]
+}

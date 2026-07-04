@@ -187,7 +187,7 @@ def run_turn(config_name: str, task: dict) -> dict:
         response = facade.create(
             messages=[{"role": "user", "content": task["q"] + _ANSWER_INSTRUCTION}],
             max_tokens=20000,
-            timeout=420,
+            timeout=int(os.environ.get("MIX_TIMEOUT", 420)),
         )
         text = _extract_text(response)
         ref_usage, _ = facade.consume_reference_usage()
