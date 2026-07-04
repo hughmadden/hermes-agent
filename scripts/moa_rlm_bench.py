@@ -59,6 +59,35 @@ DATASETS = {
     "hmmt": fetch_hmmt,
 }
 
+def fetch_gpqa():
+    """GPQA Diamond (hendrydong mirror), numeric-gold subset only.
+
+    Free-response science questions whose \\boxed{} gold answer is a pure
+    number — the only rows normalize_candidate can grade reliably (unit
+    strings like '10^-4 eV' are excluded). n≈25; report with that caveat.
+    """
+    rows = []
+    for off in (0, 100):
+        url = (
+            "https://datasets-server.huggingface.co/rows?dataset="
+            "hendrydong%2Fgpqa_diamond&config=default&split=test"
+            f"&offset={off}&length=100"
+        )
+        req = urllib.request.Request(url, headers={"User-Agent": "Mozilla/5.0"})
+        with urllib.request.urlopen(req, timeout=60) as resp:
+            rows += json.load(resp)["rows"]
+    out = []
+    for i, r in enumerate(rows):
+        sol = r["row"].get("solution") or ""
+        m = re.findall(r"\\boxed\{([^{}]+)\}", sol)
+        gold = m[-1].strip() if m else None
+        if gold and re.fullmatch(r"-?\d+(\.\d+)?", gold):
+            out.append({"id": f"gpqa-{i}", "problem": r["row"]["problem"], "answer": gold})
+    return out
+
+DATASETS["gpqa"] = fetch_gpqa
+
+
 CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
 _REQUEST_TIMEOUT_S = 120
 _MAX_ATTEMPTS = 3  # 1 try + 2 retries
