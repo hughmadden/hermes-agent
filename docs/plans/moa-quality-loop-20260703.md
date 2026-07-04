@@ -28,6 +28,9 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 17 | k-sampled consensus (4 voters, 3-of-4) | same 93% AIME, median 4.4s, tier-0 rate 80%, frontier 5% | Confirmed — zero-code tuning via duplicated slots; new default |
 | 18 | Judge gate extends tier-0 to freeform | tier-0 on 30/30 prose prompts @2.6s (2× faster) but blind quality 2/2/23 vs always-on MoA | Split verdict: consensus transfers correctness, not polish — latency-first option only |
 
+| 19 | Verification rescues correlated-confidence errors | cascade-wafer4v AIME 55/60 (92%) vs 56/60 unverified; 2 WRONG verdicts correctly forced tier-2 (6/7); false consensus survived — 31B verifier can't check what 120B voters missed | Neutral on insight-bound tasks; verification pays only when the check is pure computation. Ship as optional; the frontier dial is the honest accuracy lever |
+| 20 | One endpoint can carry every measured optimization | moa:omni (router+cascade+escalation+lanes): 10/10 mixed-traffic prompts routed correctly, 2.6 s median | Confirmed — the product; shipped as the example config |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
