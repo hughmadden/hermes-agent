@@ -56,6 +56,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 33 | Champion holds cross-set | cascade-rlm-conv HMMT 18/20 (90%) @5.5s; clean arbiter 7/7; both misses = tier-0 false consensus | Champion: 97% AIME / 90% HMMT pure cloud; local-hybrid still best on hardest set (95%/95%) |
 | 34 | Unanimity over reliable RLM voters filters the last errors | mc4 HMMT: same 90% @37s; tier-0 precision STILL 5/7 — both misses were 4-of-4 agreed-wrong | REFUTED — residual errors are systematic model-class errors; no consensus rule filters them; mc3 dominates mc4 everywhere. Consensus space closed |
 
+| 36 | Post-cutoff revalidation (AIME 2026 + HMMT Feb 2026) | Frontier solos DROP (fable 100→97/90, gpt5.5 98/95→97/85 — contamination confirmed); cascade-rlm HOLDS: 97% AIME26 (ties frontiers), 95% HMMT26 (beats gpt5.5 +10pp, fable +5pp) @3.9–5.7s, frontier 3–20%; rlm-conv falls behind (87/90%) | Architecture measures difficulty, not memorization; escalation-on-discord > always-frontier-arbitration on novel problems; cascade-rlm = new default (stable+turbo switched) |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
