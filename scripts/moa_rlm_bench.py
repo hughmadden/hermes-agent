@@ -82,7 +82,7 @@ def fetch_gpqa():
         m = re.findall(r"\\boxed\{([^{}]+)\}", sol)
         gold = m[-1].strip() if m else None
         if gold and re.fullmatch(r"-?\d+(\.\d+)?", gold):
-            out.append({"id": f"gpqa-{i}", "problem": r["row"]["problem"], "answer": gold})
+            out.append({"id": f"gpqa-{i}", "q": r["row"]["problem"], "a": gold})
     return out
 
 DATASETS["gpqa"] = fetch_gpqa
