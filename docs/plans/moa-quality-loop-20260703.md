@@ -62,6 +62,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 37 | Production cascade (streaming/tools/context) | Streaming tier-0 verified live @1.3s w/ RLM voters; tools→acting-solo; oversized→context-solo (100k guard); 170 tests; 2 event-loop defects caught in review | Cascade presets are now real-world models — turbo runs on cascade economics |
 
+| 39 | All-open ladder (wafer voters + deepseek-RLM clean arbiter) | Two runs, 2026 sets: tier-0 superb (23/24, 13/13 @3–5s) but arbiter 0/10 in-proxy vs 90% standalone; round-capping made it worse; tail solves need 500–900s via OR | HARD-RESIDUE BUDGET LAW: arbiter tiers need MORE budget than standalone averages, not less. All-open arbitration = batch tier until locally hosted; cascade-rlm stays the production pick |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
