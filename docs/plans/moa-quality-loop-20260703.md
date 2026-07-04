@@ -44,6 +44,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 27 | CONVERGENCE: compose all measured laws (competent-diverse voters + clean $0-frontier arbitration) | 57/60 (95%) AIME — breaks the 92±1.5% ceiling; tier-0 39/39 PERFECT (first zero-false-consensus run); tier-1 clean GPT-5.5 18/21; 35% frontier @$0; 0 errors; Qwen3-32B-AWQ on the local 5090 in the voter pool | CONFIRMED by design, not noise — the campaign's laws compose |
 
+| 28 | Unanimity over the diverse pool approaches frontier-solo | tier-0 never fired (thinking voter exhausted its 8000-tok cap before ANSWER → candidate None → 4-of-4 unreachable); 55/56 at clean-frontier tier-1 = GPT-5.5-class @35s | Curve complete: 93%@5% / 95%@35% (optimum) / 98%@~100% frontier; unanimity dials require voters that reliably emit candidates |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
