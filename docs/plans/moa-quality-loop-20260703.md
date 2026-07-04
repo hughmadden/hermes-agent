@@ -33,6 +33,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 21 | Consensus strictness is the quality/cost dial | HMMT dial sweep: mc2 90% / mc3 85% / mc4 (unanimity) 20/20 (100%) @ 2 frontier calls vs GPT-5.5 solo 19/20 @ 20 calls | Confirmed (n=20 caveat): strictness buys accuracy with wafer aggregation, not frontier spend; mc3 latency default, mc4 quality default |
 
+| 22 | Dial confirmation at n=60 | mc4 AIME 88% < mc3 93%: strictness demoted 95.8%-precise weak consensus into a 73%-accurate tier-1 aggregator | Dial is task-relative, not monotone; constants: unanimous tier-0 ≈ perfect (53/53 cross-set), tier-2 near-perfect; tier-1 aggregator = weak link (upgrade queued) |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
