@@ -46,6 +46,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 28 | Unanimity over the diverse pool approaches frontier-solo | tier-0 never fired (thinking voter exhausted its 8000-tok cap before ANSWER → candidate None → 4-of-4 unreachable); 55/56 at clean-frontier tier-1 = GPT-5.5-class @35s | Curve complete: 93%@5% / 95%@35% (optimum) / 98%@~100% frontier; unanimity dials require voters that reliably emit candidates |
 
+| 29 | Per-slot caps make thinking-voter unanimity viable; convergence holds on HMMT | mc4-fair (15k cap): still degenerate — 87%, tier-0 never fired (thinking voter's candidates rarely string-match); convergence HMMT 19/20 (95%), clean arbitration 11/11 | Unanimity dials with thinking voters SETTLED impractical; cascade-convergence = standing optimum on BOTH sets (95%/95%) |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
