@@ -300,11 +300,20 @@ def _run_reference(
         else [{"role": "system", "content": _REFERENCE_SYSTEM_PROMPT}, *ref_messages]
     )
     try:
+        # A slot may carry its own max_tokens override (thinking-heavy voters
+        # need caps >= their reasoning budget or they never emit a final
+        # answer — measured 2026-07-05: an 8k cap made a 32B thinking voter's
+        # candidate unextractable, collapsing unanimity consensus).
+        slot_cap = slot.get("max_tokens")
+        try:
+            slot_cap = int(slot_cap) if slot_cap else None
+        except (TypeError, ValueError):
+            slot_cap = None
         response = call_llm(
             task="moa_reference",
             messages=messages,
             temperature=temperature,
-            max_tokens=max_tokens,
+            max_tokens=slot_cap or max_tokens,
             timeout=timeout,
             **runtime,
         )

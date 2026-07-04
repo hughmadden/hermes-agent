@@ -74,7 +74,18 @@ def _clean_slot(slot: Any) -> dict[str, str] | None:
     # an invalid slot is dropped, falling back to the preset's defaults.
     if provider.lower() == "moa":
         return None
-    return {"provider": provider, "model": model}
+    out = {"provider": provider, "model": model}
+    # Optional per-slot generation cap (overrides the preset-level
+    # reference_max_tokens for THIS slot only) — thinking-heavy voters need
+    # caps >= their reasoning budget to reliably emit final answers.
+    cap = slot.get("max_tokens")
+    try:
+        cap = int(cap)
+    except (TypeError, ValueError):
+        cap = None
+    if cap and cap > 0:
+        out["max_tokens"] = cap
+    return out
 
 
 def _default_preset() -> dict[str, Any]:
