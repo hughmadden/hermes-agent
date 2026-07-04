@@ -120,6 +120,39 @@ def fetch_hmmt() -> list[dict]:
     return tasks
 
 
+def fetch_matharena(dataset: str, prefix: str, min_rows: int = 20) -> list[dict]:
+    """Generic MathArena competition loader (gradable int/fraction subset)."""
+    url = (
+        "https://datasets-server.huggingface.co/rows?dataset="
+        + urllib.parse.quote(dataset, safe="")
+        + "&config=default&split=train&offset=0&length=100"
+    )
+    with urllib.request.urlopen(url, timeout=60) as resp:
+        data = json.load(resp)
+    tasks = []
+    for r in data["rows"]:
+        row = r["row"]
+        ans = _normalize_answer(str(row["answer"]))
+        if ans is None:
+            continue
+        tasks.append(
+            {"id": f"{prefix}-{row['problem_idx']}", "q": row["problem"], "a": ans}
+        )
+    if len(tasks) < min_rows:
+        raise RuntimeError(f"only {len(tasks)} gradable problems in {dataset}")
+    return tasks
+
+
+def fetch_aime26() -> list[dict]:
+    """AIME 2026 (Feb 2026 — post-cutoff for all campaign models)."""
+    return fetch_matharena("MathArena/aime_2026", "aime26", min_rows=25)
+
+
+def fetch_hmmt26() -> list[dict]:
+    """HMMT Feb 2026 (post-cutoff)."""
+    return fetch_matharena("MathArena/hmmt_feb_2026", "hmmt26", min_rows=20)
+
+
 def _normalize_answer(raw: str):
     """Integer or fraction → canonical string; None when not gradable."""
     s = raw.strip().strip("$").replace(" ", "").replace("\\dfrac", "\\frac")

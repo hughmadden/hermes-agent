@@ -41,7 +41,9 @@ from moa_hard_bench import (  # noqa: E402
 from moa_mix_bench import (  # noqa: E402
     _ANSWER_INSTRUCTION as _HMMT_INSTRUCTION,
     extract_answer as _hmmt_extract_answer,
+    fetch_aime26,
     fetch_hmmt,
+    fetch_hmmt26,
     is_correct as _hmmt_is_correct,
 )
 
@@ -54,6 +56,18 @@ DATASETS: dict[str, dict] = {
     },
     "hmmt": {
         "fetch": fetch_hmmt,
+        "instruction": _HMMT_INSTRUCTION,
+        "extract": _hmmt_extract_answer,
+        "is_correct": _hmmt_is_correct,
+    },
+    "aime26": {
+        "fetch": fetch_aime26,
+        "instruction": _HMMT_INSTRUCTION,
+        "extract": _hmmt_extract_answer,
+        "is_correct": _hmmt_is_correct,
+    },
+    "hmmt26": {
+        "fetch": fetch_hmmt26,
         "instruction": _HMMT_INSTRUCTION,
         "extract": _hmmt_extract_answer,
         "is_correct": _hmmt_is_correct,
