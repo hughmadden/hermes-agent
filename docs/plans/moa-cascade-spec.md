@@ -330,3 +330,52 @@ cerebras), verify_when weak. AIME-60 + HMMT-20 via moa_cascade_bench
 (record usage.moa.cascade.verify in rows — extend the bench script to
 carry the whole cascade block through to the JSON). Success: AIME ≥58/60,
 median ≤7 s, frontier ≤10%.
+
+## Addendum v1.3 — RLM voter slots (iteration 31)
+
+Measured motivation (iter 30): a reason→python→observe loop lifts
+gemma-4-31b from 68% to 82% AIME at 2.5 s mean — but only for models
+WITHOUT internal reasoning. Make that loop available inside the proxy so
+RLM agents can serve as cascade voters (and as plain reference slots).
+
+### Config
+Per reference slot (cleaned by `_clean_slot`, alongside the existing
+`max_tokens` passthrough): `agent: "rlm"` (any other value ignored) and
+optional `rlm_rounds` (int, default 6, clamp 2..12). Normalized slot keys:
+`agent`, `rlm_rounds` present only when agent == "rlm".
+
+### Semantics (agent/moa_loop.py)
+In `_run_reference`, when `slot.get("agent") == "rlm"` AND `direct` is True
+(cascade voters; advisory fan-out slots ignore the flag — advice is prose,
+the loop is for answering):
+- Run the iter-30 loop INSIDE the reference call: charter system prompt
+  (same wording as scripts/moa_rlm_bench.py — think briefly; ONE ```python
+  block per turn OR `FINAL: <answer>`; stdlib only; verify before
+  finishing), the client messages as the task; up to rlm_rounds assistant
+  turns via the same `call_llm(task="moa_reference", ...)` slot runtime,
+  max_tokens per turn = min(2000, slot cap or fan-out cap); python fences
+  executed via `hermes_cli.proxy.moa_cascade.run_rlm_exec(code) -> str`
+  (NEW small sibling of run_verification: same sandbox flags — -I, empty
+  env, tempdir, 12 s — but returns the raw stdout+stderr tail (1500 chars)
+  instead of parsing verdicts); outputs fed back as user "OUTPUT:" turns;
+  last round forces no-tool FINAL. The reference's returned text = the
+  full final assistant message (so cascade candidate extraction sees the
+  FINAL line; extract_candidate already prefers ANSWER: — add "FINAL" to
+  the same regex alternation: `(?:ANSWER|FINAL)\s*:`).
+- Usage: sum CanonicalUsage across loop turns into the single reference
+  accounting entry; label gains suffix " [rlm]".
+- Any loop-infrastructure exception → return the standard "[failed: ...]"
+  note (never break the fan-out).
+
+### Tests (tests/agent/ or test_moa_cascade.py, faked call_llm)
+- rlm slot loops: fake model emits a python fence turn then FINAL; assert
+  exec fed back as OUTPUT user turn, final text contains FINAL line, one
+  accounting entry, label suffixed.
+- forced final on round cap; failure → [failed:] note; non-direct
+  (advisory) fan-out ignores agent flag; extract_candidate("FINAL: 42").
+- config: rlm_rounds clamped; agent key preserved by _clean_slot.
+
+### Bench (config-only after ship)
+cascade-rlm: voters [gpt-oss-120b, gemma31(agent:rlm), gpt-oss-120b,
+gemma31(agent:rlm)] mc3, agg zai-glm-4.7, esc gpt55-plan; AIME-60.
+Target: ≥95% at ≤15% frontier, all-wafer voters (no local GPU).
