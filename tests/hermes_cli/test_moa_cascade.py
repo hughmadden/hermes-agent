@@ -416,7 +416,10 @@ async def test_escalate_to_nonexistent_normalizes_to_none_stays_tier1(
 
 
 # ---------------------------------------------------------------------------
-# 7. request WITH tools on the cascade preset -> existing fanout path
+# 7. request WITH tools on the cascade preset -> acting-model solo path
+#    (superseded by addendum v1.4: tool-carrying requests no longer use
+#    the fanout path -- see test_cascade_tools_non_streaming_is_tool_solo
+#    below for the full contract).
 # ---------------------------------------------------------------------------
 
 
@@ -445,7 +448,9 @@ async def test_cascade_with_tools_uses_fanout(moa_home, fake_llm):
         assert len(agg_calls) == 1
         assert agg_calls[0]["tools"] == tools
 
-        assert "cascade" not in body["usage"]["moa"]
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_reference" not in tasks
+        assert body["usage"]["moa"]["cascade"] == {"tier": None, "mode": "tool-solo"}
     finally:
         await client.close()
 
@@ -1622,5 +1627,578 @@ async def test_clean_arbiter_gets_no_voter_context(moa_home_clean, fake_llm):
         joined = _json.dumps(agg_calls[0]["messages"])
         assert "ANSWER: 1" not in joined and "voter-a" not in joined
         assert "Mixture of Agents reference context" not in joined
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# Addendum v1.4 -- real-world cascade: streaming + tool-carrying requests
+# (iteration 37)
+#
+# Streaming-specific fakes below mirror tests/hermes_cli/test_moa_proxy_server
+# .py's `_delta_chunk`/`_usage_chunk`/`_tool_call_delta`/`_read_sse` helpers
+# verbatim (that file is the SSE convention oracle for this proxy). Tier-0
+# voters remain NON-streaming even on a streaming HTTP request (the addendum
+# runs the existing non-streaming voter fan-out inside a worker thread), so
+# `fake_llm.handlers["moa_reference"]` fakes below return plain `_response(...)`
+# objects exactly like the non-streaming cascade tests above -- only the
+# aggregator fakes below become chunk iterators, and only for the tier-1
+# "no escalate" case where the addendum specifies the aggregator streams
+# live token-by-token.
+# ---------------------------------------------------------------------------
+
+
+def _delta_chunk(*, content=None, reasoning=None, tool_calls=None, finish_reason=None, usage=None):
+    delta = SimpleNamespace(
+        content=content,
+        reasoning_content=reasoning,
+        reasoning=None,
+        tool_calls=tool_calls,
+    )
+    choice = SimpleNamespace(delta=delta, finish_reason=finish_reason)
+    return SimpleNamespace(choices=[choice], usage=usage)
+
+
+def _usage_chunk(prompt=10, completion=5):
+    return SimpleNamespace(choices=[], usage=_usage(prompt, completion))
+
+
+def _tool_call_delta(index=0, call_id="call_1", name=None, arguments=None):
+    fn = SimpleNamespace(name=name, arguments=arguments)
+    return SimpleNamespace(index=index, id=call_id, type="function", function=fn)
+
+
+async def _read_sse(resp):
+    """Parse an SSE body into the list of decoded ``data:`` payloads."""
+    import json as _json
+
+    raw = await resp.text()
+    events = []
+    for line in raw.splitlines():
+        if not line.startswith("data: "):
+            continue
+        payload = line[len("data: "):]
+        if payload == "[DONE]":
+            events.append("[DONE]")
+        else:
+            events.append(_json.loads(payload))
+    return events
+
+
+def _write_rlm_cascade_cfg(home):
+    """cascade preset with one plain voter and one RLM-agent voter (addendum
+    v1.3), no escalate_to -- exists purely to prove an RLM voter's " [rlm]"
+    label surfaces in the streaming tier-0 voters list (addendum v1.4)."""
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: cascrlm
+  presets:
+    cascrlm:
+      mode: cascade
+      reference_models:
+        - provider: custom
+          model: voter-a
+        - provider: custom
+          model: voter-b
+          agent: rlm
+      aggregator:
+        provider: openrouter
+        model: mid-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_rlm(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_rlm_cascade_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+# ---------------------------------------------------------------------------
+# A. streaming + consensus -> tier 0, voter reasoning deltas, ONE content
+#    delta with the winner text, no aggregator call.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_streaming_tier0_consensus_sse(moa_home, fake_llm):
+    """Streaming, tool-free cascade request with voter consensus: the SSE
+    stream carries the "[cascade: N voters answering...]" announcement, a
+    "[voter <label>: done]" reasoning delta per voter, then the winner's
+    FULL text as a single content delta -- never a token-by-token stream --
+    finish_reason "stop", and the final usage chunk's usage.moa.cascade
+    matches the non-streaming tier-0 shape. No moa_aggregator call at all."""
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response(
+        "Reasoning...\nANSWER: 42"
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "what is 6*7?"}],
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            },
+        )
+        assert resp.status == 200
+        assert resp.headers["Content-Type"].startswith("text/event-stream")
+        events = await _read_sse(resp)
+        assert events[-1] == "[DONE]"
+        chunks = [e for e in events if e != "[DONE]"]
+
+        reasoning_text = "".join(
+            c["choices"][0]["delta"].get("reasoning_content", "")
+            for c in chunks
+            if c["choices"]
+        )
+        assert "cascade" in reasoning_text.lower()
+        assert "2 voters answering" in reasoning_text
+        assert "[voter openrouter:voter-a: done]" in reasoning_text
+        assert "[voter openrouter:voter-b: done]" in reasoning_text
+        # No content leakage into the voter-progress reasoning deltas.
+        assert "ANSWER: 42" not in reasoning_text
+
+        content_chunks = [
+            c
+            for c in chunks
+            if c["choices"] and c["choices"][0]["delta"].get("content")
+        ]
+        assert len(content_chunks) == 1
+        assert content_chunks[0]["choices"][0]["delta"]["content"] == (
+            "Reasoning...\nANSWER: 42"
+        )
+
+        finish = [
+            c["choices"][0]["finish_reason"]
+            for c in chunks
+            if c["choices"] and c["choices"][0]["finish_reason"]
+        ]
+        assert finish == ["stop"]
+
+        usage_chunks = [c for c in chunks if not c["choices"]]
+        assert len(usage_chunks) == 1
+        cascade = usage_chunks[0]["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["consensus"] == "42"
+        assert cascade["votes"] == 2
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_reference") == 2
+        assert "moa_aggregator" not in tasks
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# B. streaming + disagreement + no escalate_to (clean-arbiter preset) ->
+#    tier 1 streams the aggregator LIVE, token-by-token.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_streaming_tier1_no_escalate_streams_aggregator_live(
+    moa_home_clean, fake_llm
+):
+    """No consensus and no escalate_to configured (the clean-arbiter preset
+    from the earlier addendum, reused here escalate-free): the aggregator
+    streams live -- MULTIPLE content deltas arrive from the fake streaming
+    handler, not one buffered chunk -- and usage.moa.cascade lands at tier 1."""
+    replies = {"voter-a": "ANSWER: 1", "voter-b": "ANSWER: 2"}
+
+    def ref_handler(kwargs):
+        return _response(replies[kwargs.get("model")])
+
+    def agg_stream_handler(kwargs):
+        assert kwargs.get("stream") is True
+        return iter(
+            [
+                _delta_chunk(reasoning="synthesizing... "),
+                _delta_chunk(content="final "),
+                _delta_chunk(content="answer"),
+                _delta_chunk(finish_reason="stop"),
+                _usage_chunk(prompt=40, completion=20),
+            ]
+        )
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_aggregator"] = agg_stream_handler
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:cleanc",
+                "messages": [{"role": "user", "content": "q"}],
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            },
+        )
+        assert resp.status == 200
+        events = await _read_sse(resp)
+        chunks = [e for e in events if e != "[DONE]"]
+
+        content_chunks = [
+            c
+            for c in chunks
+            if c["choices"] and c["choices"][0]["delta"].get("content")
+        ]
+        # Live, token-by-token: MORE than one content delta (unlike tier 0's
+        # single buffered winner-text delta).
+        assert len(content_chunks) >= 2
+        content_text = "".join(
+            c["choices"][0]["delta"]["content"] for c in content_chunks
+        )
+        assert content_text == "final answer"
+
+        usage_chunks = [c for c in chunks if not c["choices"]]
+        assert len(usage_chunks) == 1
+        cascade = usage_chunks[0]["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 1
+
+        agg_calls = [c for c in fake_llm.calls if c["task"] == "moa_aggregator"]
+        assert len(agg_calls) == 1
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# C. streaming + disagreement + escalate_to configured + discord -> tier 1
+#    runs NON-streaming (must be inspected before the client sees it), and
+#    the final tier-2 answer is emitted as ONE content delta.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_streaming_tier2_escalation_discord_one_content_delta(
+    moa_home, fake_llm
+):
+    """escalate_to is configured (moa_home's casc/big preset pair): the
+    tier-1 aggregator's candidate must be inspected BEFORE the client can see
+    anything, so it runs non-streaming, same as the existing non-streaming
+    tier-2 escalation path; when it agrees with NEITHER voter (discord), the
+    escalate preset's aggregator (also non-streaming) produces the final
+    text, which reaches the client as a SINGLE content delta -- not a live
+    token stream."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model == "voter-a":
+            return _response("First path.\nANSWER: 1")
+        return _response("Second path.\nANSWER: 2")
+
+    def agg_handler(kwargs):
+        if kwargs.get("model") == "big-model":
+            return _response("Escalated final.\nANSWER: 3")
+        return _response("Tier1 discord.\nANSWER: 5")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_aggregator"] = agg_handler
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "what is 1, 2 or 5?"}],
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            },
+        )
+        assert resp.status == 200
+        events = await _read_sse(resp)
+        chunks = [e for e in events if e != "[DONE]"]
+
+        content_chunks = [
+            c
+            for c in chunks
+            if c["choices"] and c["choices"][0]["delta"].get("content")
+        ]
+        assert len(content_chunks) == 1
+        assert content_chunks[0]["choices"][0]["delta"]["content"] == (
+            "Escalated final.\nANSWER: 3"
+        )
+
+        usage_chunks = [c for c in chunks if not c["choices"]]
+        assert len(usage_chunks) == 1
+        cascade = usage_chunks[0]["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 2
+
+        big_calls = [c for c in fake_llm.calls if c.get("model") == "big-model"]
+        assert len(big_calls) == 1
+        mid_calls = [
+            c
+            for c in fake_llm.calls
+            if c.get("task") == "moa_aggregator" and c.get("model") == "mid-model"
+        ]
+        assert len(mid_calls) == 1
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# D. tool-carrying cascade requests -> acting-model SOLO ("tool-solo"),
+#    both non-streaming and streaming.
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_cascade_tools_non_streaming_is_tool_solo(moa_home, fake_llm):
+    """A cascade preset request carrying `tools` never runs voters or
+    attaches reference guidance -- the aggregator acts SOLO on the client's
+    messages + tools, exactly like a plain (non-cascade) tool call, and the
+    turn is surfaced as usage.moa.cascade == {"tier": None, "mode":
+    "tool-solo"}."""
+    tool_call = SimpleNamespace(
+        id="call_abc",
+        type="function",
+        function=SimpleNamespace(name="get_weather", arguments='{"city": "HK"}'),
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        None, tool_calls=[tool_call]
+    )
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "get_weather", "parameters": {"type": "object"}},
+        }
+    ]
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "weather in HK?"}],
+                "tools": tools,
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        choice = body["choices"][0]
+        assert choice["finish_reason"] == "tool_calls"
+        assert choice["message"]["tool_calls"] == [
+            {
+                "id": "call_abc",
+                "type": "function",
+                "function": {"name": "get_weather", "arguments": '{"city": "HK"}'},
+            }
+        ]
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_reference" not in tasks
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        assert agg_call["tools"] == tools
+
+        assert body["usage"]["moa"]["cascade"] == {"tier": None, "mode": "tool-solo"}
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_cascade_tools_streaming_is_tool_solo(moa_home, fake_llm):
+    """Streaming counterpart: zero moa_reference calls, the aggregator is
+    called WITH the client's tools, a tool_calls delta passes straight
+    through to the client, and the final usage chunk carries
+    usage.moa.cascade == {"tier": None, "mode": "tool-solo"}."""
+
+    def agg_stream_handler(kwargs):
+        assert kwargs.get("stream") is True
+        assert kwargs.get("tools")
+        return iter(
+            [
+                _delta_chunk(
+                    tool_calls=[_tool_call_delta(0, "call_xyz", name="get_weather")]
+                ),
+                _delta_chunk(
+                    tool_calls=[_tool_call_delta(0, None, arguments='{"city": "HK"}')]
+                ),
+                _delta_chunk(finish_reason="tool_calls"),
+                _usage_chunk(),
+            ]
+        )
+
+    fake_llm.handlers["moa_aggregator"] = agg_stream_handler
+    tools = [{"type": "function", "function": {"name": "get_weather"}}]
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "weather?"}],
+                "tools": tools,
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            },
+        )
+        assert resp.status == 200
+        events = await _read_sse(resp)
+        chunks = [e for e in events if e != "[DONE]"]
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_reference" not in tasks
+
+        tool_deltas = [
+            c["choices"][0]["delta"]["tool_calls"][0]
+            for c in chunks
+            if c["choices"] and c["choices"][0]["delta"].get("tool_calls")
+        ]
+        assert tool_deltas[0]["id"] == "call_xyz"
+        assert tool_deltas[0]["function"]["name"] == "get_weather"
+        assert tool_deltas[1]["function"]["arguments"] == '{"city": "HK"}'
+
+        finish = [
+            c["choices"][0]["finish_reason"]
+            for c in chunks
+            if c["choices"] and c["choices"][0]["finish_reason"]
+        ]
+        assert finish == ["tool_calls"]
+
+        usage_chunks = [c for c in chunks if not c["choices"]]
+        assert len(usage_chunks) == 1
+        assert usage_chunks[0]["usage"]["moa"]["cascade"] == {
+            "tier": None,
+            "mode": "tool-solo",
+        }
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# E. RLM voter active in streaming tier-0 -> the " [rlm]" label surfaces in
+#    the cascade voters list (addendum v1.3's RLM loop reused inside the
+#    addendum v1.4 streaming voter fan-out, unchanged).
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_streaming_rlm_voter_label_in_cascade_voters(moa_home_rlm, fake_llm, monkeypatch):
+    """voter-b runs the RLM reason->python->observe loop (a python-fence turn
+    then FINAL); voter-a answers directly. Both land on the same answer, so
+    tier 0 fires -- and the voters list in usage.moa.cascade carries voter-b's
+    " [rlm]"-suffixed label, proving the RLM loop ran inside the streaming
+    voter fan-out exactly as it does in the non-streaming cascade turn."""
+    rlm_calls = {"n": 0}
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model == "voter-a":
+            return _response("ANSWER: 42")
+        rlm_calls["n"] += 1
+        if rlm_calls["n"] == 1:
+            return _response("Let's compute.\n```python\nprint(42)\n```")
+        return _response("Verified.\nFINAL: 42")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    monkeypatch.setattr(
+        "hermes_cli.proxy.moa_cascade.run_rlm_exec", lambda code: "42\n", raising=False
+    )
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:cascrlm",
+                "messages": [{"role": "user", "content": "what is 6*7?"}],
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            },
+        )
+        assert resp.status == 200
+        events = await _read_sse(resp)
+        chunks = [e for e in events if e != "[DONE]"]
+
+        usage_chunks = [c for c in chunks if not c["choices"]]
+        assert len(usage_chunks) == 1
+        cascade = usage_chunks[0]["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert any(label.endswith("[rlm]") for label in cascade["voters"])
+        assert "custom:voter-b [rlm]" in cascade["voters"]
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_aggregator" not in tasks
+    finally:
+        await client.close()
+
+
+def _write_context_solo_cfg(home):
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: ctx
+  presets:
+    ctx:
+      mode: cascade
+      cascade: {max_context_tokens: 1000}
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+      aggregator:
+        provider: openrouter
+        model: mid-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_ctx(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_context_solo_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_oversized_request_bypasses_voters_context_solo(moa_home_ctx, fake_llm):
+    """A request bigger than cascade.max_context_tokens skips the voter pool
+    and runs the acting aggregator solo (mode "context-solo")."""
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response("long answer")
+    big = "x" * 8000  # ~2000 tokens > the 1000-token cap
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:ctx", "messages": [{"role": "user", "content": big}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["usage"]["moa"]["cascade"] == {
+            "tier": None,
+            "mode": "context-solo",
+        }
+        assert not [c for c in fake_llm.calls if c.get("task") == "moa_reference"]
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_normal_request_under_context_cap_still_cascades(moa_home_ctx, fake_llm):
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response("ANSWER: 7")
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:ctx", "messages": [{"role": "user", "content": "2+5? ANSWER format"}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["usage"]["moa"]["cascade"]["tier"] == 0
     finally:
         await client.close()

@@ -190,8 +190,16 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         if verify_when not in {"weak", "always"}:
             verify_when = "weak"
         verifier = _clean_slot(cascade_raw.get("verifier"))
+        # Voter slots are wafer/local-class models with ~128k contexts; a
+        # request bigger than this estimate bypasses them entirely and runs
+        # the acting slot solo ("context-solo"), instead of erroring through
+        # the whole voter pool. 0 disables the guard.
+        max_context_tokens = _coerce_int(cascade_raw.get("max_context_tokens"), 100_000)
+        if max_context_tokens < 0:
+            max_context_tokens = 100_000
         cascade = {
             "escalate_to": escalate_to,
+            "max_context_tokens": max_context_tokens,
             "min_consensus": min_consensus,
             "gate": gate,
             "judge": judge,

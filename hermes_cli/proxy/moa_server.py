@@ -64,10 +64,12 @@ except ImportError:  # pragma: no cover - exercised via cmd_moa_serve guard
 
 from agent.auxiliary_client import call_llm
 from agent.moa_loop import (
+    _MAX_REFERENCE_WORKERS,
     _REFERENCE_SYSTEM_PROMPT,
     _RefAccounting,
     _attach_reference_guidance,
     _reference_messages,
+    _run_reference,
     _run_references_parallel,
     _slot_label,
     _slot_runtime,
@@ -356,34 +358,83 @@ def _run_cascade_verifier(
     return verdict, entry
 
 
-def _run_cascade_turn(common: dict) -> dict:
-    """Lazy MoA turn: tier-0 wafer-voter consensus, tier-1 aggregator, tier-2
-    escalation. See docs/plans/moa-cascade-spec.md.
+def _cascade_bypass_mode(common: dict) -> str | None:
+    """Reasons a cascade request skips the voter pool for an acting-solo call.
 
-    Only reached for a non-streaming, tool-free request on a preset with
-    ``mode == "cascade"`` and >=2 reference slots (config normalization
-    already guarantees the slot count). Returns the same turn-result dict
-    shape as the fanout/draft_review path in ``_run_turn`` above.
+    "tool-solo": the client sent tools (voters cannot drive a client tool
+    loop, and advisory context measurably hurts tool work).
+    "context-solo": the estimated request size exceeds
+    ``cascade.max_context_tokens`` — voter slots are ~128k-context
+    wafer/local models, so an oversized request would error through the
+    whole pool; the acting slot (typically a 400k-class plan model) takes
+    it solo instead. Estimate: total message chars / 4.
+    """
+    if common["tools"]:
+        return "tool-solo"
+    cascade_cfg = common.get("cascade") or {}
+    cap = cascade_cfg.get("max_context_tokens") or 0
+    if cap:
+        est = sum(len(str(m.get("content") or "")) for m in common["messages"]) // 4
+        if est > cap:
+            return "context-solo"
+    return None
+
+
+def _run_cascade_solo_turn(common: dict, mode: str = "tool-solo") -> dict:
+    """Addendum v1.4 §A: a tool-carrying request on a cascade preset runs the
+    acting aggregator SOLO — no voters, no advisory guidance at all. Measured
+    basis: advisory context hurts tool/code work, so a cascade preset should
+    behave like a plain solo model whenever the client is driving tool use.
+    Returns the same turn-result dict shape as the other ``_run_turn``
+    branches; ``usage.moa.cascade`` surfaces ``{"tier": None, "mode":
+    "tool-solo"}`` so a client/trace can tell this apart from a fanout call.
+    """
+    messages = common["messages"]
+    agg_messages = [dict(m) for m in messages]
+    response = call_llm(
+        task="moa_aggregator",
+        messages=agg_messages,
+        temperature=common["aggregator_temperature"],
+        max_tokens=common["max_tokens"],
+        tools=common["tools"],
+        extra_body=common["extra_body"] or None,
+        timeout=common["slot_timeout"],
+        **_slot_runtime(common["aggregator"]),
+    )
+    runtime = _slot_runtime(common["aggregator"])
+    agg_usage = _normalize_chunk_usage(getattr(response, "usage", None), runtime)
+    return {
+        "reference_outputs": [],
+        "refs_from_cache": False,
+        "agg_messages": agg_messages,
+        "response": response,
+        "agg_usage": agg_usage,
+        "acting_slot": common["aggregator"],
+        "cascade": {"tier": None, "mode": mode},
+        "winner_text": None,
+    }
+
+
+def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
+    """Tier-0 voter-agreement gate shared by the non-streaming cascade turn
+    (`_run_cascade_turn`) and the streaming cascade turn (addendum v1.4 §B,
+    `_stream_cascade_turn`): exact consensus (+ optional verifier strike),
+    then the judge gate for freeform agreement. See
+    docs/plans/moa-cascade-spec.md for the full tier-0/1/2 semantics.
+
+    Returns ``{"result": <turn dict>}`` when a tier-0 hit already resolves
+    the request (ready to return as-is from the non-streaming path, or to
+    emit as a single content delta from the streaming path). Otherwise
+    returns ``{"tier1": <bundle>}`` — every piece of state
+    `_cascade_after_tier1` needs to run tier 1 (and possibly tier 2),
+    including the tier-1 ``agg_messages`` with guidance already attached.
     """
     from agent.usage_pricing import CanonicalUsage
 
-    messages = common["messages"]
-    reference_models = common["reference_models"]
     cascade_cfg = common["cascade"] or {}
     min_consensus = int(cascade_cfg.get("min_consensus") or 2)
+    reference_models = common["reference_models"]
 
-    # Tier 0: every voter answers the client's ACTUAL request directly and
-    # verbatim — no advisory system prompt, no reference-view trimming — in
-    # parallel.
-    voters = _run_references_parallel(
-        reference_models,
-        [dict(m) for m in messages],
-        temperature=common["reference_temperature"],
-        max_tokens=common["reference_max_tokens"] or common["max_tokens"],
-        timeout=common["slot_timeout"],
-        quorum_grace=common["preset"].get("reference_quorum_grace"),
-        direct=True,
-    )
     candidates = [extract_candidate(text) for _label, text, _acct in voters]
     votes = _cascade_vote_counts(candidates)
     cons = consensus(candidates, min_consensus)
@@ -394,9 +445,10 @@ def _run_cascade_turn(common: dict) -> dict:
 
     # Addendum v1.2 (verified cascade): resolved once, reused at both the
     # tier-0 consensus check below and the tier-1 aggregator-candidate check
-    # further down. `verify` is only ever "python" once a verifier slot has
-    # actually resolved (config normalization nulls it out otherwise), so
-    # `verify_active` alone gates every verifier call in this turn.
+    # in `_cascade_after_tier1`. `verify` is only ever "python" once a
+    # verifier slot has actually resolved (config normalization nulls it out
+    # otherwise), so `verify_active` alone gates every verifier call in this
+    # turn.
     verify_mode = cascade_cfg.get("verify")
     verifier_slot = cascade_cfg.get("verifier")
     verify_when = cascade_cfg.get("verify_when") or "weak"
@@ -448,14 +500,16 @@ def _run_cascade_turn(common: dict) -> dict:
                 cascade_result["verify"] = verify_surface
                 cascade_result["struck_consensus"] = None
             return {
-                "reference_outputs": voters + verify_extra,
-                "refs_from_cache": False,
-                "agg_messages": [dict(m) for m in messages],
-                "response": None,
-                "agg_usage": CanonicalUsage(),
-                "acting_slot": reference_models[winner_idx],
-                "cascade": cascade_result,
-                "winner_text": winner_text,
+                "result": {
+                    "reference_outputs": voters + verify_extra,
+                    "refs_from_cache": False,
+                    "agg_messages": [dict(m) for m in messages],
+                    "response": None,
+                    "agg_usage": CanonicalUsage(),
+                    "acting_slot": reference_models[winner_idx],
+                    "cascade": cascade_result,
+                    "winner_text": winner_text,
+                }
             }
         # Verdict "wrong": the consensus answer is struck — fall through to
         # the same no-consensus path (judge gate, then tier 1) as if the
@@ -518,21 +572,23 @@ def _run_cascade_turn(common: dict) -> dict:
                 )
                 if judge_reply.strip().upper().startswith("CONSISTENT"):
                     return {
-                        "reference_outputs": voters + [judge_entry],
-                        "refs_from_cache": False,
-                        "agg_messages": [dict(m) for m in messages],
-                        "response": None,
-                        "agg_usage": CanonicalUsage(),
-                        "acting_slot": reference_models[idx_a],
-                        "cascade": {
-                            "tier": 0,
-                            "consensus": None,
-                            "votes": votes,
-                            "voters": voter_labels,
-                            "candidates": normalized_candidates,
-                            "gate_used": "judge",
-                        },
-                        "winner_text": text_a,
+                        "result": {
+                            "reference_outputs": voters + [judge_entry],
+                            "refs_from_cache": False,
+                            "agg_messages": [dict(m) for m in messages],
+                            "response": None,
+                            "agg_usage": CanonicalUsage(),
+                            "acting_slot": reference_models[idx_a],
+                            "cascade": {
+                                "tier": 0,
+                                "consensus": None,
+                                "votes": votes,
+                                "voters": voter_labels,
+                                "candidates": normalized_candidates,
+                                "gate_used": "judge",
+                            },
+                            "winner_text": text_a,
+                        }
                     }
                 gate_used = "judge-different"
 
@@ -543,6 +599,11 @@ def _run_cascade_turn(common: dict) -> dict:
     # adds no synthesis-useful context beyond the full voter texts already
     # attached.
     judge_extra = [judge_entry] if judge_entry is not None else []
+    # Addendum v1.1 §4: tier-2 escalation stays exact-candidate-only — a
+    # judge-gated freeform "discord" (DIFFERENT verdict, or the judge call
+    # itself erroring) never escalates in v1; it settles at tier 1 same as an
+    # aggregator that simply agreed with a voter.
+    judge_discord = gate_used in {"judge-different", "judge-error"}
 
     # Tier 1: no consensus among voters — run the preset's own aggregator with
     # the voter outputs attached as reference context (existing guidance
@@ -551,7 +612,8 @@ def _run_cascade_turn(common: dict) -> dict:
     # unlike the judge entry above, the aggregator MUST see why its exact
     # consensus was rejected, not just have it billed.
     agg_messages = [dict(m) for m in messages]
-    if cascade_cfg.get("clean_arbiter"):
+    clean_arbiter = bool(cascade_cfg.get("clean_arbiter"))
+    if clean_arbiter:
         # Clean arbitration: the aggregator re-solves from scratch. Voter
         # context anchors arbiters (measured: a frontier arbiter scored 7/9
         # on disagreements vs ~98% solo); only a verifier strike note is
@@ -568,31 +630,67 @@ def _run_cascade_turn(common: dict) -> dict:
             common["preset_name"], common["aggregator"], voters + verify_extra
         )
         _attach_reference_guidance(agg_messages, guidance)
-    agg_response = call_llm(
-        task="moa_aggregator",
-        messages=agg_messages,
-        temperature=common["aggregator_temperature"],
-        max_tokens=common["max_tokens"],
-        tools=None,
-        extra_body=common["extra_body"] or None,
-        timeout=common["slot_timeout"],
-        **_slot_runtime(common["aggregator"]),
-    )
-    agg_runtime = _slot_runtime(common["aggregator"])
-    agg_usage = _normalize_chunk_usage(getattr(agg_response, "usage", None), agg_runtime)
-    agg_text = _extract_message_fields(agg_response).get("content") or ""
+
+    return {
+        "tier1": {
+            "agg_messages": agg_messages,
+            "voters": voters,
+            "judge_extra": judge_extra,
+            "verify_extra": verify_extra,
+            "struck_consensus": struck_consensus,
+            "gate_used": gate_used,
+            "votes": votes,
+            "voter_labels": voter_labels,
+            "candidates": normalized_candidates,
+            "candidates_raw": candidates,
+            "verify_mode": verify_mode,
+            "verifier_slot": verifier_slot,
+            "verify_active": verify_active,
+            "verify_surface": verify_surface,
+            "judge_discord": judge_discord,
+            "clean_arbiter": clean_arbiter,
+        }
+    }
+
+
+def _cascade_after_tier1(
+    common: dict,
+    messages: list,
+    tier1_bundle: dict,
+    *,
+    agg_text: str,
+    agg_usage: Any,
+    agg_runtime: dict,
+    agg_response: Any,
+    agg_messages: list,
+) -> dict:
+    """Tier-1 candidate decision + optional tier-2 escalation, shared by the
+    non-streaming cascade turn and the streaming cascade turn (addendum v1.4
+    §B). ``agg_text``/``agg_usage``/``agg_runtime``/``agg_response`` describe
+    an ALREADY-COMPLETED tier-1 aggregator call — obtained via a blocking
+    ``call_llm`` (non-streaming path, and the streaming path whenever an
+    escalate preset is configured) or accumulated from a live token stream
+    (streaming path with no escalate preset, where ``agg_response`` is
+    ``None`` since there is no SDK response object to hand back).
+
+    A tier-2 escalation, when it fires, is always a single blocking
+    ``call_llm`` regardless of whether the caller is streaming — the client
+    only ever sees the FINAL chosen answer for tier 2, never a live token
+    stream of it.
+    """
     agg_candidate = extract_candidate(agg_text)
     tier1_candidate_norm = (
         normalize_candidate(agg_candidate) if agg_candidate is not None else None
     )
 
     escalate_preset = common.get("cascade_escalate_preset")
-    agrees_any = any(agrees(agg_candidate, c) for c in candidates)
-    # Addendum v1.1 §4: tier-2 escalation stays exact-candidate-only — a
-    # judge-gated freeform "discord" (DIFFERENT verdict, or the judge call
-    # itself erroring) never escalates in v1; it settles at tier 1 same as an
-    # aggregator that simply agreed with a voter.
-    judge_discord = gate_used in {"judge-different", "judge-error"}
+    judge_discord = tier1_bundle["judge_discord"]
+    agrees_any = any(agrees(agg_candidate, c) for c in tier1_bundle["candidates_raw"])
+
+    verify_extra = tier1_bundle["verify_extra"]
+    verify_surface = tier1_bundle["verify_surface"]
+    verify_mode = tier1_bundle["verify_mode"]
+    struck_consensus = tier1_bundle["struck_consensus"]
 
     # Addendum v1.2: verify the aggregator's own candidate. Exact-gate flows
     # only — a judge-gated freeform "discord" never had a comparable
@@ -601,11 +699,11 @@ def _run_cascade_turn(common: dict) -> dict:
     # verifies when active: tier 1 is already the slow path, so
     # `verify_when` only guards the fast (tier-0) path.
     tier1_verify_wrong = False
-    if verify_active and not judge_discord and agg_candidate is not None:
+    if tier1_bundle["verify_active"] and not judge_discord and agg_candidate is not None:
         verdict, entry = _run_cascade_verifier(
             messages=messages,
             candidate=agg_candidate,
-            verifier_slot=verifier_slot,
+            verifier_slot=tier1_bundle["verifier_slot"],
             slot_timeout=common["slot_timeout"],
             on="tier1",
         )
@@ -622,6 +720,13 @@ def _run_cascade_turn(common: dict) -> dict:
         and not judge_discord
         and (not agrees_any or tier1_verify_wrong)
     )
+
+    voters = tier1_bundle["voters"]
+    judge_extra = tier1_bundle["judge_extra"]
+    votes = tier1_bundle["votes"]
+    voter_labels = tier1_bundle["voter_labels"]
+    normalized_candidates = tier1_bundle["candidates"]
+    gate_used = tier1_bundle["gate_used"]
 
     if not escalate_now:
         cascade_result = {
@@ -664,7 +769,7 @@ def _run_cascade_turn(common: dict) -> dict:
 
     escalate_aggregator = escalate_preset.get("aggregator") or {}
     escalate_messages = [dict(m) for m in messages]
-    if not cascade_cfg.get("clean_arbiter"):
+    if not tier1_bundle["clean_arbiter"]:
         escalate_guidance = _reference_guidance(
             common["preset_name"], escalate_aggregator, reference_outputs
         )
@@ -703,6 +808,191 @@ def _run_cascade_turn(common: dict) -> dict:
         "cascade": cascade_result,
         "winner_text": None,
     }
+
+
+def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict) -> dict:
+    """Blocking tier-1 aggregator call + `_cascade_after_tier1` decision.
+
+    Shared by `_run_cascade_turn` (non-streaming) and the streaming cascade
+    turn (addendum v1.4 §B step 4) whenever an escalate preset is
+    configured — that answer must be inspected before the client sees it, so
+    it always runs non-streaming even for a streaming request.
+    """
+    agg_messages = tier1_bundle["agg_messages"]
+    agg_response = call_llm(
+        task="moa_aggregator",
+        messages=agg_messages,
+        temperature=common["aggregator_temperature"],
+        max_tokens=common["max_tokens"],
+        tools=None,
+        extra_body=common["extra_body"] or None,
+        timeout=common["slot_timeout"],
+        **_slot_runtime(common["aggregator"]),
+    )
+    agg_runtime = _slot_runtime(common["aggregator"])
+    agg_usage = _normalize_chunk_usage(getattr(agg_response, "usage", None), agg_runtime)
+    agg_text = _extract_message_fields(agg_response).get("content") or ""
+    return _cascade_after_tier1(
+        common,
+        messages,
+        tier1_bundle,
+        agg_text=agg_text,
+        agg_usage=agg_usage,
+        agg_runtime=agg_runtime,
+        agg_response=agg_response,
+        agg_messages=agg_messages,
+    )
+
+
+def _run_cascade_turn(common: dict) -> dict:
+    """Lazy MoA turn: tier-0 wafer-voter consensus, tier-1 aggregator, tier-2
+    escalation. See docs/plans/moa-cascade-spec.md.
+
+    Only reached for a non-streaming, tool-free request on a preset with
+    ``mode == "cascade"`` and >=2 reference slots (config normalization
+    already guarantees the slot count). Returns the same turn-result dict
+    shape as the fanout/draft_review path in ``_run_turn`` above. The tier-0
+    gate and tier-1/2 decision are factored into `_cascade_tier0_gate` /
+    `_cascade_after_tier1` so the streaming cascade turn (addendum v1.4 §B,
+    `_stream_cascade_turn`) can reuse the exact same logic.
+    """
+    messages = common["messages"]
+    reference_models = common["reference_models"]
+
+    # Tier 0: every voter answers the client's ACTUAL request directly and
+    # verbatim — no advisory system prompt, no reference-view trimming — in
+    # parallel.
+    voters = _run_references_parallel(
+        reference_models,
+        [dict(m) for m in messages],
+        temperature=common["reference_temperature"],
+        max_tokens=common["reference_max_tokens"] or common["max_tokens"],
+        timeout=common["slot_timeout"],
+        quorum_grace=common["preset"].get("reference_quorum_grace"),
+        direct=True,
+    )
+    gate = _cascade_tier0_gate(common, messages, voters)
+    if gate.get("result") is not None:
+        return gate["result"]
+    return _run_cascade_tier1_blocking(common, messages, gate["tier1"])
+
+
+def _run_cascade_voters_with_progress(
+    reference_models: list[dict],
+    ref_messages: list,
+    *,
+    temperature: float | None,
+    max_tokens: int | None,
+    timeout: float | None,
+    quorum_grace: float | None,
+    on_complete,
+) -> list[tuple[str, str, Any]]:
+    """Same fan-out `_run_references_parallel(..., direct=True)` performs
+    (dispatch, quorum-grace straggler dropping, per-slot RLM voters), but
+    calls ``on_complete(label)`` synchronously as each voter's result lands
+    — including a straggler dropped by the quorum deadline — so the
+    streaming cascade turn (addendum v1.4 §B step 2) can emit a live
+    "[voter <label>: done]" reasoning delta per voter instead of waiting for
+    the whole fan-out. Kept as a server-local sibling of
+    `_run_references_parallel` because that function has no progress-
+    callback hook and `agent/moa_loop.py` is shared, non-proxy-specific
+    runtime code.
+    """
+    import time as _time
+    from concurrent.futures import FIRST_COMPLETED, ThreadPoolExecutor, wait
+
+    from agent.usage_pricing import CanonicalUsage
+
+    if not reference_models:
+        return []
+
+    results: list[tuple[str, str, Any] | None] = [None] * len(reference_models)
+    futures = {}
+    workers = min(_MAX_REFERENCE_WORKERS, len(reference_models))
+    executor = ThreadPoolExecutor(max_workers=workers)
+    try:
+        for idx, slot in enumerate(reference_models):
+            if slot.get("provider") == "moa":
+                results[idx] = (
+                    _slot_label(slot),
+                    "[skipped: MoA presets cannot recursively reference MoA]",
+                    _RefAccounting(CanonicalUsage()),
+                )
+                on_complete(results[idx][0])
+                continue
+            futures[
+                executor.submit(
+                    _run_reference,
+                    slot,
+                    ref_messages,
+                    temperature=temperature,
+                    max_tokens=max_tokens,
+                    timeout=timeout,
+                    direct=True,
+                )
+            ] = idx
+
+        if quorum_grace is None or len(futures) < 2:
+            for future, idx in futures.items():
+                results[idx] = future.result()
+                on_complete(results[idx][0])
+        else:
+            started = _time.time()
+            pending = set(futures)
+            deadline = None  # armed once the quorum (all but one) is in
+            while pending:
+                wait_timeout = None
+                if deadline is not None:
+                    wait_timeout = max(0.05, deadline - _time.time())
+                done, pending = wait(pending, timeout=wait_timeout, return_when=FIRST_COMPLETED)
+                for future in done:
+                    idx = futures[future]
+                    results[idx] = future.result()
+                    on_complete(results[idx][0])
+                if not pending:
+                    break
+                if deadline is None and len(pending) == 1:
+                    deadline = _time.time() + max(
+                        1.0, (_time.time() - started) * float(quorum_grace)
+                    )
+                elif deadline is not None and _time.time() >= deadline and not done:
+                    for future in pending:
+                        idx = futures[future]
+                        slot = reference_models[idx]
+                        logger.info(
+                            "MoA quorum: dropping straggler reference %s", _slot_label(slot)
+                        )
+                        results[idx] = (
+                            _slot_label(slot),
+                            "[dropped: reference exceeded the quorum deadline]",
+                            _RefAccounting(CanonicalUsage()),
+                        )
+                        on_complete(results[idx][0])
+                    pending = set()
+    finally:
+        executor.shutdown(wait=False, cancel_futures=True)
+
+    return [r for r in results if r is not None]
+
+
+def _cascade_stream_usage(turn: dict, common: dict) -> dict:
+    """Final-chunk ``usage`` for the streaming cascade turn (addendum v1.4
+    §B): the same shape/derivation as the non-streaming path's usage
+    assembly in ``_handle_non_streaming`` — cascade never serves references
+    from the advisory cache, so ``refs_from_cache`` is always False here.
+    """
+    from agent.usage_pricing import CanonicalUsage
+
+    reference_outputs = turn["reference_outputs"]
+    agg_usage = turn["agg_usage"]
+    ref_usage = CanonicalUsage()
+    for _label, _text, acct in reference_outputs:
+        if isinstance(getattr(acct, "usage", None), CanonicalUsage):
+            ref_usage = ref_usage + acct.usage
+    usage = _usage_to_openai(agg_usage + ref_usage)
+    usage["moa"] = _usage_breakdown(reference_outputs, agg_usage, False, common.get("routing"))
+    usage["moa"]["cascade"] = turn["cascade"]
+    return usage
 
 
 def _extract_message_fields(response: Any) -> dict[str, Any]:
@@ -887,6 +1177,248 @@ def _reference_stream_worker(
         temperature=temperature,
     )
     return label, text, acct
+
+
+# ---------------------------------------------------------------------------
+# Streaming cascade turn (addendum v1.4 §B, docs/plans/moa-cascade-spec.md)
+# ---------------------------------------------------------------------------
+
+
+async def _stream_cascade_tier1_live(
+    common: dict,
+    messages: list,
+    tier1_bundle: dict,
+    *,
+    send_chunk,
+    send_reasoning,
+    loop: asyncio.AbstractEventLoop,
+    abort: threading.Event,
+) -> tuple[dict, str | None]:
+    """Stream the cascade tier-1 aggregator live, token by token (addendum
+    v1.4 §B step 4) — only reached when no escalate preset is configured, so
+    a tier-1 "wrong" verifier verdict has nowhere to escalate to and is
+    simply surfaced rather than hidden behind an inspect-then-emit call.
+
+    Same event-queue shape as the generic aggregator streaming block in
+    `_handle_streaming` (tools are always ``None`` here — cascade only ever
+    streams tool-free turns this way, so tool_call deltas never occur).
+    Returns the tier-1 turn-result dict from `_cascade_after_tier1` (its
+    ``response`` is always ``None`` — the text was already streamed to the
+    client) plus the streamed text for trace persistence.
+    """
+    agg_messages = tier1_bundle["agg_messages"]
+    runtime = _slot_runtime(common["aggregator"])
+    agg_queue: asyncio.Queue = asyncio.Queue()
+
+    def _push(kind: str, value: Any) -> None:
+        loop.call_soon_threadsafe(agg_queue.put_nowait, (kind, value))
+
+    def _worker() -> None:
+        try:
+            stream = call_llm(
+                task="moa_aggregator",
+                messages=agg_messages,
+                temperature=common["aggregator_temperature"],
+                max_tokens=common["max_tokens"],
+                tools=None,
+                extra_body=common["extra_body"] or None,
+                timeout=common["slot_timeout"],
+                stream=True,
+                stream_options={"include_usage": True},
+                **runtime,
+            )
+            for chunk in _as_chunk_stream(stream):
+                if abort.is_set():
+                    break
+                raw_usage = getattr(chunk, "usage", None)
+                if raw_usage:
+                    _push("usage", raw_usage)
+                choices = getattr(chunk, "choices", None) or []
+                if not choices:
+                    continue
+                choice = choices[0]
+                delta = getattr(choice, "delta", None)
+                if delta is not None:
+                    reasoning = _delta_reasoning_text(delta)
+                    if reasoning:
+                        _push("reasoning", reasoning)
+                    content = getattr(delta, "content", None)
+                    if content:
+                        _push("content", content)
+                finish = getattr(choice, "finish_reason", None)
+                if finish:
+                    _push("finish", str(finish))
+        except Exception as exc:
+            _push("error", str(exc))
+        finally:
+            _push("done", None)
+
+    future = loop.run_in_executor(None, _worker)
+
+    finish_reason: str | None = None
+    raw_usage: Any = None
+    content_parts: list[str] = []
+    while True:
+        kind, value = await agg_queue.get()
+        if kind == "done":
+            break
+        if kind == "reasoning":
+            await send_reasoning(value)
+        elif kind == "content":
+            content_parts.append(value)
+            await send_chunk({"content": value})
+        elif kind == "finish":
+            finish_reason = value
+        elif kind == "usage":
+            raw_usage = value
+        elif kind == "error":
+            await send_reasoning(f"\n\n[aggregator failed: {value}]")
+            finish_reason = finish_reason or "stop"
+    await future
+
+    agg_text = "".join(content_parts)
+    agg_usage = _normalize_chunk_usage(raw_usage, runtime)
+    # `_cascade_after_tier1` can itself perform blocking I/O (a tier-1
+    # verifier `call_llm` + sandboxed subprocess, addendum v1.2) when
+    # `verify` is configured on a no-escalate preset — run it off the event
+    # loop thread like every other blocking cascade call, so a verifier call
+    # never freezes the whole aiohttp server for other concurrent requests.
+    turn = await asyncio.to_thread(
+        _cascade_after_tier1,
+        common,
+        messages,
+        tier1_bundle,
+        agg_text=agg_text,
+        agg_usage=agg_usage,
+        agg_runtime=runtime,
+        agg_response=None,
+        agg_messages=agg_messages,
+    )
+    await send_chunk(None, finish_reason=finish_reason or "stop")
+    return turn, (agg_text or None)
+
+
+async def _stream_cascade_turn(
+    common: dict,
+    messages: list,
+    reference_models: list,
+    *,
+    send_chunk,
+    send_reasoning,
+    resp: "web.StreamResponse",
+    loop: asyncio.AbstractEventLoop,
+    abort: threading.Event,
+    include_usage: bool,
+) -> None:
+    """Streaming cascade turn (addendum v1.4 §B): a live voter fan-out with
+    progress reasoning deltas, then the exact same tier-0/1/2 gate
+    `_run_cascade_turn` uses (`_cascade_tier0_gate` / `_cascade_after_tier1`
+    / `_run_cascade_tier1_blocking`), surfaced to the client per the
+    addendum's rules. Writes SSE chunks via ``send_chunk``/``send_reasoning``
+    and the ``[DONE]`` sentinel directly; does not call ``resp.write_eof()``
+    — the caller (`_handle_streaming`) owns that so its abort/finally
+    handling stays identical for every streaming path.
+    """
+    await send_reasoning(f"[cascade: {len(reference_models)} voters answering…]\n")
+
+    voter_queue: asyncio.Queue = asyncio.Queue()
+
+    def _on_voter_done(label: str) -> None:
+        loop.call_soon_threadsafe(voter_queue.put_nowait, label)
+
+    def _voters_worker():
+        try:
+            return _run_cascade_voters_with_progress(
+                reference_models,
+                [dict(m) for m in messages],
+                temperature=common["reference_temperature"],
+                max_tokens=common["reference_max_tokens"] or common["max_tokens"],
+                timeout=common["slot_timeout"],
+                quorum_grace=common["preset"].get("reference_quorum_grace"),
+                on_complete=_on_voter_done,
+            )
+        finally:
+            loop.call_soon_threadsafe(voter_queue.put_nowait, _DONE)
+
+    voters_future = loop.run_in_executor(None, _voters_worker)
+    while True:
+        item = await voter_queue.get()
+        if item is _DONE:
+            break
+        await send_reasoning(f"\n\n[voter {item}: done]")
+    voters = await voters_future
+
+    # `_cascade_tier0_gate` can perform blocking I/O of its own (a judge-gate
+    # `call_llm`, and/or a verifier `call_llm` + sandboxed subprocess) when
+    # those features are configured — run it off the event loop thread like
+    # every other blocking cascade call in this turn (the voter fan-out above
+    # and the tier-1/2 blocking call below), so a judge/verifier call never
+    # freezes the whole aiohttp server for other concurrent requests.
+    gate = await asyncio.to_thread(_cascade_tier0_gate, common, messages, voters)
+
+    if gate.get("result") is not None:
+        # Tier 0: emit the winning voter's full text as ONE content delta —
+        # no live token-by-token streaming, the answer is already complete.
+        turn = gate["result"]
+        await send_chunk({"content": turn["winner_text"]})
+        await send_chunk(None, finish_reason="stop")
+        if include_usage:
+            await send_chunk(None, usage=_cascade_stream_usage(turn, common), empty_choices=True)
+        await resp.write(b"data: [DONE]\n\n")
+        _save_proxy_trace(
+            common,
+            turn["reference_outputs"],
+            turn["agg_messages"],
+            turn["winner_text"],
+            acting_slot=turn.get("acting_slot"),
+        )
+        return
+
+    tier1_bundle = gate["tier1"]
+    if common.get("cascade_escalate_preset"):
+        # The tier-1 (and possible tier-2) answer must be inspected before
+        # the client sees it, so both run non-streaming; only the chosen
+        # final text is ever emitted to the client, as one content delta.
+        turn = await asyncio.to_thread(
+            _run_cascade_tier1_blocking, common, messages, tier1_bundle
+        )
+        message = _extract_message_fields(turn["response"])
+        finish_reason = _finish_reason(turn["response"])
+        await send_chunk({"content": message.get("content")})
+        await send_chunk(None, finish_reason=finish_reason)
+        if include_usage:
+            await send_chunk(None, usage=_cascade_stream_usage(turn, common), empty_choices=True)
+        await resp.write(b"data: [DONE]\n\n")
+        _save_proxy_trace(
+            common,
+            turn["reference_outputs"],
+            turn["agg_messages"],
+            message.get("content"),
+            acting_slot=turn.get("acting_slot"),
+        )
+        return
+
+    # No escalate preset configured (e.g. a clean-arbiter preset): stream the
+    # acting aggregator live, token by token.
+    turn, streamed_text = await _stream_cascade_tier1_live(
+        common,
+        messages,
+        tier1_bundle,
+        send_chunk=send_chunk,
+        send_reasoning=send_reasoning,
+        loop=loop,
+        abort=abort,
+    )
+    if include_usage:
+        await send_chunk(None, usage=_cascade_stream_usage(turn, common), empty_choices=True)
+    await resp.write(b"data: [DONE]\n\n")
+    _save_proxy_trace(
+        common,
+        turn["reference_outputs"],
+        turn["agg_messages"],
+        streamed_text,
+        acting_slot=turn.get("acting_slot"),
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -1104,13 +1636,21 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             messages = common["messages"]
             reference_models = common["reference_models"]
 
-            # Cascade mode (docs/plans/moa-cascade-spec.md) only applies to
-            # non-streaming, tool-free turns on a preset with >=2 reference
-            # slots (config normalization guarantees the slot count whenever
-            # mode == "cascade"; a disabled preset empties reference_models,
-            # which also falls through to the existing fanout path below).
-            if common["preset"].get("mode") == "cascade" and reference_models and not common["tools"]:
-                return _run_cascade_turn(common)
+            if common["preset"].get("mode") == "cascade":
+                bypass = _cascade_bypass_mode(common)
+                if bypass:
+                    # Addendum v1.4 §A (+context guard): tool-carrying or
+                    # oversized requests run the acting model solo — no
+                    # voters, no guidance.
+                    return _run_cascade_solo_turn(common, bypass)
+                # Cascade mode (docs/plans/moa-cascade-spec.md) only applies
+                # to tool-free turns on a preset with >=2 reference slots
+                # (config normalization guarantees the slot count whenever
+                # mode == "cascade"; a disabled preset empties
+                # reference_models, which falls through to the existing
+                # fanout path below).
+                if reference_models:
+                    return _run_cascade_turn(common)
 
             draft_review = (
                 common["preset"].get("mode") == "draft_review" and reference_models
@@ -1329,6 +1869,45 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
 
         messages = common["messages"]
         reference_models = common["reference_models"]
+
+        # Addendum v1.4 (docs/plans/moa-cascade-spec.md): real-world cascade
+        # streaming. A tool-carrying request on a cascade preset runs the
+        # acting aggregator SOLO (§A) — forcing reference_models empty makes
+        # the generic fan-out/guidance code below a no-op, so only the final
+        # usage surface needs the tool-solo marker (see the include_usage
+        # block further down). A tool-free cascade request with >=2
+        # reference slots gets a dedicated streaming turn (§B) that never
+        # falls through to the generic path below.
+        cascade_mode = common["preset"].get("mode") == "cascade"
+        cascade_solo_mode = _cascade_bypass_mode(common) if cascade_mode else None
+        cascade_tool_solo = bool(cascade_solo_mode)
+        cascade_streaming = (
+            cascade_mode and not cascade_solo_mode and bool(reference_models)
+        )
+        if cascade_tool_solo:
+            reference_models = []
+
+        if cascade_streaming:
+            try:
+                await _stream_cascade_turn(
+                    common,
+                    messages,
+                    reference_models,
+                    send_chunk=send_chunk,
+                    send_reasoning=send_reasoning,
+                    resp=resp,
+                    loop=loop,
+                    abort=abort,
+                    include_usage=include_usage,
+                )
+            except (ConnectionResetError, asyncio.CancelledError):
+                abort.set()
+                raise
+            finally:
+                abort.set()
+            await resp.write_eof()
+            return resp
+
         ref_messages = _reference_messages(messages)
         cache_key = _advisory_signature(common["preset_name"], ref_messages, reference_models)
         reference_outputs: list[tuple[str, str, Any]] = []
@@ -1493,6 +2072,9 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 usage["moa"] = _usage_breakdown(
                     reference_outputs, agg_usage, refs_from_cache, common.get("routing")
                 )
+                if cascade_tool_solo:
+                    # Addendum v1.4 §A (+context guard): acting-solo turn.
+                    usage["moa"]["cascade"] = {"tier": None, "mode": cascade_solo_mode}
                 await send_chunk(None, usage=usage, empty_choices=True)
 
             await resp.write(b"data: [DONE]\n\n")
