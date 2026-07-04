@@ -89,6 +89,8 @@ DATASETS["gpqa"] = fetch_gpqa
 
 
 CEREBRAS_URL = "https://api.cerebras.ai/v1/chat/completions"
+# Overridable endpoint (any OpenAI-compatible API): --api-base / --api-key-env
+API_URL = CEREBRAS_URL
 _REQUEST_TIMEOUT_S = 120
 _MAX_ATTEMPTS = 3  # 1 try + 2 retries
 _SANDBOX_TIMEOUT_S = 12
@@ -180,7 +182,7 @@ def call_model(
     }
     last_exc: Exception | None = None
     for attempt in range(_MAX_ATTEMPTS):
-        req = urllib.request.Request(CEREBRAS_URL, data=data, headers=headers, method="POST")
+        req = urllib.request.Request(API_URL, data=data, headers=headers, method="POST")
         try:
             with urllib.request.urlopen(req, timeout=_REQUEST_TIMEOUT_S) as resp:
                 body = json.loads(resp.read().decode("utf-8"))
@@ -461,6 +463,16 @@ def _dry_run() -> int:
 
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument(
+        "--api-base",
+        default="https://api.cerebras.ai/v1",
+        help="OpenAI-compatible API base (default: Cerebras)",
+    )
+    parser.add_argument(
+        "--api-key-env",
+        default="CEREBRAS_API_KEY",
+        help="Env var holding the API key for --api-base",
+    )
     parser.add_argument("--dataset", choices=list(DATASETS), default="aime")
     parser.add_argument(
         "--models", default="gemma-4-31b,gpt-oss-120b",
@@ -490,7 +502,9 @@ def main() -> int:
         print_report(d["results"], d.get("dataset", args.dataset))
         return 0
 
-    api_key = os.environ.get("CEREBRAS_API_KEY")
+    global API_URL
+    API_URL = args.api_base.rstrip("/") + "/chat/completions"
+    api_key = os.environ.get(args.api_key_env)
     if not api_key:
         print("CEREBRAS_API_KEY is required", file=sys.stderr)
         return 1
