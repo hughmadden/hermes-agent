@@ -42,6 +42,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 26 | An independent local voter family cuts false consensus | Hybrid pool (Qwen3-8B on RTX 5090 + Cerebras voters) ran flawlessly but 88% AIME: weak dissent = noise, tier-1 volume up, false consensus unchanged | Law: diversity value = independence × competence; the 4×96GB box needs 27B+ local voters — mechanism proven, model class matters |
 
+| 27 | CONVERGENCE: compose all measured laws (competent-diverse voters + clean $0-frontier arbitration) | 57/60 (95%) AIME — breaks the 92±1.5% ceiling; tier-0 39/39 PERFECT (first zero-false-consensus run); tier-1 clean GPT-5.5 18/21; 35% frontier @$0; 0 errors; Qwen3-32B-AWQ on the local 5090 in the voter pool | CONFIRMED by design, not noise — the campaign's laws compose |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
