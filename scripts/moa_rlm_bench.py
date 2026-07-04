@@ -49,7 +49,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from moa_hard_bench import fetch_aime  # noqa: E402
-from moa_mix_bench import fetch_hmmt  # noqa: E402
+from moa_mix_bench import fetch_aime26, fetch_hmmt, fetch_hmmt26  # noqa: E402
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 from hermes_cli.proxy.moa_cascade import normalize_candidate  # noqa: E402
@@ -57,6 +57,8 @@ from hermes_cli.proxy.moa_cascade import normalize_candidate  # noqa: E402
 DATASETS = {
     "aime": fetch_aime,
     "hmmt": fetch_hmmt,
+    "aime26": fetch_aime26,
+    "hmmt26": fetch_hmmt26,
 }
 
 def fetch_gpqa():
