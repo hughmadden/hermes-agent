@@ -246,3 +246,87 @@ blind pairwise quality judging: for each prompt send both answers
 openrouter fable via a grader-capable serve preset; the script just needs
 a model id reachable at --base) asking for "A", "B", or "TIE". Report:
 win/tie/loss, tier-0 rate, median latency both sides.
+
+## Addendum v1.2 — verified cascade (iteration 19)
+
+Residual failure mode (measured, cascade-wafer4 on AIME): correlated
+confidence — 2 false weak-consensus returns + 2 confident-but-wrong tier-1
+agreements. Verification is orthogonal to agreement (+5 pp measured in the
+verifier bench) and attacks exactly this.
+
+### Config (normalized under the existing `cascade` block)
+- `verify: "python" | absent` (default absent = off).
+- `verifier: {provider, model}` slot; default chain at CONFIG time:
+  explicit slot → `cascade.judge` slot (if resolved) → router classifier
+  (if router enabled) → verify disabled (normalized `verify` becomes None).
+- `verify_when: "weak" | "always"` (default "weak").
+
+### Semantics (server, `_run_cascade_turn`, exact-candidate flows only)
+Verification of (problem, candidate_text, candidate_answer):
+1. One `call_llm(task="moa_verifier", temperature=0.0, max_tokens=2000,
+   timeout=min(60, slot_timeout), **_slot_runtime(verifier_slot))` with:
+   system: "You write a short standalone Python 3 program that CHECKS a
+   candidate answer. The program must recompute or verify the answer
+   independently and print exactly one final line: VERDICT: CORRECT or
+   VERDICT: WRONG. If the claim cannot be checked by computation, print
+   VERDICT: UNCHECKABLE. No network, no files, stdlib only, under 5
+   seconds of compute."
+   user: problem statement (last user message, cap 4000 chars) +
+   "\n\nCandidate answer: " + candidate.
+2. Extract the first ```python fenced block (or whole reply if none);
+   execute via `subprocess.run([sys.executable, "-I", "-c", code],
+   capture_output=True, text=True, timeout=12, env={}, cwd=<tempdir>)`
+   in a helper `run_verification(code) -> str` placed in moa_cascade.py
+   (module gains this one I/O function; keep pure helpers pure otherwise).
+3. Parse the LAST `VERDICT:\s*(CORRECT|WRONG|UNCHECKABLE)` from stdout.
+   WRONG → verdict "wrong". CORRECT → "correct". Anything else (no
+   verdict, exec error, timeout, LLM error) → "inconclusive" — NEVER block
+   the cascade on verification infrastructure failure.
+
+Gate integration:
+- Tier 0 exact consensus: if `verify_when == "weak"`, verify ONLY when
+  consensus votes < number of reference slots (i.e. non-unanimous);
+  "always" verifies every consensus. Verdict "wrong" → strike: record the
+  struck value, proceed to tier 1 as if no consensus (aggregator guidance
+  additionally gets one appended reference entry labelled
+  `"verifier — <slot>"` whose text is "Automated check REJECTED the
+  consensus answer <value>:\n<last 500 chars of stdout>"). Other verdicts →
+  return tier 0 as usual.
+- Tier 1 (exact-gate flows only, judge-gated freeform skips verification):
+  verify the aggregator's candidate (respecting verify_when: "weak" =
+  always verify tier 1 — tier 1 is already slow; the knob only guards the
+  fast path). Verdict "wrong" AND escalate preset configured → escalate to
+  tier 2 (regardless of voter agreement), with the verifier note appended
+  to the tier-2 guidance. Verdict "wrong" without escalate → return tier 1
+  anyway (surface the verdict).
+- Tier 2 output is never verified (top of the ladder).
+
+Surface: `usage.moa.cascade.verify = {"ran": true|false, "verdict":
+"correct"|"wrong"|"inconclusive"|null, "on": "consensus"|"tier1"|null}`
+(+ verifier LLM usage folded as a reference entry labelled
+`"verifier — <slot>"` when it ran). `struck_consensus: <value|null>` in the
+cascade block when a strike happened.
+
+### Tests (append to test_moa_cascade.py; fake the LLM as usual AND
+monkeypatch `moa_cascade.run_verification` — no real subprocess in tests
+except one direct unit test of run_verification with trivial code)
+- weak consensus (2-of-3... use a 3-slot preset with min_consensus 2) +
+  verifier says WRONG → tier 1 runs; struck_consensus set; aggregator
+  guidance contains the verifier rejection note.
+- weak consensus + CORRECT → tier 0, verify.verdict "correct".
+- unanimous consensus + verify_when weak → NO verifier call, verify.ran
+  false.
+- tier-1 answer + verifier WRONG + escalate configured → tier 2, and
+  verify.on == "tier1".
+- verifier LLM raises / run_verification returns no verdict → verdict
+  "inconclusive", cascade proceeds normally (tier 0 returned).
+- run_verification unit: code printing VERDICT: CORRECT → "correct";
+  code raising → "inconclusive"; timeout code (sleep) → "inconclusive".
+- config: verify python with no resolvable verifier slot → verify None.
+
+### Bench
+cascade-wafer4v = cascade-wafer4 + verify python (verifier = gemma-4-31b
+cerebras), verify_when weak. AIME-60 + HMMT-20 via moa_cascade_bench
+(record usage.moa.cascade.verify in rows — extend the bench script to
+carry the whole cascade block through to the JSON). Success: AIME ≥58/60,
+median ≤7 s, frontier ≤10%.
