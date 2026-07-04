@@ -48,6 +48,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 29 | Per-slot caps make thinking-voter unanimity viable; convergence holds on HMMT | mc4-fair (15k cap): still degenerate — 87%, tier-0 never fired (thinking voter's candidates rarely string-match); convergence HMMT 19/20 (95%), clean arbitration 11/11 | Unanimity dials with thinking voters SETTLED impractical; cascade-convergence = standing optimum on BOTH sets (95%/95%) |
 
+| 30 | RLM agent loop on wafer beats single-pass | gemma-4-31b: RLM 49/60 (82%) vs solo 41/60 (68%), +14pp @2.5s mean, 2 rounds median, 63% python-rate; gpt-oss-120b: no benefit (48% vs 55%, FINAL-extraction artifacts) | Law: externalized reasoning lifts non-thinking models; thinking models don't need it. Best small-model result of the campaign; RLM-as-cascade-voter queued |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
