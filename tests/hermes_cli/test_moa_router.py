@@ -462,3 +462,33 @@ def test_multi_tier_escalation_climbs_one_tier_per_failure(fake_classifier):
     # Top tier absorbs further failures.
     fourth = asyncio.run(route_request(cfg, fail2, session_id="t1"))
     assert (fourth.preset_name, fourth.method) == ("frontier", "sticky")
+
+
+def test_min_failures_delays_escalation(fake_classifier):
+    raw = {
+        **ESCALATED_CFG,
+        "router": {
+            **ESCALATED_CFG["router"],
+            "escalation": {"preset": "frontier", "min_failures": 2},
+        },
+    }
+    cfg = normalize_moa_config(raw)
+    assert cfg["router"]["escalation"]["min_failures"] == 2
+    fake_classifier["reply"] = "coding"
+    convo = [{"role": "user", "content": "fix the bug"}]
+    asyncio.run(route_request(cfg, convo, session_id="mf1"))
+    fail1 = convo + [
+        {"role": "assistant", "content": "repro"},
+        {"role": "user", "content": "Traceback (most recent call last): boom"},
+    ]
+    # First failure: normal debugging — stay on the lane.
+    second = asyncio.run(route_request(cfg, fail1, session_id="mf1"))
+    assert (second.preset_name, second.method) == ("coding", "sticky")
+    assert second.failures_seen == 1
+    fail2 = fail1 + [
+        {"role": "assistant", "content": "patch"},
+        {"role": "user", "content": "still: 1 test failed"},
+    ]
+    # Second failure: the lane is stuck — escalate.
+    third = asyncio.run(route_request(cfg, fail2, session_id="mf1"))
+    assert (third.preset_name, third.method) == ("frontier", "escalated")

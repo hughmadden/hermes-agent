@@ -56,9 +56,10 @@ class RouteDecision:
 
     preset_name: str  # concrete preset, or SELF_CLASS
     is_self: bool
-    method: str  # "classified" | "sticky" | "fallback"
+    method: str  # "classified" | "sticky" | "fallback" | "escalated"
     reason: str  # short human-readable note for the reasoning delta
     classifier_ms: Optional[int] = None
+    failures_seen: int = 0  # failure-signal observations in this conversation
 
     def as_trace(self) -> dict[str, Any]:
         return {
@@ -255,6 +256,22 @@ async def route_request(
         # sticky state, so a conversation escalates at most once.
         escalation = router.get("escalation")
         if escalation and _failure_signal(messages, escalation["on_patterns"]):
+            failures = previous.failures_seen + 1
+            if failures < int(escalation.get("min_failures") or 1):
+                # Not stuck yet — record the observation, stay on the lane.
+                updated = RouteDecision(
+                    preset_name=previous.preset_name,
+                    is_self=previous.is_self,
+                    method="sticky",
+                    reason=(
+                        f"failure {failures}/{escalation.get('min_failures')} observed — "
+                        f"staying on '{previous.preset_name}'"
+                    ),
+                    classifier_ms=None,
+                    failures_seen=failures,
+                )
+                sticky_put(key, updated)
+                return updated
             tiers = escalation.get("tiers") or [escalation["preset"]]
             # Advance one tier per NEW failure signal: a lane outside the
             # ladder enters at tier 0; a lane on the ladder steps up; the top

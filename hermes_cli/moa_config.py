@@ -214,6 +214,12 @@ def normalize_moa_router(raw: Any, presets: dict[str, Any]) -> dict[str, Any]:
                 "preset": tiers[0],  # back-compat single-tier view
                 "tiers": tiers,
                 "on_patterns": [str(p) for p in patterns if str(p).strip()],
+                # Escalate only on the Nth request carrying a failure signal.
+                # Debugging workloads print tracebacks as part of NORMAL work
+                # (reproducing the bug), so first-failure escalation over-fires
+                # (measured: 20/25 SWE conversations escalated); repeated
+                # failures indicate the lane is actually stuck.
+                "min_failures": max(1, _coerce_int(esc_raw.get("min_failures"), 1)),
             }
 
     return {
