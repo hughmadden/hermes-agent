@@ -32,7 +32,14 @@ moa:
     default: cere-fast
     timeout_s: 8
     escalation:
-      preset: frontier-lane
+      # Tiers escalate one step per NEW failure observation; min_failures
+      # gates the first escalation (debugging workloads print tracebacks as
+      # normal work — measured: first-failure escalation fired on 80% of SWE
+      # conversations; min_failures=3 cut frontier turn share 33%->18% at
+      # identical resolution). Match min_failures to the client's retry
+      # depth: aider-style 2-attempt loops want 1-2; deep agentic loops 3+.
+      tiers: [frontier-lane]
+      min_failures: 3
   presets:
     frontier-opus-solo:
       enabled: false
@@ -118,6 +125,19 @@ moa:
       aggregator:
         provider: openrouter
         model: anthropic/claude-fable-5
+      reference_max_tokens: 600
+    # Plan-covered frontier lane (measured: GPT-5.5 via the ChatGPT plan
+    # through openai-codex = 95% HMMT / 80% SWE at $0 marginal). Requires the
+    # live hermes auth.json mounted into the serve container; swap this in as
+    # the escalation tier when plan quota is available.
+    gpt55-plan-lane:
+      enabled: false
+      reference_models:
+        - provider: openrouter
+          model: unused/ref
+      aggregator:
+        provider: openai-codex
+        model: gpt-5.5
       reference_max_tokens: 600
     open-moa-nano:
       reference_models:

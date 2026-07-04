@@ -19,6 +19,10 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 10 | Python verifier tool lifts hard reasoning | v1 harness (4-round cap) collapsed to empty answers — termination artifact. v2 (8 rounds + forced final): kimi 56/60 (93%) vs 88% baseline; cere-moa 87% vs 90% | Confirmed for strong thinking solos (+5 pp, +58% latency); no gain for wafer MoA |
 | 11 | Quorum straggler-dropping costs accuracy | mixed-heavy + grace 0.5 on AIME: 60/60 vs 55/60 baseline, similar latency | No accuracy cost (straggler is often the noisy reference); keep on for latency-sensitive lanes |
 
+| 12 | HMMT mix batch: frontier councils, wafer-briefed judges, local trios | Fable saturates HMMT (20/20); councils no-harm-no-lift; plan-GPT-5.5 19/20 at $0; local-trio→GLM-5.2 17/20 best local (+5 pp comp lift); qwen3.6-27b 16/20 sleeper; step-3.5-flash provider-broken on OR (18/40 empty responses) | Frontier evaluation needs long-horizon agentic tasks, not competition math; plan-integrated GPT-5.5 = value king |
+| 13 | Live escalation with a plan-covered frontier lane (SWE-bench) | kimi→plan-GPT-5.5 moa:auto: 20/25 = paid-frontier parity at $0 frontier cost; BUT 20/25 conversations escalated (failure patterns over-fire on debugging) | Confirmed + design lesson |
+| 14 | min_failures gate stops over-firing | min_failures=3: same 20/25, frontier turn share 33%→18%, kimi drives 82% of turns | Confirmed — shipped as escalation.min_failures; match it to the client's retry depth |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
