@@ -819,6 +819,50 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
     it always runs non-streaming even for a streaming request.
     """
     agg_messages = tier1_bundle["agg_messages"]
+    aggregator = common["aggregator"]
+    agg_runtime = _slot_runtime(aggregator)
+    cascade_cfg = common.get("cascade") or {}
+    if aggregator.get("agent") == "rlm" and cascade_cfg.get("clean_arbiter"):
+        # An RLM arbiter re-solves from scratch with the voter loop
+        # (reason -> python -> observe). Measured basis (iter 38): the loop
+        # lifts open arbiters massively (deepseek-v4-pro 53% -> 90%), and a
+        # clean arbiter gets client messages only — exactly the voter-shaped
+        # call `_run_reference(direct=True)` already implements.
+        from agent.moa_loop import _run_reference
+
+        _label, rlm_text, rlm_acct = _run_reference(
+            aggregator,
+            [dict(m) for m in common["messages"]],
+            temperature=common["aggregator_temperature"],
+            max_tokens=common["max_tokens"],
+            timeout=common["slot_timeout"],
+            direct=True,
+        )
+        agg_response = SimpleNamespace(
+            choices=[
+                SimpleNamespace(
+                    message=SimpleNamespace(
+                        content=rlm_text, reasoning_content=None, tool_calls=None
+                    ),
+                    finish_reason="stop",
+                )
+            ],
+            usage=None,
+        )
+        agg_usage = getattr(rlm_acct, "usage", None) or _normalize_chunk_usage(
+            None, agg_runtime
+        )
+        agg_text = rlm_text or ""
+        return _cascade_after_tier1(
+            common,
+            messages,
+            tier1_bundle,
+            agg_text=agg_text,
+            agg_usage=agg_usage,
+            agg_runtime=agg_runtime,
+            agg_response=agg_response,
+            agg_messages=agg_messages,
+        )
     agg_response = call_llm(
         task="moa_aggregator",
         messages=agg_messages,
@@ -829,7 +873,6 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
         timeout=common["slot_timeout"],
         **_slot_runtime(common["aggregator"]),
     )
-    agg_runtime = _slot_runtime(common["aggregator"])
     agg_usage = _normalize_chunk_usage(getattr(agg_response, "usage", None), agg_runtime)
     agg_text = _extract_message_fields(agg_response).get("content") or ""
     return _cascade_after_tier1(

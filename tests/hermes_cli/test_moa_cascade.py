@@ -2202,3 +2202,70 @@ async def test_normal_request_under_context_cap_still_cascades(moa_home_ctx, fak
         assert body["usage"]["moa"]["cascade"]["tier"] == 0
     finally:
         await client.close()
+
+
+def _write_rlm_arbiter_cfg(home):
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: openladder
+  presets:
+    openladder:
+      mode: cascade
+      cascade: {clean_arbiter: true}
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+      aggregator:
+        provider: openrouter
+        model: open-arbiter
+        agent: rlm
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_rlm_arbiter(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_rlm_arbiter_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_clean_rlm_arbiter_runs_voter_loop(moa_home_rlm_arbiter, fake_llm, monkeypatch):
+    """A clean arbiter slot with agent: rlm re-solves via the RLM loop —
+    visible as moa_reference-task calls for the arbiter model and a FINAL
+    answer, with no plain moa_aggregator call."""
+    replies = {"voter-a": "ANSWER: 1", "voter-b": "ANSWER: 2"}
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        if model in replies:
+            return _response(replies[model])
+        return _response("Solved it.\nFINAL: 42")  # the RLM arbiter's turn
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:openladder", "messages": [{"role": "user", "content": "q"}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        assert body["usage"]["moa"]["cascade"]["tier"] == 1
+        assert "FINAL: 42" in body["choices"][0]["message"]["content"]
+        assert not [c for c in fake_llm.calls if c.get("task") == "moa_aggregator"]
+        arbiter_calls = [
+            c for c in fake_llm.calls
+            if c.get("task") == "moa_reference" and c.get("model") == "open-arbiter"
+        ]
+        assert arbiter_calls
+    finally:
+        await client.close()
