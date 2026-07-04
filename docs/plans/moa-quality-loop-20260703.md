@@ -58,6 +58,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 36 | Post-cutoff revalidation (AIME 2026 + HMMT Feb 2026) | Frontier solos DROP (fable 100→97/90, gpt5.5 98/95→97/85 — contamination confirmed); cascade-rlm HOLDS: 97% AIME26 (ties frontiers), 95% HMMT26 (beats gpt5.5 +10pp, fable +5pp) @3.9–5.7s, frontier 3–20%; rlm-conv falls behind (87/90%) | Architecture measures difficulty, not memorization; escalation-on-discord > always-frontier-arbitration on novel problems; cascade-rlm = new default (stable+turbo switched) |
 
+| 38 | RLM lifts modern open models (AIME 2026, post-cutoff) | deepseek-v4-pro 53→90% (+37pp, 93% py-rate), glm-5.2 53→80%, minimax-m3 40→60%; solos far below reputation on fresh problems | LAW REVISED: RLM loop is a general open-model quality multiplier (gpt-oss exception was format friction); deepseek-v4-pro-RLM = best fully-open single model; all-open escalation ladder queued |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
