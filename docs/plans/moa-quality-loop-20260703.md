@@ -38,6 +38,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 23 | Stronger wafer tier-1 aggregator lifts the cascade | gpt-oss agg: 90% (vs glm 93%) — within single-run noise; family invariant 92±1.5% | Tier-1 wafer aggregator choice is noise; accuracy is set by consensus precision + frontier share |
 | 24 | Frontier-arbitrated disagreements reach ~97% | consensus-or-frontier: 93% @3.5s median, frontier 15%; GPT-5.5-as-arbiter 7/9 on disagreements vs ~98% solo | REFUTED projection — voter context ANCHORS even a frontier arbiter (same contamination as code editing); clean-escalation (discard voter work) queued |
 
+| 25 | Clean arbitration recovers anchored losses | clean_arbiter shipped; disagreement-subset accuracy 78%→86% (directional confirm) but total 92% — 7-variant family mean 92.1% AIME | Anchoring real; ceiling is stochastic false consensus → voter DIVERSITY (new model families, e.g. local vLLM) is the next lever |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
