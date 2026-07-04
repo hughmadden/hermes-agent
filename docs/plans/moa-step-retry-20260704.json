@@ -1,0 +1,387 @@
+{
+  "n_tasks": 20,
+  "results": [
+    {
+      "config": "step35-solo",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 96.0,
+      "ref_tokens": 0,
+      "agg_tokens": 5420
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 301.7
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 301.8
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 301.8
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 303.3
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.3
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.3
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.1
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 667.5,
+      "ref_tokens": 0,
+      "agg_tokens": 42541
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 688.6,
+      "ref_tokens": 0,
+      "agg_tokens": 44393
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.4
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 658.9,
+      "ref_tokens": 0,
+      "agg_tokens": 40262
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.4
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 297.4,
+      "ref_tokens": 0,
+      "agg_tokens": 16611
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1023.8,
+      "ref_tokens": 0,
+      "agg_tokens": 65641
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 783.5,
+      "ref_tokens": 0,
+      "agg_tokens": 47875
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 178.7,
+      "ref_tokens": 9578,
+      "agg_tokens": 5895
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 300.9
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 344.1,
+      "ref_tokens": 0,
+      "agg_tokens": 24629
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 364.7
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 400.4
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 295.9,
+      "ref_tokens": 13505,
+      "agg_tokens": 10940
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1032.9,
+      "ref_tokens": 0,
+      "agg_tokens": 65740
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 257.8,
+      "ref_tokens": 31462,
+      "agg_tokens": 5780
+    },
+    {
+      "config": "step35-solo",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1021.7,
+      "ref_tokens": 0,
+      "agg_tokens": 65700
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 448.0
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 455.3
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "latency_s": 330.8,
+      "ref_tokens": 31736,
+      "agg_tokens": 13751
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 532.0
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 307.6,
+      "ref_tokens": 41774,
+      "agg_tokens": 4141
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 545.9
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 704.7
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": null,
+      "correct": false,
+      "error": "Auxiliary moa_aggregator: LLM returned invalid response (type=ChatCompletion): 'ChatCompletion(id=None, choices=None, created=None, model=None, object=None, service_tier=None, system_fingerprint=None,'. Expected object with .choices[0].message \u2014 check provider adapter or custom endpoint compatibilit",
+      "latency_s": 384.3
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 249.3,
+      "ref_tokens": 22110,
+      "agg_tokens": 7379
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 494.6,
+      "ref_tokens": 20012,
+      "agg_tokens": 7662
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 923.4,
+      "ref_tokens": 29937,
+      "agg_tokens": 39936
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 756.9,
+      "ref_tokens": 19910,
+      "agg_tokens": 22482
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1406.1,
+      "ref_tokens": 50699,
+      "agg_tokens": 66619
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1577.2,
+      "ref_tokens": 41242,
+      "agg_tokens": 66774
+    },
+    {
+      "config": "local-trio-stepagg",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": null,
+      "correct": false,
+      "latency_s": 1540.6,
+      "ref_tokens": 38252,
+      "agg_tokens": 65886
+    }
+  ]
+}
