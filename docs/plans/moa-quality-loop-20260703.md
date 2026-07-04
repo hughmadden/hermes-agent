@@ -35,6 +35,9 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 22 | Dial confirmation at n=60 | mc4 AIME 88% < mc3 93%: strictness demoted 95.8%-precise weak consensus into a 73%-accurate tier-1 aggregator | Dial is task-relative, not monotone; constants: unanimous tier-0 ≈ perfect (53/53 cross-set), tier-2 near-perfect; tier-1 aggregator = weak link (upgrade queued) |
 
+| 23 | Stronger wafer tier-1 aggregator lifts the cascade | gpt-oss agg: 90% (vs glm 93%) — within single-run noise; family invariant 92±1.5% | Tier-1 wafer aggregator choice is noise; accuracy is set by consensus precision + frontier share |
+| 24 | Frontier-arbitrated disagreements reach ~97% | consensus-or-frontier: 93% @3.5s median, frontier 15%; GPT-5.5-as-arbiter 7/9 on disagreements vs ~98% solo | REFUTED projection — voter context ANCHORS even a frontier arbiter (same contamination as code editing); clean-escalation (discard voter work) queued |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
