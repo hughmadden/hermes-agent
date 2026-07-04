@@ -1,0 +1,559 @@
+{
+  "dataset": "hmmt",
+  "n_tasks": 20,
+  "results": [
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-2",
+      "expected": "3375",
+      "answer": "3375",
+      "correct": true,
+      "latency_s": 1.9,
+      "cascade": {
+        "tier": 0,
+        "consensus": "3375",
+        "votes": 4,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "3375",
+          "3375",
+          "3375",
+          "3375"
+        ],
+        "gate_used": "exact"
+      },
+      "total_tokens": 6610
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-4",
+      "expected": "-984",
+      "answer": "-984",
+      "correct": true,
+      "latency_s": 2.5,
+      "cascade": {
+        "tier": 0,
+        "consensus": "-984",
+        "votes": 4,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "-984",
+          "-984",
+          "-984",
+          "-984"
+        ],
+        "gate_used": "exact"
+      },
+      "total_tokens": 9225
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-5",
+      "expected": "890",
+      "answer": "890",
+      "correct": true,
+      "latency_s": 2.8,
+      "cascade": {
+        "tier": 0,
+        "consensus": "890",
+        "votes": 4,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "890",
+          "890",
+          "890",
+          "890"
+        ],
+        "gate_used": "exact"
+      },
+      "total_tokens": 10248
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-1",
+      "expected": "103",
+      "answer": "103",
+      "correct": true,
+      "latency_s": 3.6,
+      "cascade": {
+        "tier": 0,
+        "consensus": "103",
+        "votes": 4,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "103",
+          "103",
+          "103",
+          "103"
+        ],
+        "gate_used": "exact"
+      },
+      "total_tokens": 12920
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-13",
+      "expected": "105",
+      "answer": "266",
+      "correct": false,
+      "latency_s": 4.5,
+      "cascade": {
+        "tier": 0,
+        "consensus": "266",
+        "votes": 4,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "266",
+          "266",
+          "266",
+          "266"
+        ],
+        "gate_used": "exact"
+      },
+      "total_tokens": 15750
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-12",
+      "expected": "29",
+      "answer": null,
+      "correct": false,
+      "latency_s": 6.2,
+      "cascade": {
+        "tier": 0,
+        "consensus": "29",
+        "votes": 4,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "29",
+          "29",
+          "29",
+          "29"
+        ],
+        "gate_used": "exact"
+      },
+      "total_tokens": 25019
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-9",
+      "expected": "1037",
+      "answer": "1037",
+      "correct": true,
+      "latency_s": 28.9,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 2,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "1035",
+          "1037",
+          "1035",
+          "1037"
+        ],
+        "tier1_candidate": "1037",
+        "gate_used": null
+      },
+      "total_tokens": 13328
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-3",
+      "expected": "1/576",
+      "answer": "1/576",
+      "correct": true,
+      "latency_s": 37.3,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 3,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "576",
+          "1/576",
+          "1/576",
+          "1/576"
+        ],
+        "tier1_candidate": "1/576",
+        "gate_used": null
+      },
+      "total_tokens": 21930
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-11",
+      "expected": "56",
+      "answer": "56",
+      "correct": true,
+      "latency_s": 41.4,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 1,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "28",
+          "168",
+          "8",
+          "56"
+        ],
+        "tier1_candidate": "56",
+        "gate_used": null
+      },
+      "total_tokens": 25580
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-6",
+      "expected": "1311/2017",
+      "answer": "1311/2017",
+      "correct": true,
+      "latency_s": 45.9,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 3,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "1311/2017",
+          "1311/2017",
+          "1311/2017",
+          "0"
+        ],
+        "tier1_candidate": "1311/2017",
+        "gate_used": null
+      },
+      "total_tokens": 10939
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-14",
+      "expected": "2304",
+      "answer": "2304",
+      "correct": true,
+      "latency_s": 48.1,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 1,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          null,
+          "40",
+          "2304",
+          "52"
+        ],
+        "tier1_candidate": "2304",
+        "gate_used": null
+      },
+      "total_tokens": 9116
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-21",
+      "expected": "26",
+      "answer": "26",
+      "correct": true,
+      "latency_s": 1.1,
+      "cascade": {
+        "tier": 0,
+        "consensus": "26",
+        "votes": 4,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "26",
+          "26",
+          "26",
+          "26"
+        ],
+        "gate_used": "exact"
+      },
+      "total_tokens": 4833
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-16",
+      "expected": "6300",
+      "answer": "6300",
+      "correct": true,
+      "latency_s": 30.7,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 3,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "6300",
+          "6300",
+          "6300",
+          "9478"
+        ],
+        "tier1_candidate": "6300",
+        "gate_used": null
+      },
+      "total_tokens": 14716
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-22",
+      "expected": "63",
+      "answer": "63",
+      "correct": true,
+      "latency_s": 31.5,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 3,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "63",
+          "63",
+          null,
+          "63"
+        ],
+        "tier1_candidate": "63",
+        "gate_used": null
+      },
+      "total_tokens": 7282
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-15",
+      "expected": "200",
+      "answer": "200",
+      "correct": true,
+      "latency_s": 88.1,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 2,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "200",
+          "202",
+          "200",
+          "202"
+        ],
+        "tier1_candidate": "200",
+        "gate_used": null
+      },
+      "total_tokens": 15407
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-18",
+      "expected": "2025/101",
+      "answer": "2025/101",
+      "correct": true,
+      "latency_s": 62.4,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 2,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "675/67",
+          null,
+          "675/67",
+          "2025/101"
+        ],
+        "tier1_candidate": "2025/101",
+        "gate_used": null
+      },
+      "total_tokens": 24252
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-27",
+      "expected": "7/18",
+      "answer": "7/18",
+      "correct": true,
+      "latency_s": 43.6,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 3,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "7/18",
+          "7/18",
+          "7/18",
+          "1/3"
+        ],
+        "tier1_candidate": "7/18",
+        "gate_used": null
+      },
+      "total_tokens": 16586
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-24",
+      "expected": "20",
+      "answer": "20",
+      "correct": true,
+      "latency_s": 72.8,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 3,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b"
+        ],
+        "candidates": [
+          "20",
+          "20",
+          "20",
+          null
+        ],
+        "tier1_candidate": "20",
+        "gate_used": null
+      },
+      "total_tokens": 19659
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-20",
+      "expected": "448/3",
+      "answer": "448/3",
+      "correct": true,
+      "latency_s": 128.7,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 1,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "946/3",
+          "84",
+          "66",
+          "2520"
+        ],
+        "tier1_candidate": "448/3",
+        "gate_used": null
+      },
+      "total_tokens": 19490
+    },
+    {
+      "model": "moa:cascade-rlm-conv4",
+      "task": "hmmt-19",
+      "expected": "4/9",
+      "answer": "4/9",
+      "correct": true,
+      "latency_s": 160.8,
+      "cascade": {
+        "tier": 1,
+        "consensus": null,
+        "votes": 2,
+        "voters": [
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]",
+          "custom:cerebras:gpt-oss-120b",
+          "custom:cerebras:gemma-4-31b [rlm]"
+        ],
+        "candidates": [
+          "1/2",
+          "2/3",
+          "1/2",
+          "4/9"
+        ],
+        "tier1_candidate": "4/9",
+        "gate_used": null
+      },
+      "total_tokens": 17817
+    }
+  ]
+}

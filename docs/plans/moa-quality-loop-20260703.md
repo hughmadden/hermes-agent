@@ -53,6 +53,9 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 31 | RLM voters raise the all-wafer cascade | cascade-rlm 55/60 (92%) @3.6s, tier-0 45/60, frontier 1/60 (1.7%) | Efficiency win (frontier 5%→1.7% at equal accuracy); 92% wafer ceiling still holds — correlated errors survive better voters |
 | 32 | Compose RLM voters + clean $0 arbitration | cascade-rlm-conv 58/60 (97%) @3.9s median — CAMPAIGN RECORD; tier-0 49/50 (98% precision, 83% coverage); clean GPT-5.5 tail 9/10; 17% frontier @$0; 0 errors; pure cloud | THE recipe: frontier-solo accuracy (98% @40s) at 10× lower latency and wafer cost |
 
+| 33 | Champion holds cross-set | cascade-rlm-conv HMMT 18/20 (90%) @5.5s; clean arbiter 7/7; both misses = tier-0 false consensus | Champion: 97% AIME / 90% HMMT pure cloud; local-hybrid still best on hardest set (95%/95%) |
+| 34 | Unanimity over reliable RLM voters filters the last errors | mc4 HMMT: same 90% @37s; tier-0 precision STILL 5/7 — both misses were 4-of-4 agreed-wrong | REFUTED — residual errors are systematic model-class errors; no consensus rule filters them; mc3 dominates mc4 everywhere. Consensus space closed |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
