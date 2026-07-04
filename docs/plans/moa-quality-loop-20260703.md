@@ -40,6 +40,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 25 | Clean arbitration recovers anchored losses | clean_arbiter shipped; disagreement-subset accuracy 78%→86% (directional confirm) but total 92% — 7-variant family mean 92.1% AIME | Anchoring real; ceiling is stochastic false consensus → voter DIVERSITY (new model families, e.g. local vLLM) is the next lever |
 
+| 26 | An independent local voter family cuts false consensus | Hybrid pool (Qwen3-8B on RTX 5090 + Cerebras voters) ran flawlessly but 88% AIME: weak dissent = noise, tier-1 volume up, false consensus unchanged | Law: diversity value = independence × competence; the 4×96GB box needs 27B+ local voters — mechanism proven, model class matters |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
