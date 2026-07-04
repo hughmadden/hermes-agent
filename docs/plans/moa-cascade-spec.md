@@ -379,3 +379,67 @@ the loop is for answering):
 cascade-rlm: voters [gpt-oss-120b, gemma31(agent:rlm), gpt-oss-120b,
 gemma31(agent:rlm)] mc3, agg zai-glm-4.7, esc gpt55-plan; AIME-60.
 Target: ≥95% at ≤15% frontier, all-wafer voters (no local GPU).
+
+## Addendum v1.4 — real-world cascade: streaming + tool-carrying requests (iteration 37)
+
+Motivation: agent clients (hermes turbo) always stream and always send
+tools; both currently fall back to classic fanout — every turn pays 4
+advisory calls + aggregation, RLM voters never run, and no consensus
+short-circuit happens. Two changes make cascade presets production-real:
+
+### A. Tool-carrying requests → acting-model SOLO (both streaming and not)
+When the resolved preset has mode=="cascade" AND the request carries
+tools: do NOT run voters, do NOT attach any reference guidance. Call the
+preset's aggregator slot directly with the client's messages + tools —
+native solo behavior (measured basis: advisory context hurts tool/code
+work; solo lanes won every agentic bench). Streaming uses the existing
+aggregator streaming machinery untouched; non-streaming likewise. Surface:
+`usage.moa.cascade = {"tier": null, "mode": "tool-solo"}` plus normal
+usage accounting (aggregator only). Trace acting_slot = aggregator.
+(Config knob for later, NOT in this addendum: cascade.tool_lane.)
+
+### B. Streaming, tool-free requests → true streaming cascade
+In `_handle_streaming`, when mode=="cascade" and no tools and >=2 refs:
+1. Emit one reasoning delta "[cascade: N voters answering…]".
+2. Run the EXISTING tier-0 voter fan-out (direct=True, RLM slots active,
+   quorum, per-slot caps) in a worker thread — voters non-streaming
+   exactly as in `_run_cascade_turn`; as each voter completes, emit a
+   reasoning delta "[voter <label>: done]" (no content leakage).
+3. Consensus (incl. judge gate when configured, verification when
+   configured — same helpers): tier-0 hit → emit the winner's full text
+   as ONE content delta, then the final chunk (finish_reason "stop",
+   usage incl. `usage.moa.cascade` exactly as the non-streaming path
+   builds it). Save the same proxy trace with the same acting_slot rules.
+4. No consensus → tier-1: stream the acting aggregator LIVE through the
+   existing `_agg_worker` machinery, with the cascade guidance attach
+   rules (voters as reference outputs; clean_arbiter → no guidance;
+   verifier strike note when applicable). Tier-2 escalation on discord:
+   because the tier-1 answer must be inspected BEFORE the client sees it,
+   tier-1 runs NON-streaming whenever `escalate_to` is configured (then
+   the chosen final answer — tier-1's or tier-2's — is emitted as one
+   content delta). When no escalate_to (e.g. clean-arbiter presets), the
+   aggregator streams live token-by-token.
+5. Reuse `_as_chunk_stream` everywhere (openai-codex slots).
+
+### Contracts
+- `_run_cascade_turn` refactor allowed but the non-streaming path's JSON
+  must stay byte-identical (existing tests are the oracle).
+- New helper suggested: extract voter-phase + gating into
+  `_cascade_gate(common, messages) -> dict` shared by both paths.
+- Traces: streaming cascade saves the same trace shape as non-streaming.
+
+### Tests (append to test_moa_cascade.py; reuse aiohttp streaming client
+patterns from test_moa_proxy_server.py's streaming tests)
+- streaming + consensus: SSE stream contains the voter reasoning deltas,
+  ONE content delta with the winner text, finish "stop", and final-chunk
+  usage carrying cascade{tier:0}; NO aggregator call recorded.
+- streaming + disagreement + no escalate: aggregator streamed live
+  (multiple content deltas from the fake stream), cascade{tier:1}.
+- streaming + disagreement + escalate configured + discord: tier-2 text
+  arrives as one content delta, cascade{tier:2}.
+- tools + cascade (non-streaming AND streaming): zero moa_reference
+  calls; aggregator called WITH the client tools; response carries
+  cascade{mode:"tool-solo"}; a tool_calls delta passes through to the
+  client in the streaming case.
+- RLM voter active in streaming tier-0 (fake fence/FINAL handler → the
+  '[rlm]' label appears in cascade voters list).
