@@ -259,6 +259,7 @@ def _run_reference(
     temperature: float | None = None,
     max_tokens: int | None = None,
     timeout: float | None = None,
+    direct: bool = False,
 ) -> tuple[str, str, Any]:
     """Call one reference model and return ``(label, text, usage)``.
 
@@ -283,17 +284,22 @@ def _run_reference(
     can still act with partial context. Designed to run inside a thread pool —
     ``call_llm`` is synchronous/blocking, so threads (not asyncio) are the right
     concurrency primitive, mirroring ``delegate_task``'s batch fan-out.
+
+    ``direct=True`` skips the advisory system prompt entirely and calls the
+    model with ``ref_messages`` as given — used by cascade mode's tier-0
+    voters, which answer the client's actual request directly rather than
+    advising an aggregator (see docs/plans/moa-cascade-spec.md).
     """
     from agent.usage_pricing import CanonicalUsage, estimate_usage_cost, normalize_usage
 
     label = _slot_label(slot)
     runtime = _slot_runtime(slot)
+    messages = (
+        ref_messages
+        if direct
+        else [{"role": "system", "content": _REFERENCE_SYSTEM_PROMPT}, *ref_messages]
+    )
     try:
-        # Prepend the advisory-role system prompt so the reference understands
-        # it is analyzing state for an aggregator, not acting on the task. The
-        # trimmed view (_reference_messages) already strips the agent's own
-        # system prompt, so this is the only system message the reference sees.
-        messages = [{"role": "system", "content": _REFERENCE_SYSTEM_PROMPT}, *ref_messages]
         response = call_llm(
             task="moa_reference",
             messages=messages,
@@ -350,7 +356,7 @@ def _run_reference(
         logger.warning("MoA reference model %s failed: %s", label, exc)
         return label, f"[failed: {exc}]", _RefAccounting(
             CanonicalUsage(),
-            messages=[{"role": "system", "content": _REFERENCE_SYSTEM_PROMPT}, *ref_messages],
+            messages=messages,
             output=f"[failed: {exc}]",
             model=slot.get("model"),
             provider=runtime.get("provider") or slot.get("provider"),
@@ -366,6 +372,7 @@ def _run_references_parallel(
     max_tokens: int | None = None,
     timeout: float | None = None,
     quorum_grace: float | None = None,
+    direct: bool = False,
 ) -> list[tuple[str, str, Any]]:
     """Fan out all reference models in parallel, returning outputs in order.
 
@@ -385,6 +392,9 @@ def _run_references_parallel(
 
     Each element is ``(label, text, usage)`` where usage is a
     ``CanonicalUsage`` (zeroed for skipped/failed/dropped references).
+
+    ``direct=True`` is forwarded to every ``_run_reference`` call (see its
+    docstring) — used by cascade mode's tier-0 voters.
     """
     import time as _time
     from concurrent.futures import FIRST_COMPLETED, wait
@@ -415,6 +425,7 @@ def _run_references_parallel(
                     temperature=temperature,
                     max_tokens=max_tokens,
                     timeout=timeout,
+                    direct=direct,
                 )
             ] = idx
 

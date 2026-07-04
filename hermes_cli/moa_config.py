@@ -117,12 +117,33 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
             route = {"description": description}
 
     # Turn shape: "fanout" (default — references advise before the aggregator
-    # acts) or "draft_review" (inverted: aggregator drafts solo, references
-    # review the draft, aggregator revises). draft_review targets precise
-    # code editing, where up-front advisory context measurably hurt pass@1.
+    # acts), "draft_review" (inverted: aggregator drafts solo, references
+    # review the draft, aggregator revises), or "cascade" (lazy MoA: voters
+    # answer directly first, an aggregator only runs on disagreement — see
+    # docs/plans/moa-cascade-spec.md). draft_review targets precise code
+    # editing, where up-front advisory context measurably hurt pass@1.
     mode = str(raw.get("mode") or "fanout").strip().lower()
-    if mode not in {"fanout", "draft_review"}:
+    if mode not in {"fanout", "draft_review", "cascade"}:
         mode = "fanout"
+    # Cascade needs at least two voters to have a consensus to check; a preset
+    # with fewer reference slots silently downgrades to fanout rather than
+    # erroring, matching the tolerant-degrade style of the rest of this
+    # function (e.g. bad reference_models types above).
+    if mode == "cascade" and len(refs) < 2:
+        mode = "fanout"
+
+    cascade = None
+    if mode == "cascade":
+        cascade_raw = raw.get("cascade")
+        if not isinstance(cascade_raw, dict):
+            cascade_raw = {}
+        escalate_to = str(cascade_raw.get("escalate_to") or "").strip() or None
+        # Default min_consensus is unanimity (len(refs)); clamp to [2, len(refs)]
+        # so a hand-edited value can't require 0/1 votes (trivial) or more votes
+        # than there are voters (impossible to ever reach consensus).
+        min_consensus = _coerce_int(cascade_raw.get("min_consensus"), len(refs))
+        min_consensus = max(2, min(min_consensus, len(refs)))
+        cascade = {"escalate_to": escalate_to, "min_consensus": min_consensus}
 
     return {
         "enabled": bool(raw.get("enabled", True)),
@@ -130,6 +151,7 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         "aggregator": aggregator,
         "route": route,
         "mode": mode,
+        "cascade": cascade,
         "reference_temperature": _coerce_float(raw.get("reference_temperature"), 0.6),
         "aggregator_temperature": _coerce_float(raw.get("aggregator_temperature"), 0.4),
         "max_tokens": _coerce_int(raw.get("max_tokens"), 4096),
@@ -254,6 +276,16 @@ def normalize_moa_config(raw: Any) -> dict[str, Any]:
     # Legacy flat config becomes the default preset.
     if not presets:
         presets[DEFAULT_MOA_PRESET_NAME] = _normalize_preset(raw)
+
+    # Validate cascade.escalate_to against the resolved presets map, mirroring
+    # the router's escalation-tier validation below: a name that doesn't
+    # resolve to any preset (typo, removed preset) must not silently point a
+    # tier-2 escalation at a KeyError — it degrades to "no escalation" (tier 1
+    # is the final answer) instead.
+    for preset in presets.values():
+        cascade = preset.get("cascade")
+        if cascade and cascade.get("escalate_to") not in presets:
+            cascade["escalate_to"] = None
 
     default_name = str(raw.get("default_preset") or "").strip()
     if not default_name or default_name not in presets:

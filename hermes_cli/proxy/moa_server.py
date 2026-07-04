@@ -72,6 +72,7 @@ from agent.moa_loop import (
     _slot_runtime,
     aggregation_skill_block,
 )
+from hermes_cli.proxy.moa_cascade import agrees, consensus, extract_candidate, normalize_candidate
 
 logger = logging.getLogger(__name__)
 
@@ -210,6 +211,171 @@ def _reference_guidance(preset_name: str, aggregator: dict, reference_outputs: l
         f"{aggregation_skill_block(preset_name)}\n\n"
         f"{joined}"
     )
+
+
+def _cascade_vote_counts(candidates: list[str | None]) -> int:
+    """Size of the largest normalized-candidate group (0 if none extracted)."""
+    from collections import Counter
+
+    counts = Counter(normalize_candidate(c) for c in candidates if c is not None)
+    return max(counts.values()) if counts else 0
+
+
+def _run_cascade_turn(common: dict) -> dict:
+    """Lazy MoA turn: tier-0 wafer-voter consensus, tier-1 aggregator, tier-2
+    escalation. See docs/plans/moa-cascade-spec.md.
+
+    Only reached for a non-streaming, tool-free request on a preset with
+    ``mode == "cascade"`` and >=2 reference slots (config normalization
+    already guarantees the slot count). Returns the same turn-result dict
+    shape as the fanout/draft_review path in ``_run_turn`` above.
+    """
+    from agent.usage_pricing import CanonicalUsage
+
+    messages = common["messages"]
+    reference_models = common["reference_models"]
+    cascade_cfg = common["cascade"] or {}
+    min_consensus = int(cascade_cfg.get("min_consensus") or 2)
+
+    # Tier 0: every voter answers the client's ACTUAL request directly and
+    # verbatim — no advisory system prompt, no reference-view trimming — in
+    # parallel.
+    voters = _run_references_parallel(
+        reference_models,
+        [dict(m) for m in messages],
+        temperature=common["reference_temperature"],
+        max_tokens=common["reference_max_tokens"] or common["max_tokens"],
+        timeout=common["slot_timeout"],
+        quorum_grace=common["preset"].get("reference_quorum_grace"),
+        direct=True,
+    )
+    candidates = [extract_candidate(text) for _label, text, _acct in voters]
+    votes = _cascade_vote_counts(candidates)
+    cons = consensus(candidates, min_consensus)
+    normalized_candidates = [
+        normalize_candidate(c) if c is not None else None for c in candidates
+    ]
+    voter_labels = [label for label, _text, _acct in voters]
+
+    if cons is not None:
+        winner_idx = next(
+            idx
+            for idx, c in enumerate(candidates)
+            if c is not None and normalize_candidate(c) == cons
+        )
+        _winner_label, winner_text, _winner_acct = voters[winner_idx]
+        return {
+            "reference_outputs": voters,
+            "refs_from_cache": False,
+            "agg_messages": [dict(m) for m in messages],
+            "response": None,
+            "agg_usage": CanonicalUsage(),
+            "acting_slot": reference_models[winner_idx],
+            "cascade": {
+                "tier": 0,
+                "consensus": cons,
+                "votes": votes,
+                "voters": voter_labels,
+                "candidates": normalized_candidates,
+            },
+            "winner_text": winner_text,
+        }
+
+    # Tier 1: no consensus among voters — run the preset's own aggregator with
+    # the voter outputs attached as reference context (existing guidance
+    # builder), tool-free (cascade only serves tool-free requests).
+    agg_messages = [dict(m) for m in messages]
+    guidance = _reference_guidance(common["preset_name"], common["aggregator"], voters)
+    _attach_reference_guidance(agg_messages, guidance)
+    agg_response = call_llm(
+        task="moa_aggregator",
+        messages=agg_messages,
+        temperature=common["aggregator_temperature"],
+        max_tokens=common["max_tokens"],
+        tools=None,
+        extra_body=common["extra_body"] or None,
+        timeout=common["slot_timeout"],
+        **_slot_runtime(common["aggregator"]),
+    )
+    agg_runtime = _slot_runtime(common["aggregator"])
+    agg_usage = _normalize_chunk_usage(getattr(agg_response, "usage", None), agg_runtime)
+    agg_text = _extract_message_fields(agg_response).get("content") or ""
+    agg_candidate = extract_candidate(agg_text)
+    tier1_candidate_norm = (
+        normalize_candidate(agg_candidate) if agg_candidate is not None else None
+    )
+
+    escalate_preset = common.get("cascade_escalate_preset")
+    agrees_any = any(agrees(agg_candidate, c) for c in candidates)
+
+    if agrees_any or not escalate_preset:
+        return {
+            "reference_outputs": voters,
+            "refs_from_cache": False,
+            "agg_messages": agg_messages,
+            "response": agg_response,
+            "agg_usage": agg_usage,
+            "acting_slot": None,  # preset aggregator acted — default is right
+            "cascade": {
+                "tier": 1,
+                "consensus": None,
+                "votes": votes,
+                "voters": voter_labels,
+                "candidates": normalized_candidates,
+                "tier1_candidate": tier1_candidate_norm,
+            },
+            "winner_text": None,
+        }
+
+    # Tier 2: the aggregator agreed with NO voter and an escalate preset is
+    # configured — call THAT preset's aggregator solo, with the voters PLUS
+    # the tier-1 aggregator's own output attached as reference context.
+    tier1_label = f"tier1-aggregator — {_slot_label(common['aggregator'])}"
+    tier1_acct = _RefAccounting(
+        agg_usage,
+        messages=agg_messages,
+        output=agg_text,
+        model=common["aggregator"].get("model"),
+        provider=agg_runtime.get("provider") or common["aggregator"].get("provider"),
+        temperature=common["aggregator_temperature"],
+    )
+    reference_outputs = voters + [(tier1_label, agg_text, tier1_acct)]
+
+    escalate_aggregator = escalate_preset.get("aggregator") or {}
+    escalate_messages = [dict(m) for m in messages]
+    escalate_guidance = _reference_guidance(
+        common["preset_name"], escalate_aggregator, reference_outputs
+    )
+    _attach_reference_guidance(escalate_messages, escalate_guidance)
+    escalate_response = call_llm(
+        task="moa_aggregator",
+        messages=escalate_messages,
+        temperature=escalate_preset.get("aggregator_temperature", 0.4),
+        max_tokens=common["max_tokens"],
+        timeout=common["slot_timeout"],
+        **_slot_runtime(escalate_aggregator),
+    )
+    escalate_runtime = _slot_runtime(escalate_aggregator)
+    escalate_usage = _normalize_chunk_usage(
+        getattr(escalate_response, "usage", None), escalate_runtime
+    )
+    return {
+        "reference_outputs": reference_outputs,
+        "refs_from_cache": False,
+        "agg_messages": escalate_messages,
+        "response": escalate_response,
+        "agg_usage": escalate_usage,
+        "acting_slot": escalate_aggregator,
+        "cascade": {
+            "tier": 2,
+            "consensus": None,
+            "votes": votes,
+            "voters": voter_labels,
+            "candidates": normalized_candidates,
+            "tier1_candidate": tier1_candidate_norm,
+        },
+        "winner_text": None,
+    }
 
 
 def _extract_message_fields(response: Any) -> dict[str, Any]:
@@ -530,6 +696,22 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             _norm_cfg((config or {}).get("moa") or {}).get("slot_timeout_s") or 0
         )
 
+        # Cascade mode (see docs/plans/moa-cascade-spec.md): pre-resolve the
+        # escalate-to preset once here (config lookups don't belong in the
+        # hot per-tier turn logic). None whenever mode != "cascade", when no
+        # escalate_to is configured, or when it names an unknown preset (the
+        # config-normalization post-pass already nulls the latter, but a
+        # stale/hand-built preset dict could still reach here).
+        cascade_cfg = preset.get("cascade")
+        cascade_escalate_preset = None
+        if cascade_cfg and cascade_cfg.get("escalate_to"):
+            try:
+                cascade_escalate_preset = resolve_moa_preset(
+                    config.get("moa") or {}, cascade_cfg["escalate_to"]
+                )
+            except KeyError:
+                cascade_escalate_preset = None
+
         common = {
             "routing": routing,
             "slot_timeout": slot_timeout if slot_timeout > 0 else None,
@@ -548,6 +730,8 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             "max_tokens": body.get("max_tokens") or body.get("max_completion_tokens"),
             "extra_body": extra_body,
             "session_id": session_id,
+            "cascade": cascade_cfg,
+            "cascade_escalate_preset": cascade_escalate_preset,
         }
 
         if body.get("stream"):
@@ -565,6 +749,15 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         def _run_turn():
             messages = common["messages"]
             reference_models = common["reference_models"]
+
+            # Cascade mode (docs/plans/moa-cascade-spec.md) only applies to
+            # non-streaming, tool-free turns on a preset with >=2 reference
+            # slots (config normalization guarantees the slot count whenever
+            # mode == "cascade"; a disabled preset empties reference_models,
+            # which also falls through to the existing fanout path below).
+            if common["preset"].get("mode") == "cascade" and reference_models and not common["tools"]:
+                return _run_cascade_turn(common)
+
             draft_review = (
                 common["preset"].get("mode") == "draft_review" and reference_models
             )
@@ -647,22 +840,39 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 timeout=common["slot_timeout"],
                 **_slot_runtime(common["aggregator"]),
             )
-            return reference_outputs, refs_from_cache, agg_messages, response
+            runtime = _slot_runtime(common["aggregator"])
+            agg_usage = _normalize_chunk_usage(getattr(response, "usage", None), runtime)
+            return {
+                "reference_outputs": reference_outputs,
+                "refs_from_cache": refs_from_cache,
+                "agg_messages": agg_messages,
+                "response": response,
+                "agg_usage": agg_usage,
+                "cascade": None,
+                "winner_text": None,
+            }
 
         try:
-            (
-                reference_outputs,
-                refs_from_cache,
-                agg_messages,
-                response,
-            ) = await asyncio.to_thread(_run_turn)
+            turn = await asyncio.to_thread(_run_turn)
         except Exception as exc:
             logger.warning("MoA proxy turn failed: %s", exc)
             return _json_error(502, f"MoA aggregator call failed: {exc}", err_type="api_error")
 
-        message = _extract_message_fields(response)
-        runtime = _slot_runtime(common["aggregator"])
-        agg_usage = _normalize_chunk_usage(getattr(response, "usage", None), runtime)
+        reference_outputs = turn["reference_outputs"]
+        refs_from_cache = turn["refs_from_cache"]
+        agg_messages = turn["agg_messages"]
+        response = turn["response"]
+        agg_usage = turn["agg_usage"]
+
+        if response is not None:
+            message = _extract_message_fields(response)
+            finish_reason = _finish_reason(response)
+        else:
+            # Cascade tier 0: a voter's own text IS the final answer — no
+            # aggregator ever ran for this turn.
+            message = {"role": "assistant", "content": turn.get("winner_text")}
+            finish_reason = "stop"
+
         ref_usage = CanonicalUsage()
         if not refs_from_cache:
             for _label, _text, acct in reference_outputs:
@@ -672,8 +882,16 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         usage["moa"] = _usage_breakdown(
             reference_outputs, agg_usage, refs_from_cache, common.get("routing")
         )
+        if turn.get("cascade") is not None:
+            usage["moa"]["cascade"] = turn["cascade"]
 
-        _save_proxy_trace(common, reference_outputs, agg_messages, message.get("content"))
+        _save_proxy_trace(
+            common,
+            reference_outputs,
+            agg_messages,
+            message.get("content"),
+            acting_slot=turn.get("acting_slot"),
+        )
 
         return web.json_response(
             {
@@ -685,7 +903,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                     {
                         "index": 0,
                         "message": message,
-                        "finish_reason": _finish_reason(response),
+                        "finish_reason": finish_reason,
                     }
                 ],
                 "usage": usage,
@@ -990,6 +1208,7 @@ def _save_proxy_trace(
     reference_outputs: list,
     agg_messages: list,
     aggregator_output: str | None,
+    acting_slot: dict | None = None,
 ) -> None:
     """Persist the full proxied MoA turn via the canonical trace writer.
 
@@ -997,6 +1216,12 @@ def _save_proxy_trace(
     best-effort always. Proxy sessions are keyed by the client-supplied
     ``x-hermes-session-id`` header when present, else a stable hash of the
     first user message so one client conversation lands in one trace file.
+
+    ``acting_slot``: the slot that actually produced the returned text. On
+    cascade turns this is a tier-0 voter or the tier-2 escalate aggregator —
+    NOT the preset's own aggregator — and `hermes moa evolve` grades traces
+    on this attribution, so mislabelling would corrupt distilled heuristics.
+    Defaults to the preset aggregator (correct for fanout/draft_review/tier 1).
     """
     try:
         from agent.moa_trace import save_moa_turn
@@ -1014,13 +1239,14 @@ def _save_proxy_trace(
             digest = hashlib.sha256(first_user.encode("utf-8", "replace")).hexdigest()[:16]
             session_id = f"moa-proxy-{digest}"
         routing = common.get("routing")
+        acting = acting_slot or common["aggregator"] or {}
         save_moa_turn(
             session_id=session_id,
             preset_name=common["preset_name"],
             reference_outputs=reference_outputs,
-            aggregator_label=_slot_label(common["aggregator"]),
-            aggregator_model=(common["aggregator"] or {}).get("model"),
-            aggregator_provider=(common["aggregator"] or {}).get("provider"),
+            aggregator_label=_slot_label(acting),
+            aggregator_model=acting.get("model"),
+            aggregator_provider=acting.get("provider"),
             aggregator_temperature=common["aggregator_temperature"],
             aggregator_input_messages=agg_messages,
             aggregator_output=aggregator_output,
