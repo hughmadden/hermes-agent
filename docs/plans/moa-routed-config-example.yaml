@@ -151,3 +151,26 @@ moa:
         provider: openrouter
         model: google/gemma-3-27b-it
       reference_max_tokens: 600
+    # THE FLAGSHIP LANE (measured 2026-07-04): consensus-gated cascade.
+    # 93% AIME @ 4.4s median; 80% of requests answered at tier 0 (~3s wafer
+    # consensus); frontier touched on 5% (plan-covered). Strictly dominates
+    # always-on MoA aggregation on both AIME and HMMT.
+    cascade-wafer4:
+      mode: cascade
+      cascade:
+        escalate_to: gpt55-plan-lane
+        min_consensus: 3
+      reference_models:
+        - provider: custom:cerebras
+          model: gpt-oss-120b
+        - provider: custom:cerebras
+          model: gemma-4-31b
+        - provider: custom:cerebras
+          model: gpt-oss-120b
+        - provider: custom:cerebras
+          model: gemma-4-31b
+      aggregator:
+        provider: custom:cerebras
+        model: zai-glm-4.7
+      reference_max_tokens: 8000
+      reference_quorum_grace: 0.8
