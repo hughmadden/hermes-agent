@@ -1526,6 +1526,76 @@ def moa_home_clean(monkeypatch, tmp_path):
     return home
 
 
+def test_extract_candidate_final_line():
+    """Addendum v1.3: extract_candidate's ANSWER regex alternation gains
+    "FINAL" so RLM voters' ``FINAL: <answer>`` terminal line is recognized
+    exactly like ``ANSWER: <answer>`` -- last match wins across BOTH forms."""
+    from hermes_cli.proxy.moa_cascade import extract_candidate
+
+    assert extract_candidate("FINAL: 42") == "42"
+    assert extract_candidate("some steps\nFINAL: 42") == "42"
+    assert extract_candidate("Reasoning...\nFINAL: 4") == "4"
+
+    # Last match wins regardless of which keyword it used.
+    assert extract_candidate("ANSWER: 1\nFINAL: 2") == "2"
+    assert extract_candidate("FINAL: 1\nANSWER: 2") == "2"
+
+
+def test_clean_slot_rlm_agent_and_rounds_normalization():
+    """Addendum v1.3 config: `agent: "rlm"` (any other value ignored) plus
+    optional `rlm_rounds` (int, default 6, clamp 2..12) on a reference slot,
+    normalized alongside the existing `max_tokens` passthrough."""
+    from hermes_cli.moa_config import _clean_slot
+
+    # agent: "rlm" with no rlm_rounds -> default 6.
+    slot = _clean_slot({"provider": "custom", "model": "gemma-4-31b", "agent": "rlm"})
+    assert slot["agent"] == "rlm"
+    assert slot["rlm_rounds"] == 6
+
+    # rlm_rounds clamped to the 2..12 range.
+    slot_hi = _clean_slot(
+        {"provider": "custom", "model": "gemma-4-31b", "agent": "rlm", "rlm_rounds": 99}
+    )
+    assert slot_hi["rlm_rounds"] == 12
+
+    slot_lo = _clean_slot(
+        {"provider": "custom", "model": "gemma-4-31b", "agent": "rlm", "rlm_rounds": 0}
+    )
+    assert slot_lo["rlm_rounds"] == 2
+
+    slot_mid = _clean_slot(
+        {"provider": "custom", "model": "gemma-4-31b", "agent": "rlm", "rlm_rounds": 4}
+    )
+    assert slot_mid["rlm_rounds"] == 4
+
+    # Any other agent value is ignored -- neither key is saved.
+    slot_other = _clean_slot(
+        {"provider": "custom", "model": "gemma-4-31b", "agent": "something-else"}
+    )
+    assert "agent" not in slot_other
+    assert "rlm_rounds" not in slot_other
+
+    # No agent key at all -> unaffected, matching prior behavior.
+    slot_plain = _clean_slot({"provider": "custom", "model": "gemma-4-31b"})
+    assert "agent" not in slot_plain
+    assert "rlm_rounds" not in slot_plain
+
+    # agent: "rlm" alongside the existing max_tokens passthrough -- both
+    # normalize independently onto the same cleaned slot.
+    slot_both = _clean_slot(
+        {
+            "provider": "custom",
+            "model": "gemma-4-31b",
+            "agent": "rlm",
+            "rlm_rounds": 8,
+            "max_tokens": 4000,
+        }
+    )
+    assert slot_both["agent"] == "rlm"
+    assert slot_both["rlm_rounds"] == 8
+    assert slot_both["max_tokens"] == 4000
+
+
 @pytest.mark.asyncio
 async def test_clean_arbiter_gets_no_voter_context(moa_home_clean, fake_llm):
     """With cascade.clean_arbiter, a disagreement arbiter re-solves from

@@ -17,7 +17,7 @@ import tempfile
 from collections import Counter
 from fractions import Fraction
 
-_ANSWER_RE = re.compile(r"ANSWER\s*:\s*(.+)", re.IGNORECASE)
+_ANSWER_RE = re.compile(r"(?:ANSWER|FINAL)\s*:\s*(.+)", re.IGNORECASE)
 _INT_RE = re.compile(r"^-?\d+$")
 _SLASH_FRAC_RE = re.compile(r"^(-?\d+)\s*/\s*(-?\d+)$")
 _LATEX_FRAC_RE = re.compile(r"^\\frac\{(-?\d+)\}\{(-?\d+)\}$")
@@ -88,11 +88,14 @@ def _strip_wrapping(s: str) -> str:
 def extract_candidate(text: str) -> str | None:
     """Pull a short candidate answer out of a voter/aggregator response.
 
-    Preference order: the last ``ANSWER: ...`` line (case-insensitive, first
-    line of the captured text only) → the last ``\\boxed{...}`` → the last
-    non-empty line IF it is short enough (<=80 chars) to plausibly be a bare
-    answer rather than prose → None. The winning candidate has surrounding
-    backticks/markdown emphasis and trailing punctuation stripped.
+    Preference order: the last ``ANSWER: ...`` OR ``FINAL: ...`` line
+    (case-insensitive, first line of the captured text only — ``FINAL:`` is
+    the addendum v1.3 RLM voter loop's terminator, see
+    scripts/moa_rlm_bench.py and agent/moa_loop.py) → the last
+    ``\\boxed{...}`` → the last non-empty line IF it is short enough (<=80
+    chars) to plausibly be a bare answer rather than prose → None. The
+    winning candidate has surrounding backticks/markdown emphasis and
+    trailing punctuation stripped.
     """
     if not text:
         return None
@@ -246,6 +249,46 @@ def run_verification(code: str) -> str:
     return "inconclusive"
 
 
+# Wall-clock cap + output tail for the RLM voter loop's sandboxed python-fence
+# execution (addendum v1.3). Same sandbox posture as ``run_verification``
+# (isolated interpreter, empty env, scratch cwd) and the same 12s budget, but
+# this is a raw-output sibling: the RLM loop feeds the output BACK to the
+# model as an "OUTPUT:" turn rather than grading a VERDICT line, mirroring
+# ``scripts/moa_rlm_bench.py:run_python``.
+_RLM_EXEC_TAIL_CHARS = 1500
+
+
+def run_rlm_exec(code: str) -> str:
+    """Execute one RLM voter's python fence and return its raw output tail.
+
+    Runs ``code`` with the same sandboxing as ``run_verification`` (``-I``,
+    empty environment, scratch temp-dir cwd, a hard wall-clock timeout) but —
+    unlike ``run_verification`` — does NOT parse a ``VERDICT:`` line. It
+    returns the last ``_RLM_EXEC_TAIL_CHARS`` characters of stdout+stderr
+    combined, which the addendum v1.3 RLM reference loop (agent/moa_loop.py)
+    feeds back to the model verbatim as an ``OUTPUT:`` user turn. Execution
+    failures (timeout, exception) are folded into the returned text as a
+    bracketed note rather than raised — a broken sandbox must degrade the
+    loop's next turn, never crash the reference fan-out.
+    """
+    try:
+        with tempfile.TemporaryDirectory() as tmpdir:
+            result = subprocess.run(
+                [sys.executable, "-I", "-c", code],
+                capture_output=True,
+                text=True,
+                timeout=_VERIFY_SUBPROCESS_TIMEOUT_S,
+                env={},
+                cwd=tmpdir,
+            )
+        out = (result.stdout or "") + (result.stderr or "")
+    except subprocess.TimeoutExpired:
+        out = f"[execution timed out after {_VERIFY_SUBPROCESS_TIMEOUT_S}s]"
+    except Exception as exc:  # pragma: no cover - defensive
+        out = f"[execution error: {exc}]"
+    return out[-_RLM_EXEC_TAIL_CHARS:]
+
+
 __all__ = [
     "extract_candidate",
     "normalize_candidate",
@@ -254,4 +297,5 @@ __all__ = [
     "is_boilerplate",
     "extract_python_block",
     "run_verification",
+    "run_rlm_exec",
 ]

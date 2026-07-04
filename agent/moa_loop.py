@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import re
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
@@ -252,6 +253,150 @@ def _slot_runtime(slot: dict[str, str]) -> dict[str, Any]:
     return out
 
 
+# Addendum v1.3 (RLM voter slots, docs/plans/moa-cascade-spec.md): a
+# reason -> python -> observe loop a cascade-mode direct voter can run INSIDE
+# its own reference call, mirroring scripts/moa_rlm_bench.py's ``run_rlm``
+# mechanics exactly (measured: +14pp AIME on a wafer-speed model with no
+# internal reasoning). Charter wording and nudge copy are kept byte-identical
+# to the bench script so the measured behavior transfers unchanged.
+_RLM_CHARTER = (
+    "You are a step-by-step reasoning agent. Each turn, think briefly, then "
+    "EITHER emit exactly one ```python code block to compute/verify "
+    "something (stdlib only, print your results) OR finish with a line "
+    "'FINAL: <answer>'. Prefer computing over guessing; verify before "
+    "finishing. Keep each turn short."
+)
+_RLM_NUDGE_NEITHER = (
+    "No code and no FINAL detected. Either emit one python block or finish "
+    "with FINAL: <answer>."
+)
+_RLM_NUDGE_FORCED_FINAL = (
+    "This is your final turn. No more code. Reply with FINAL: <answer> now."
+)
+_RLM_FINAL_RE = re.compile(r"^\s*FINAL\s*:", re.IGNORECASE | re.MULTILINE)
+_RLM_PY_FENCE_RE = re.compile(r"```python\s*\n(.*?)```", re.IGNORECASE | re.DOTALL)
+# Per-turn generation cap for the RLM loop. The loop is many short turns
+# (think, one code block, observe), not one long answer, so each turn is
+# capped well below a typical reference max_tokens/slot cap.
+_RLM_TURN_MAX_TOKENS = 2000
+
+
+def _run_rlm_loop(
+    slot: dict[str, str],
+    ref_messages: list[dict[str, Any]],
+    runtime: dict[str, Any],
+    *,
+    temperature: float | None,
+    max_tokens: int | None,
+    timeout: float | None,
+) -> tuple[str, Any, list[dict[str, Any]]]:
+    """Drive the reason -> python -> observe loop for one cascade voter call.
+
+    Mirrors ``scripts/moa_rlm_bench.py``'s ``run_rlm``: a charter system
+    prompt framing the model as a reasoning agent, up to ``slot["rlm_rounds"]``
+    assistant turns via the same ``moa_reference`` call path every plain
+    reference uses, one optional ```python fence per turn executed through
+    ``hermes_cli.proxy.moa_cascade.run_rlm_exec`` and fed back as an
+    ``OUTPUT:`` user turn, and a forced no-tool FINAL on the round cap (one
+    extra call, spent outside the normal per-round budget, exactly like the
+    bench script).
+
+    Returns ``(full_final_assistant_text, summed_usage, transcript)`` —
+    ``summed_usage`` is every loop turn's ``CanonicalUsage`` added together so
+    the caller folds ONE accounting entry for the whole loop, and
+    ``transcript`` is the full message list (charter + task + every
+    turn/OUTPUT) for trace persistence. Any exception raised by ``call_llm``
+    propagates to the caller unchanged — ``_run_reference`` already wraps its
+    whole body in a try/except that turns any failure into a standard
+    "[failed: ...]" note, so this loop does not need its own.
+    """
+    from agent.usage_pricing import CanonicalUsage, normalize_usage
+    from hermes_cli.proxy.moa_cascade import run_rlm_exec
+
+    rounds = max(2, min(_coerce_rlm_rounds(slot.get("rlm_rounds")), 12))
+    per_turn_cap = min(_RLM_TURN_MAX_TOKENS, max_tokens) if max_tokens else _RLM_TURN_MAX_TOKENS
+
+    messages: list[dict[str, Any]] = [{"role": "system", "content": _RLM_CHARTER}, *ref_messages]
+    usage_total = CanonicalUsage()
+    last_reply = ""
+
+    for round_idx in range(1, rounds + 1):
+        response = call_llm(
+            task="moa_reference",
+            messages=messages,
+            temperature=temperature,
+            max_tokens=per_turn_cap,
+            timeout=timeout,
+            **runtime,
+        )
+        raw_usage = getattr(response, "usage", None)
+        if raw_usage:
+            try:
+                usage_total = usage_total + normalize_usage(
+                    raw_usage, provider=runtime.get("provider"), api_mode=runtime.get("api_mode")
+                )
+            except Exception:  # pragma: no cover - defensive
+                pass
+        reply = _extract_text(response) or ""
+        messages.append({"role": "assistant", "content": reply})
+        last_reply = reply
+
+        if _RLM_FINAL_RE.search(reply):
+            break
+
+        is_last = round_idx == rounds
+        fence_match = None if is_last else _RLM_PY_FENCE_RE.search(reply)
+        if fence_match:
+            output = run_rlm_exec(fence_match.group(1))
+            nudge = f"OUTPUT:\n{output}"
+        elif is_last:
+            nudge = _RLM_NUDGE_FORCED_FINAL
+        else:
+            nudge = _RLM_NUDGE_NEITHER
+        messages.append({"role": "user", "content": nudge})
+
+        if is_last:
+            # Forced no-tool final: one extra call, spent outside the normal
+            # per-round budget, to redeem the forced nudge (termination
+            # artifact — the transcript is not silently truncated).
+            response = call_llm(
+                task="moa_reference",
+                messages=messages,
+                temperature=temperature,
+                max_tokens=per_turn_cap,
+                timeout=timeout,
+                **runtime,
+            )
+            raw_usage = getattr(response, "usage", None)
+            if raw_usage:
+                try:
+                    usage_total = usage_total + normalize_usage(
+                        raw_usage, provider=runtime.get("provider"), api_mode=runtime.get("api_mode")
+                    )
+                except Exception:  # pragma: no cover - defensive
+                    pass
+            reply2 = _extract_text(response) or ""
+            messages.append({"role": "assistant", "content": reply2})
+            last_reply = reply2
+            break
+
+    return last_reply or "(empty response)", usage_total, messages
+
+
+def _coerce_rlm_rounds(value: Any) -> int:
+    """Best-effort int coercion for ``slot["rlm_rounds"]``, default 6.
+
+    ``_clean_slot`` already clamps/coerces this at config time, but
+    ``_run_rlm_loop`` re-clamps defensively so a hand-built slot dict (tests,
+    callers that bypass config normalization) can't request a pathological
+    round count.
+    """
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return 6
+
+
 def _run_reference(
     slot: dict[str, str],
     ref_messages: list[dict[str, Any]],
@@ -289,6 +434,12 @@ def _run_reference(
     model with ``ref_messages`` as given — used by cascade mode's tier-0
     voters, which answer the client's actual request directly rather than
     advising an aggregator (see docs/plans/moa-cascade-spec.md).
+
+    ``direct=True`` PLUS ``slot["agent"] == "rlm"`` additionally runs the
+    addendum v1.3 reason -> python -> observe loop (``_run_rlm_loop``) inside
+    this call instead of a single completion — advisory fan-out (``direct``
+    False) ignores the flag, since advice is prose for an aggregator, not a
+    FINAL-terminated answer.
     """
     from agent.usage_pricing import CanonicalUsage, estimate_usage_cost, normalize_usage
 
@@ -309,29 +460,47 @@ def _run_reference(
             slot_cap = int(slot_cap) if slot_cap else None
         except (TypeError, ValueError):
             slot_cap = None
-        response = call_llm(
-            task="moa_reference",
-            messages=messages,
-            temperature=temperature,
-            max_tokens=slot_cap or max_tokens,
-            timeout=timeout,
-            **runtime,
-        )
-        usage = CanonicalUsage()
-        raw_usage = getattr(response, "usage", None)
-        if raw_usage:
-            try:
-                usage = normalize_usage(
-                    raw_usage,
-                    provider=runtime.get("provider"),
-                    api_mode=runtime.get("api_mode"),
-                )
-            except Exception:  # pragma: no cover - defensive
-                usage = CanonicalUsage()
+        effective_max_tokens = slot_cap or max_tokens
+
+        if direct and slot.get("agent") == "rlm":
+            _output_text, usage, _rlm_transcript = _run_rlm_loop(
+                slot,
+                ref_messages,
+                runtime,
+                temperature=temperature,
+                max_tokens=effective_max_tokens,
+                timeout=timeout,
+            )
+            label = f"{label} [rlm]"
+            _acct_messages = _rlm_transcript
+        else:
+            response = call_llm(
+                task="moa_reference",
+                messages=messages,
+                temperature=temperature,
+                max_tokens=effective_max_tokens,
+                timeout=timeout,
+                **runtime,
+            )
+            usage = CanonicalUsage()
+            raw_usage = getattr(response, "usage", None)
+            if raw_usage:
+                try:
+                    usage = normalize_usage(
+                        raw_usage,
+                        provider=runtime.get("provider"),
+                        api_mode=runtime.get("api_mode"),
+                    )
+                except Exception:  # pragma: no cover - defensive
+                    usage = CanonicalUsage()
+            _output_text = _extract_text(response) or "(empty response)"
+            _acct_messages = messages
         # Price this advisor at ITS OWN model/provider rate (with correct
         # cache-read/cache-write split), not the aggregator's. This is why
         # advisor cost is summed as dollars rather than by folding tokens into
-        # the aggregator's usage.
+        # the aggregator's usage. For an RLM loop, ``usage`` is already the
+        # SUM across every loop turn (see ``_run_rlm_loop``), so this prices
+        # the whole loop's spend as one advisor entry, not one per turn.
         cost_usd = None
         cost_status = None
         cost_source = None
@@ -348,13 +517,12 @@ def _run_reference(
             cost_source = cost.source
         except Exception:  # pragma: no cover - defensive
             pass
-        _output_text = _extract_text(response) or "(empty response)"
         acct = _RefAccounting(
             usage,
             cost_usd,
             cost_status,
             cost_source,
-            messages=messages,
+            messages=_acct_messages,
             output=_output_text,
             model=slot.get("model"),
             provider=runtime.get("provider") or slot.get("provider"),

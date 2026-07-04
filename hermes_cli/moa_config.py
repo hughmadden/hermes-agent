@@ -85,6 +85,14 @@ def _clean_slot(slot: Any) -> dict[str, str] | None:
         cap = None
     if cap and cap > 0:
         out["max_tokens"] = cap
+    # Addendum v1.3 (RLM voter slots): opt this slot into the reason -> python
+    # -> observe loop (agent/moa_loop.py, cascade direct-voter path only; any
+    # other value is ignored). `rlm_rounds` only means anything alongside
+    # agent="rlm", so it is only preserved when the agent flag resolved.
+    agent = str(slot.get("agent") or "").strip().lower()
+    if agent == "rlm":
+        out["agent"] = "rlm"
+        out["rlm_rounds"] = max(2, min(_coerce_int(slot.get("rlm_rounds"), 6), 12))
     return out
 
 
