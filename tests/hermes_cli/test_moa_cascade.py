@@ -545,6 +545,304 @@ def test_failure_boilerplate_never_votes():
     assert consensus(votes, 2) is None
 
 
+def _write_judge_gate_cfg(home):
+    """Cascade preset with `cascade.gate: judge` and NO explicit judge slot,
+    plus a router block (classifier + one routable preset) so the addendum's
+    config-time fallback resolves `judge` to the router's classifier slot.
+    The client always addresses `moa:casc` directly in these tests — the
+    router block exists purely to source the judge default, mirroring how
+    tests/hermes_cli/test_moa_router.py builds router configs."""
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: casc
+  router:
+    enabled: true
+    classifier:
+      provider: openrouter
+      model: judge-classifier
+    default: casc
+  presets:
+    casc:
+      mode: cascade
+      cascade:
+        escalate_to: big
+        gate: judge
+      route:
+        description: cascade freeform judge testing
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+      aggregator:
+        provider: openrouter
+        model: mid-model
+    big:
+      enabled: false
+      reference_models:
+        - provider: openrouter
+          model: unused
+      aggregator:
+        provider: openrouter
+        model: big-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_judge_gate(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_judge_gate_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+# Long freeform prose with no ANSWER:/\boxed{} markers and no short (<=80
+# char) final line, so extract_candidate() -> None for both voters and exact
+# consensus never fires -- these exist to drive the addendum v1.1 judge gate.
+_PROSE_A = (
+    "Photosynthesis converts light energy into chemical energy stored in "
+    "glucose, forming the base of most food chains and releasing the oxygen "
+    "aerobic organisms depend on for cellular respiration."
+)
+_PROSE_B = (
+    "Plants use photosynthesis to turn sunlight into chemical energy stored "
+    "as glucose, which underlies nearly every food chain and supplies the "
+    "oxygen animals need to breathe."
+)
+
+
+# ---------------------------------------------------------------------------
+# Addendum v1.1 -- judge gate for freeform traffic (iteration 18)
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.asyncio
+async def test_judge_gate_fires_on_freeform_agreement(moa_home_judge_gate, fake_llm):
+    """Two voters give long same-conclusion prose (no ANSWER: lines) -- exact
+    consensus can't see it, but the judge call says CONSISTENT -> tier 0."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        return _response(_PROSE_A if model == "voter-a" else _PROSE_B)
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_router"] = lambda kwargs: _response("CONSISTENT")
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "explain photosynthesis"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_reference") == 2
+        assert tasks.count("moa_router") == 1
+        assert "moa_aggregator" not in tasks
+
+        judge_calls = [c for c in fake_llm.calls if c["task"] == "moa_router"]
+        judge_kwargs = judge_calls[0]
+        assert judge_kwargs.get("model") == "judge-classifier"
+        assert judge_kwargs.get("temperature") == 0.0
+        assert judge_kwargs.get("max_tokens") == 8
+        judge_text = str(judge_kwargs["messages"])
+        assert "CONSISTENT" in judge_text and "DIFFERENT" in judge_text
+        assert "Answer A" in judge_text
+        assert "Answer B" in judge_text
+        assert _PROSE_A in judge_text
+        assert _PROSE_B in judge_text
+
+        content = body["choices"][0]["message"]["content"]
+        assert _PROSE_A in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["gate_used"] == "judge"
+        assert cascade["consensus"] is None
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_judge_gate_different_falls_to_tier1(moa_home_judge_gate, fake_llm):
+    """Judge says DIFFERENT -> tier 1: aggregator runs exactly as today."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        return _response(_PROSE_A if model == "voter-a" else _PROSE_B)
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_router"] = lambda kwargs: _response("DIFFERENT")
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        "Tier1 synthesis of the two views."
+    )
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "explain photosynthesis"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_router") == 1
+        assert tasks.count("moa_aggregator") == 1
+
+        content = body["choices"][0]["message"]["content"]
+        assert "Tier1 synthesis" in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 1
+        assert cascade["gate_used"] == "judge-different"
+
+        # No escalation: the big-model preset's aggregator never ran.
+        assert not any(c.get("model") == "big-model" for c in fake_llm.calls)
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_judge_gate_error_falls_to_tier1(moa_home_judge_gate, fake_llm):
+    """Judge call raises -> wrapped, degrades to tier 1 (never crashes the
+    turn), gate_used records the distinct 'judge-error' reason."""
+
+    def raising_judge(kwargs):
+        raise RuntimeError("judge upstream failure")
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        return _response(_PROSE_A if model == "voter-a" else _PROSE_B)
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_router"] = raising_judge
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        "Tier1 fallback synthesis."
+    )
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "explain photosynthesis"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        content = body["choices"][0]["message"]["content"]
+        assert "Tier1 fallback synthesis" in content
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 1
+        assert cascade["gate_used"] == "judge-error"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_judge_gate_exact_consensus_skips_judge_call(
+    moa_home_judge_gate, fake_llm
+):
+    """Exact consensus is tried first and is free: matching ANSWER: lines
+    must win at tier 0 WITHOUT ever placing a judge (moa_router) call, even
+    though this preset is gate: judge."""
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response("ANSWER: 42")
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [{"role": "user", "content": "what is 6*7?"}],
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_router" not in tasks
+        assert "moa_aggregator" not in tasks
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["gate_used"] == "exact"
+        assert cascade["consensus"] == "42"
+    finally:
+        await client.close()
+
+
+def test_judge_gate_config_normalization_defaults():
+    """Config-time fallback (no server involved): `gate: judge` without an
+    explicit judge slot normalizes to "exact" unless the router is enabled,
+    in which case `judge` defaults to the router's classifier slot."""
+    from hermes_cli.moa_config import normalize_moa_config
+
+    presets = {
+        "casc": {
+            "mode": "cascade",
+            "cascade": {"escalate_to": "big", "gate": "judge"},
+            "reference_models": [
+                {"provider": "openrouter", "model": "voter-a"},
+                {"provider": "openrouter", "model": "voter-b"},
+            ],
+            "aggregator": {"provider": "openrouter", "model": "mid-model"},
+        },
+        "big": {
+            "enabled": False,
+            "reference_models": [{"provider": "openrouter", "model": "unused"}],
+            "aggregator": {"provider": "openrouter", "model": "big-model"},
+        },
+    }
+
+    # No judge slot, no router -> normalized gate falls back to "exact".
+    cfg_no_router = normalize_moa_config(
+        {"default_preset": "casc", "presets": presets}
+    )
+    cascade_no_router = cfg_no_router["presets"]["casc"]["cascade"]
+    assert cascade_no_router["gate"] == "exact"
+    assert cascade_no_router.get("judge") is None
+
+    # Router enabled -> judge defaults to the router's classifier slot, and
+    # gate stays "judge" because a judge slot now resolves.
+    presets_routable = {
+        **presets,
+        "casc": {**presets["casc"], "route": {"description": "judge gate testing"}},
+    }
+    cfg_with_router = normalize_moa_config(
+        {
+            "default_preset": "casc",
+            "router": {
+                "enabled": True,
+                "classifier": {"provider": "openrouter", "model": "judge-classifier"},
+                "default": "casc",
+            },
+            "presets": presets_routable,
+        }
+    )
+    assert cfg_with_router["router"]["enabled"] is True
+    cascade_with_router = cfg_with_router["presets"]["casc"]["cascade"]
+    assert cascade_with_router["gate"] == "judge"
+    assert cascade_with_router["judge"] == cfg_with_router["router"]["classifier"]
+
+
 @pytest.mark.asyncio
 async def test_tier0_trace_attributes_winner_voter(moa_home, fake_llm, monkeypatch):
     """Trace records must attribute the acting text to the model that

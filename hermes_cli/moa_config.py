@@ -143,7 +143,24 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         # than there are voters (impossible to ever reach consensus).
         min_consensus = _coerce_int(cascade_raw.get("min_consensus"), len(refs))
         min_consensus = max(2, min(min_consensus, len(refs)))
-        cascade = {"escalate_to": escalate_to, "min_consensus": min_consensus}
+        # Addendum v1.1 (judge gate): "exact" is the v1 behavior (only literal
+        # candidate agreement fires tier 0). "judge" additionally tries one
+        # cheap LLM consistency check on freeform (no-candidate-consensus)
+        # voter output before falling through to the aggregator. The judge
+        # slot itself may be explicit here, or default to the router
+        # classifier — but that default can only be resolved once the router
+        # block is normalized, so it is finished in `normalize_moa_config`
+        # below; here we just record the requested gate and any explicit slot.
+        gate = str(cascade_raw.get("gate") or "exact").strip().lower()
+        if gate not in {"exact", "judge"}:
+            gate = "exact"
+        judge = _clean_slot(cascade_raw.get("judge"))
+        cascade = {
+            "escalate_to": escalate_to,
+            "min_consensus": min_consensus,
+            "gate": gate,
+            "judge": judge,
+        }
 
     return {
         "enabled": bool(raw.get("enabled", True)),
@@ -287,6 +304,26 @@ def normalize_moa_config(raw: Any) -> dict[str, Any]:
         if cascade and cascade.get("escalate_to") not in presets:
             cascade["escalate_to"] = None
 
+    router = normalize_moa_router(raw.get("router"), presets)
+
+    # Addendum v1.1: resolve the judge-gate fallback now that the router is
+    # normalized. A preset asking for gate="judge" without its own judge slot
+    # borrows the router's classifier (when routing is enabled) — a single
+    # small model already paid for and warmed up for classification duty is a
+    # natural fit for a second cheap yes/no call. With neither an explicit
+    # judge slot nor a usable router, "judge" has nothing to call, so it
+    # degrades to "exact" here — the server never has to guess at request
+    # time whether a judge slot exists.
+    for preset in presets.values():
+        cascade = preset.get("cascade")
+        if not cascade or cascade.get("gate") != "judge":
+            continue
+        if cascade.get("judge") is None:
+            if router.get("enabled") and router.get("classifier"):
+                cascade["judge"] = deepcopy(router["classifier"])
+            else:
+                cascade["gate"] = "exact"
+
     default_name = str(raw.get("default_preset") or "").strip()
     if not default_name or default_name not in presets:
         default_name = next(iter(presets), DEFAULT_MOA_PRESET_NAME)
@@ -302,7 +339,7 @@ def normalize_moa_config(raw: Any) -> dict[str, Any]:
         "default_preset": default_name,
         "active_preset": active_name,
         "presets": presets,
-        "router": normalize_moa_router(raw.get("router"), presets),
+        "router": router,
         # Hard per-upstream-call timeout for proxied MoA turns (seconds). A
         # wedged provider connection must not hang a client request forever;
         # a timed-out reference degrades to a labelled failure note and a

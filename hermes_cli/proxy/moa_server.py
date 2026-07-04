@@ -72,7 +72,13 @@ from agent.moa_loop import (
     _slot_runtime,
     aggregation_skill_block,
 )
-from hermes_cli.proxy.moa_cascade import agrees, consensus, extract_candidate, normalize_candidate
+from hermes_cli.proxy.moa_cascade import (
+    agrees,
+    consensus,
+    extract_candidate,
+    is_boilerplate,
+    normalize_candidate,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -221,6 +227,34 @@ def _cascade_vote_counts(candidates: list[str | None]) -> int:
     return max(counts.values()) if counts else 0
 
 
+# Addendum v1.1 (judge gate): a cheap LLM consistency check for freeform
+# voter output that never produces a comparable exact candidate (prose,
+# explanations, ...). Only reached when exact-match consensus already missed.
+_JUDGE_SYSTEM_PROMPT = (
+    "You compare answers for substantive agreement. Reply with exactly one "
+    "word: CONSISTENT if they give the same answer/conclusion, DIFFERENT "
+    "otherwise."
+)
+_JUDGE_REQUEST_CHARS = 1500
+_JUDGE_ANSWER_CHARS = 2000
+
+
+def _judge_messages(messages: list, answer_a: str, answer_b: str) -> list[dict]:
+    last_user = next(
+        (m.get("content") for m in reversed(messages) if m.get("role") == "user"),
+        "",
+    )
+    request_tail = str(last_user or "")[-_JUDGE_REQUEST_CHARS:]
+    user = (
+        f"{request_tail}\n\nAnswer A:\n{str(answer_a or '')[:_JUDGE_ANSWER_CHARS]}"
+        f"\n\nAnswer B:\n{str(answer_b or '')[:_JUDGE_ANSWER_CHARS]}"
+    )
+    return [
+        {"role": "system", "content": _JUDGE_SYSTEM_PROMPT},
+        {"role": "user", "content": user},
+    ]
+
+
 def _run_cascade_turn(common: dict) -> dict:
     """Lazy MoA turn: tier-0 wafer-voter consensus, tier-1 aggregator, tier-2
     escalation. See docs/plans/moa-cascade-spec.md.
@@ -258,6 +292,8 @@ def _run_cascade_turn(common: dict) -> dict:
     voter_labels = [label for label, _text, _acct in voters]
 
     if cons is not None:
+        # Exact consensus is tried first regardless of gate — it's free — and
+        # always wins tier 0 with gate_used "exact" (addendum v1.1 §1).
         winner_idx = next(
             idx
             for idx, c in enumerate(candidates)
@@ -277,9 +313,91 @@ def _run_cascade_turn(common: dict) -> dict:
                 "votes": votes,
                 "voters": voter_labels,
                 "candidates": normalized_candidates,
+                "gate_used": "exact",
             },
             "winner_text": winner_text,
         }
+
+    # Addendum v1.1: judge gate for freeform traffic. Exact consensus just
+    # missed (no comparable short candidates agreed) — with gate == "judge",
+    # try ONE cheap consistency check on the first two substantive voter
+    # outputs before paying for full aggregation. gate_used stays None
+    # (surfaced as JSON null) whenever the judge never ran at all — plain
+    # exact-mode no-consensus flows, or judge-mode with too few substantive
+    # voters to compare.
+    gate = cascade_cfg.get("gate") or "exact"
+    gate_used: str | None = None
+    judge_entry: tuple[str, str, Any] | None = None
+
+    if gate == "judge":
+        judge_slot = cascade_cfg.get("judge")
+        substantive = [
+            (idx, text) for idx, (_label, text, _acct) in enumerate(voters)
+            if not is_boilerplate(text)
+        ]
+        if judge_slot and len(substantive) >= min(2, min_consensus):
+            idx_a, text_a = substantive[0]
+            _idx_b, text_b = substantive[1]
+            try:
+                judge_runtime = _slot_runtime(judge_slot)
+                judge_timeout = (
+                    min(30.0, common["slot_timeout"]) if common["slot_timeout"] else 30.0
+                )
+                judge_response = call_llm(
+                    task="moa_router",
+                    messages=_judge_messages(messages, text_a, text_b),
+                    temperature=0.0,
+                    max_tokens=8,
+                    timeout=judge_timeout,
+                    **judge_runtime,
+                )
+            except Exception as exc:
+                logger.warning("MoA cascade judge call failed: %s", exc)
+                gate_used = "judge-error"
+            else:
+                judge_reply = _extract_message_fields(judge_response).get("content") or ""
+                judge_usage = _normalize_chunk_usage(
+                    getattr(judge_response, "usage", None), judge_runtime
+                )
+                judge_entry = (
+                    f"consensus-judge — {_slot_label(judge_slot)}",
+                    judge_reply,
+                    _RefAccounting(
+                        judge_usage,
+                        messages=_judge_messages(messages, text_a, text_b),
+                        output=judge_reply,
+                        model=judge_slot.get("model"),
+                        provider=judge_runtime.get("provider") or judge_slot.get("provider"),
+                        temperature=0.0,
+                    ),
+                )
+                if judge_reply.strip().upper().startswith("CONSISTENT"):
+                    return {
+                        "reference_outputs": voters + [judge_entry],
+                        "refs_from_cache": False,
+                        "agg_messages": [dict(m) for m in messages],
+                        "response": None,
+                        "agg_usage": CanonicalUsage(),
+                        "acting_slot": reference_models[idx_a],
+                        "cascade": {
+                            "tier": 0,
+                            "consensus": None,
+                            "votes": votes,
+                            "voters": voter_labels,
+                            "candidates": normalized_candidates,
+                            "gate_used": "judge",
+                        },
+                        "winner_text": text_a,
+                    }
+                gate_used = "judge-different"
+
+    # Any judge call that actually ran is billed regardless of its verdict
+    # (addendum v1.1: "fold ... ONLY when the judge ran"), folded into
+    # whichever reference_outputs tier 1/2 below returns. It does NOT feed the
+    # aggregator's guidance text — a one-word CONSISTENT/DIFFERENT verdict
+    # adds no synthesis-useful context beyond the full voter texts already
+    # attached.
+    judge_extra = [judge_entry] if judge_entry is not None else []
 
     # Tier 1: no consensus among voters — run the preset's own aggregator with
     # the voter outputs attached as reference context (existing guidance
@@ -307,10 +425,15 @@ def _run_cascade_turn(common: dict) -> dict:
 
     escalate_preset = common.get("cascade_escalate_preset")
     agrees_any = any(agrees(agg_candidate, c) for c in candidates)
+    # Addendum v1.1 §4: tier-2 escalation stays exact-candidate-only — a
+    # judge-gated freeform "discord" (DIFFERENT verdict, or the judge call
+    # itself erroring) never escalates in v1; it settles at tier 1 same as an
+    # aggregator that simply agreed with a voter.
+    judge_discord = gate_used in {"judge-different", "judge-error"}
 
-    if agrees_any or not escalate_preset:
+    if agrees_any or not escalate_preset or judge_discord:
         return {
-            "reference_outputs": voters,
+            "reference_outputs": voters + judge_extra,
             "refs_from_cache": False,
             "agg_messages": agg_messages,
             "response": agg_response,
@@ -323,6 +446,7 @@ def _run_cascade_turn(common: dict) -> dict:
                 "voters": voter_labels,
                 "candidates": normalized_candidates,
                 "tier1_candidate": tier1_candidate_norm,
+                "gate_used": gate_used,
             },
             "winner_text": None,
         }
@@ -339,7 +463,7 @@ def _run_cascade_turn(common: dict) -> dict:
         provider=agg_runtime.get("provider") or common["aggregator"].get("provider"),
         temperature=common["aggregator_temperature"],
     )
-    reference_outputs = voters + [(tier1_label, agg_text, tier1_acct)]
+    reference_outputs = voters + judge_extra + [(tier1_label, agg_text, tier1_acct)]
 
     escalate_aggregator = escalate_preset.get("aggregator") or {}
     escalate_messages = [dict(m) for m in messages]
@@ -373,6 +497,7 @@ def _run_cascade_turn(common: dict) -> dict:
             "voters": voter_labels,
             "candidates": normalized_candidates,
             "tier1_candidate": tier1_candidate_norm,
+            "gate_used": gate_used,
         },
         "winner_text": None,
     }

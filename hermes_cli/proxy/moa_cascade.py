@@ -166,4 +166,22 @@ def agrees(a: str | None, b: str | None) -> bool:
     return normalize_candidate(a) == normalize_candidate(b)
 
 
-__all__ = ["extract_candidate", "normalize_candidate", "consensus", "agrees"]
+def is_boilerplate(text: str) -> bool:
+    """True iff ``text`` is a runtime failure/drop/skip/empty-response note
+    (see ``_BOILERPLATE_PREFIXES``) rather than real model output.
+
+    Shared by ``extract_candidate`` (a boilerplate output never becomes an
+    answer candidate) and the judge gate (addendum v1.1: only substantive,
+    non-boilerplate voter outputs are eligible for the freeform consistency
+    check) so both call sites agree on what counts as "real" output.
+    """
+    return str(text or "").strip().lower().startswith(_BOILERPLATE_PREFIXES)
+
+
+__all__ = [
+    "extract_candidate",
+    "normalize_candidate",
+    "consensus",
+    "agrees",
+    "is_boilerplate",
+]
