@@ -23,6 +23,11 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 13 | Live escalation with a plan-covered frontier lane (SWE-bench) | kimi→plan-GPT-5.5 moa:auto: 20/25 = paid-frontier parity at $0 frontier cost; BUT 20/25 conversations escalated (failure patterns over-fire on debugging) | Confirmed + design lesson |
 | 14 | min_failures gate stops over-firing | min_failures=3: same 20/25, frontier turn share 33%→18%, kimi drives 82% of turns | Confirmed — shipped as escalation.min_failures; match it to the client's retry depth |
 
+| 15 | (stopped mid-run by Hugh) TB agentic councils | lane 1 only: plan-GPT-5.5 on TB sample 8/10 at $0 in 13 min | Frontier agentic at zero marginal cost |
+| 16 | FLAGSHIP — mode:cascade (lazy MoA, consensus-gated) | AIME 93% @9.9s median (tier-0 1.4s, 20/20 precision); HMMT 90% vs cere-moa 75%; frontier ≤15% at $0 | Confirmed — strictly dominates always-on MoA; shipped |
+| 17 | k-sampled consensus (4 voters, 3-of-4) | same 93% AIME, median 4.4s, tier-0 rate 80%, frontier 5% | Confirmed — zero-code tuning via duplicated slots; new default |
+| 18 | Judge gate extends tier-0 to freeform | tier-0 on 30/30 prose prompts @2.6s (2× faster) but blind quality 2/2/23 vs always-on MoA | Split verdict: consensus transfers correctness, not polish — latency-first option only |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
