@@ -31,6 +31,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 | 19 | Verification rescues correlated-confidence errors | cascade-wafer4v AIME 55/60 (92%) vs 56/60 unverified; 2 WRONG verdicts correctly forced tier-2 (6/7); false consensus survived — 31B verifier can't check what 120B voters missed | Neutral on insight-bound tasks; verification pays only when the check is pure computation. Ship as optional; the frontier dial is the honest accuracy lever |
 | 20 | One endpoint can carry every measured optimization | moa:omni (router+cascade+escalation+lanes): 10/10 mixed-traffic prompts routed correctly, 2.6 s median | Confirmed — the product; shipped as the example config |
 
+| 21 | Consensus strictness is the quality/cost dial | HMMT dial sweep: mc2 90% / mc3 85% / mc4 (unanimity) 20/20 (100%) @ 2 frontier calls vs GPT-5.5 solo 19/20 @ 20 calls | Confirmed (n=20 caveat): strictness buys accuracy with wafer aggregation, not frontier spend; mc3 latency default, mc4 quality default |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
