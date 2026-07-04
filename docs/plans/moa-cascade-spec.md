@@ -181,3 +181,68 @@ quorum_grace 0.5. Datasets: AIME-60 then HMMT-20. Baselines already
 measured: gemma31 77%@1.7s · cere-moa 90%@19s · plan-gpt5.5 98%@40s ·
 fable 100%@24s. Success = ≥93% AIME with median latency ≤8 s and tier-2
 fraction ≤20%.
+
+## Addendum v1.1 — judge gate for freeform traffic (iteration 18)
+
+Problem: exact-match consensus only fires on short comparable answers;
+freeform requests always fall through to tier 1, paying aggregation even
+when the voters substantively agree.
+
+### Config
+`cascade.gate: "exact" | "judge"` (normalized key `gate`, default
+`"exact"` = current behavior). Optional `cascade.judge: {provider, model}`
+slot (cleaned via `_clean_slot`); when absent, the judge defaults to the
+ROUTER classifier slot if the router is enabled, else gate falls back to
+"exact" (normalize this fallback at config time so the server never has to
+guess: normalized `gate` is only "judge" when a judge slot resolved).
+
+### Semantics (server, `_run_cascade_turn`)
+With `gate == "judge"`:
+1. Exact consensus is still tried FIRST (it is free). Fires → tier 0
+   exactly as today (`cascade.gate_used = "exact"` in the usage block).
+2. Else, collect voters whose full output is non-boilerplate (reuse the
+   boilerplate guard). If >= min(2, min_consensus) remain, make ONE judge
+   call via `call_llm(task="moa_router", ..., temperature=0.0,
+   max_tokens=8, timeout=min(30, slot_timeout), **_slot_runtime(judge))`:
+   system: "You compare answers for substantive agreement. Reply with
+   exactly one word: CONSISTENT if they give the same answer/conclusion,
+   DIFFERENT otherwise."
+   user: request tail (last user message, cap 1500 chars) + "Answer A:\n" +
+   voter[0] text (cap 2000) + "\n\nAnswer B:\n" + voter[1] text (cap 2000).
+   (With >2 voters judge the FIRST TWO non-boilerplate outputs only — v1.)
+3. Reply parsing: strip/upper; startswith "CONSISTENT" → tier-0 return of
+   the FIRST judged voter's full text, `cascade.gate_used = "judge"`,
+   `consensus = null`. Anything else (incl. judge error/timeout — wrap in
+   try/except) → tier 1 as today (`gate_used = "judge-different"` or
+   "judge-error").
+4. Tier-2 logic unchanged (exact candidates only; freeform discord never
+   escalates in v1).
+
+### Usage surface
+`usage.moa.cascade` gains `"gate_used": "exact" | "judge" |
+"judge-different" | "judge-error" | null` (null when gate is exact-only
+and no consensus). Judge call usage: fold into the reference usage total
+as an extra `_RefAccounting` entry labelled `"consensus-judge — <slot>"`
+ONLY when the judge ran (so billing stays truthful).
+
+### Tests (append to tests/hermes_cli/test_moa_cascade.py)
+- judge fires on freeform agreement: two voters return long prose with the
+  same conclusion, no ANSWER lines; judge handler returns "CONSISTENT" →
+  tier 0, gate_used "judge", no aggregator call; judge call visible in
+  fake_llm.calls with task "moa_router".
+- judge says DIFFERENT → tier 1, aggregator ran, gate_used "judge-different".
+- judge raises → tier 1, gate_used "judge-error".
+- exact consensus still wins WITHOUT a judge call when candidates match.
+- config: gate judge with no judge slot and no router → normalized gate
+  "exact"; with router enabled → judge defaults to classifier slot.
+
+### Eval (scripts/moa_judge_gate_eval.py — NEW)
+Freeform A/B without gold labels: N=30 general-knowledge/explanation
+prompts (embedded list, mixed difficulty). For each prompt query TWO
+models via HTTP: the judge-gated cascade and a comparison model
+(--baseline, e.g. moa:cere-moa). Record latency + tier/gate_used. Then
+blind pairwise quality judging: for each prompt send both answers
+(shuffled A/B) to --grader (default moa:fable-lane... use
+openrouter fable via a grader-capable serve preset; the script just needs
+a model id reachable at --base) asking for "A", "B", or "TIE". Report:
+win/tie/loss, tier-0 rate, median latency both sides.
