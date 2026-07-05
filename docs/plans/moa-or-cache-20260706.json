@@ -1,0 +1,684 @@
+{
+  "results": [
+    {
+      "model": "deepseek/deepseek-v4-pro",
+      "call_index": 0,
+      "kind": "cold",
+      "latency_s": 4.119,
+      "usage": {
+        "prompt_tokens": 43782,
+        "completion_tokens": 200,
+        "total_tokens": 43982,
+        "cost": 0.005030811,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 40960,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.005030811,
+          "upstream_inference_prompt_cost": 0.004726611,
+          "upstream_inference_completions_cost": 0.0003042
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 200,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43782,
+      "completion_tokens": 200,
+      "cached_tokens": 40960,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "deepseek/deepseek-v4-pro",
+      "call_index": 1,
+      "kind": "warm",
+      "latency_s": 3.981,
+      "usage": {
+        "prompt_tokens": 43791,
+        "completion_tokens": 200,
+        "total_tokens": 43991,
+        "cost": 0.0032520555,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43520,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0032520555,
+          "upstream_inference_prompt_cost": 0.0029478555,
+          "upstream_inference_completions_cost": 0.0003042
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 139,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43791,
+      "completion_tokens": 200,
+      "cached_tokens": 43520,
+      "cache_discount": null,
+      "answer_preview": "One clear refactor to reduce duplication would be to **replace all 155 per-module files with a single parameterized fact"
+    },
+    {
+      "model": "deepseek/deepseek-v4-pro",
+      "call_index": 2,
+      "kind": "warm",
+      "latency_s": 5.42,
+      "usage": {
+        "prompt_tokens": 43808,
+        "completion_tokens": 200,
+        "total_tokens": 44008,
+        "cost": 0.003264984,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43520,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.003264984,
+          "upstream_inference_prompt_cost": 0.002960784,
+          "upstream_inference_completions_cost": 0.0003042
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 200,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43808,
+      "completion_tokens": 200,
+      "cached_tokens": 43520,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "deepseek/deepseek-v4-pro",
+      "call_index": 3,
+      "kind": "warm",
+      "latency_s": 3.774,
+      "usage": {
+        "prompt_tokens": 43818,
+        "completion_tokens": 200,
+        "total_tokens": 44018,
+        "cost": 0.003094029,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43776,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.003094029,
+          "upstream_inference_prompt_cost": 0.002789829,
+          "upstream_inference_completions_cost": 0.0003042
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 129,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43818,
+      "completion_tokens": 200,
+      "cached_tokens": 43776,
+      "cache_discount": null,
+      "answer_preview": "Across all 155 modules read so far, the pattern is completely uniform: each `module_NNN.py` file defines exactly eight f"
+    },
+    {
+      "model": "moonshotai/kimi-k2.6",
+      "call_index": 0,
+      "kind": "cold",
+      "latency_s": 12.161,
+      "usage": {
+        "prompt_tokens": 43631,
+        "completion_tokens": 200,
+        "total_tokens": 43831,
+        "cost": 0.02947846,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.02947846,
+          "upstream_inference_prompt_cost": 0.02879646,
+          "upstream_inference_completions_cost": 0.000682
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 162,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43631,
+      "completion_tokens": 200,
+      "cached_tokens": 0,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "moonshotai/kimi-k2.6",
+      "call_index": 1,
+      "kind": "warm",
+      "latency_s": 9.897,
+      "usage": {
+        "prompt_tokens": 43639,
+        "completion_tokens": 200,
+        "total_tokens": 43839,
+        "cost": 0.02948374,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.02948374,
+          "upstream_inference_prompt_cost": 0.02880174,
+          "upstream_inference_completions_cost": 0.000682
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 237,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43639,
+      "completion_tokens": 200,
+      "cached_tokens": 0,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "moonshotai/kimi-k2.6",
+      "call_index": 2,
+      "kind": "warm",
+      "latency_s": 9.157,
+      "usage": {
+        "prompt_tokens": 43658,
+        "completion_tokens": 200,
+        "total_tokens": 43858,
+        "cost": 0.00682428,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43600,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.00682428,
+          "upstream_inference_prompt_cost": 0.00614228,
+          "upstream_inference_completions_cost": 0.000682
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 202,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43658,
+      "completion_tokens": 200,
+      "cached_tokens": 43600,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "moonshotai/kimi-k2.6",
+      "call_index": 3,
+      "kind": "warm",
+      "latency_s": 13.668,
+      "usage": {
+        "prompt_tokens": 43668,
+        "completion_tokens": 200,
+        "total_tokens": 43868,
+        "cost": 0.02950288,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.02950288,
+          "upstream_inference_prompt_cost": 0.02882088,
+          "upstream_inference_completions_cost": 0.000682
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 245,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43668,
+      "completion_tokens": 200,
+      "cached_tokens": 0,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "call_index": 0,
+      "kind": "cold",
+      "latency_s": 3.827,
+      "usage": {
+        "prompt_tokens": 45358,
+        "completion_tokens": 124,
+        "total_tokens": 45482,
+        "cost": 0.0132697684,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 32426,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0132697684,
+          "upstream_inference_prompt_cost": 0.0130024244,
+          "upstream_inference_completions_cost": 0.000267344
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 9,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 45358,
+      "completion_tokens": 124,
+      "cached_tokens": 32426,
+      "cache_discount": null,
+      "answer_preview": "Module_001 defines eight simple helper functions (`helper_001_0` through `helper_001_7`), each returning `x * 1 + n` for"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "call_index": 1,
+      "kind": "warm",
+      "latency_s": 3.597,
+      "usage": {
+        "prompt_tokens": 45366,
+        "completion_tokens": 122,
+        "total_tokens": 45488,
+        "cost": 0.0080731714,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 41731,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0080731714,
+          "upstream_inference_prompt_cost": 0.0078101394,
+          "upstream_inference_completions_cost": 0.000263032
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 42,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 45366,
+      "completion_tokens": 122,
+      "cached_tokens": 41731,
+      "cache_discount": null,
+      "answer_preview": "One refactor would be to replace the per-module files with a single `make_helper(multiplier, offset)` factory that retur"
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "call_index": 2,
+      "kind": "warm",
+      "latency_s": 6.543,
+      "usage": {
+        "prompt_tokens": 45384,
+        "completion_tokens": 200,
+        "total_tokens": 45584,
+        "cost": 0.0082453084,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 41746,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0082453084,
+          "upstream_inference_prompt_cost": 0.0078141084,
+          "upstream_inference_completions_cost": 0.0004312
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 201,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 45384,
+      "completion_tokens": 200,
+      "cached_tokens": 41746,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "z-ai/glm-5.2",
+      "call_index": 3,
+      "kind": "warm",
+      "latency_s": 4.003,
+      "usage": {
+        "prompt_tokens": 45394,
+        "completion_tokens": 127,
+        "total_tokens": 45521,
+        "cost": 0.0080903116,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 41754,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0080903116,
+          "upstream_inference_prompt_cost": 0.0078164996,
+          "upstream_inference_completions_cost": 0.000273812
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 25,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 45394,
+      "completion_tokens": 127,
+      "cached_tokens": 41754,
+      "cache_discount": null,
+      "answer_preview": "All modules follow an identical template: each `src/module_NNN.py` file defines eight single-argument helpers named `hel"
+    },
+    {
+      "model": "qwen/qwen3.6-27b",
+      "call_index": 0,
+      "kind": "cold",
+      "latency_s": 9.527,
+      "usage": {
+        "prompt_tokens": 53008,
+        "completion_tokens": 200,
+        "total_tokens": 53208,
+        "cost": 0.01760256,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.01760256,
+          "upstream_inference_prompt_cost": 0.01696256,
+          "upstream_inference_completions_cost": 0.00064
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 130,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 53008,
+      "completion_tokens": 200,
+      "cached_tokens": 0,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "qwen/qwen3.6-27b",
+      "call_index": 1,
+      "kind": "warm",
+      "latency_s": 5.581,
+      "usage": {
+        "prompt_tokens": 53015,
+        "completion_tokens": 200,
+        "total_tokens": 53215,
+        "cost": 0.032529,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.032529,
+          "upstream_inference_prompt_cost": 0.031809,
+          "upstream_inference_completions_cost": 0.00072
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 195,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 53015,
+      "completion_tokens": 200,
+      "cached_tokens": 0,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "qwen/qwen3.6-27b",
+      "call_index": 2,
+      "kind": "warm",
+      "latency_s": 48.344,
+      "usage": {
+        "prompt_tokens": 53034,
+        "completion_tokens": 200,
+        "total_tokens": 53234,
+        "cost": 0.0163102,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.0163102,
+          "upstream_inference_prompt_cost": 0.0159102,
+          "upstream_inference_completions_cost": 0.0004
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 1,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 53034,
+      "completion_tokens": 200,
+      "cached_tokens": 0,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "qwen/qwen3.6-27b",
+      "call_index": 3,
+      "kind": "warm",
+      "latency_s": 5.566,
+      "usage": {
+        "prompt_tokens": 53045,
+        "completion_tokens": 200,
+        "total_tokens": 53245,
+        "cost": 0.032547,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 0,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.032547,
+          "upstream_inference_prompt_cost": 0.031827,
+          "upstream_inference_completions_cost": 0.00072
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 148,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 53045,
+      "completion_tokens": 200,
+      "cached_tokens": 0,
+      "cache_discount": null,
+      "answer_preview": "Each module `module_NNN.py` contains 8 helper functions (`helper_NNN_0` through `helper_NNN_7`) that follow the formula "
+    },
+    {
+      "model": "openai/gpt-5.5",
+      "call_index": 0,
+      "kind": "cold",
+      "latency_s": 3.488,
+      "usage": {
+        "prompt_tokens": 43627,
+        "completion_tokens": 135,
+        "total_tokens": 43762,
+        "cost": 0.027497,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43264,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.027497,
+          "upstream_inference_prompt_cost": 0.023447,
+          "upstream_inference_completions_cost": 0.00405
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 57,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43627,
+      "completion_tokens": 135,
+      "cached_tokens": 43264,
+      "cache_discount": null,
+      "answer_preview": "`module_001` defines eight simple helper functions, `helper_001_0` through `helper_001_7`, each returning `x * 1` plus a"
+    },
+    {
+      "model": "openai/gpt-5.5",
+      "call_index": 1,
+      "kind": "warm",
+      "latency_s": 4.066,
+      "usage": {
+        "prompt_tokens": 43636,
+        "completion_tokens": 98,
+        "total_tokens": 43734,
+        "cost": 0.026432,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43264,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.026432,
+          "upstream_inference_prompt_cost": 0.023492,
+          "upstream_inference_completions_cost": 0.00294
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 23,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43636,
+      "completion_tokens": 98,
+      "cached_tokens": 43264,
+      "cache_discount": null,
+      "answer_preview": "Introduce a shared helper factory or generic function, e.g. `compute(module_number, offset, x): return x * module_number"
+    },
+    {
+      "model": "openai/gpt-5.5",
+      "call_index": 2,
+      "kind": "warm",
+      "latency_s": 5.667,
+      "usage": {
+        "prompt_tokens": 43654,
+        "completion_tokens": 200,
+        "total_tokens": 43854,
+        "cost": 0.029582,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43264,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.029582,
+          "upstream_inference_prompt_cost": 0.023582,
+          "upstream_inference_completions_cost": 0.006
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 200,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43654,
+      "completion_tokens": 200,
+      "cached_tokens": 43264,
+      "cache_discount": null,
+      "answer_preview": ""
+    },
+    {
+      "model": "openai/gpt-5.5",
+      "call_index": 3,
+      "kind": "warm",
+      "latency_s": 3.048,
+      "usage": {
+        "prompt_tokens": 43664,
+        "completion_tokens": 147,
+        "total_tokens": 43811,
+        "cost": 0.028042,
+        "is_byok": false,
+        "prompt_tokens_details": {
+          "cached_tokens": 43264,
+          "cache_write_tokens": 0,
+          "audio_tokens": 0,
+          "video_tokens": 0
+        },
+        "cost_details": {
+          "upstream_inference_cost": 0.028042,
+          "upstream_inference_prompt_cost": 0.023632,
+          "upstream_inference_completions_cost": 0.00441
+        },
+        "completion_tokens_details": {
+          "reasoning_tokens": 58,
+          "image_tokens": 0,
+          "audio_tokens": 0
+        }
+      },
+      "prompt_tokens": 43664,
+      "completion_tokens": 147,
+      "cached_tokens": 43264,
+      "cache_discount": null,
+      "answer_preview": "Across `src/module_001.py` through `src/module_155.py`, each module contains exactly eight one-line helper functions nam"
+    }
+  ]
+}
