@@ -169,8 +169,12 @@ def _normalize_answer(raw: str):
 
 
 def extract_answer(text: str):
-    matches = re.findall(r"ANSWER\s*:\s*(.+)", text or "", flags=re.IGNORECASE)
+    matches = re.findall(r"(?:ANSWER|FINAL)\s*:\s*(.+)", text or "", flags=re.IGNORECASE)
     cand = matches[-1].splitlines()[0].strip() if matches else ""
+    # RLM-style responses may stack terminators ("FINAL: ANSWER: 191");
+    # peel any leading prefixes so grading matches the proxy's candidate
+    # extraction (see hermes_cli/proxy/moa_cascade.py).
+    cand = re.sub(r"^(?:(?:ANSWER|FINAL)\s*:\s*)+", "", cand, flags=re.IGNORECASE)
     if not cand:
         boxed = re.findall(r"\\boxed\{([^}]+)\}", text or "")
         cand = boxed[-1] if boxed else ""
