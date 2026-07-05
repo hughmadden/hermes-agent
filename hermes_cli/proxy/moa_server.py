@@ -232,6 +232,39 @@ def _cascade_vote_counts(candidates: list[str | None]) -> int:
     return max(counts.values()) if counts else 0
 
 
+def _cascade_tool_names(tools: Any) -> list[str]:
+    """Function names from a client's OpenAI-style ``tools`` list — used to
+    build the addendum v1.5 VOTER GATE's tool-awareness system line.
+    Malformed entries are skipped defensively (a client tool list is
+    untrusted input)."""
+    names = []
+    for tool in tools or []:
+        if not isinstance(tool, dict):
+            continue
+        fn = tool.get("function")
+        if isinstance(fn, dict) and fn.get("name"):
+            names.append(str(fn["name"]))
+    return names
+
+
+def _cascade_tool_awareness_line(tool_names: list[str]) -> str:
+    """Addendum v1.5's per-voter tool-awareness system line: appended AFTER
+    the client's messages for every VOTER GATE voter (direct-mode voters get
+    no advisory prompt otherwise), so a voter can vote "TOOL_TURN" instead
+    of guessing at an answer only a client tool call could actually
+    determine. ``normalize_candidate`` already lowercases, so an extracted
+    ``ANSWER: TOOL_TURN`` candidate compares equal to the literal
+    ``"tool_turn"`` this module checks for — no extra normalization needed.
+    """
+    joined = ", ".join(tool_names) if tool_names else "(unnamed tools)"
+    return (
+        f"The client has external tools available: {joined}. You cannot "
+        "call them. If a correct answer requires using those tools rather "
+        "than reasoning or knowledge, reply exactly: ANSWER: TOOL_TURN — "
+        "otherwise answer the request directly."
+    )
+
+
 # Addendum v1.1 (judge gate): a cheap LLM consistency check for freeform
 # voter output that never produces a comparable exact candidate (prose,
 # explanations, ...). Only reached when exact-match consensus already missed.
@@ -358,36 +391,109 @@ def _run_cascade_verifier(
     return verdict, entry
 
 
+def _cascade_last_non_system_role(messages: list) -> str | None:
+    """Role of the last non-system message in a raw client message list —
+    addendum v1.5's mid-loop signal. "tool" or "assistant" means the client
+    is already mid an agentic tool loop (the latest thing in the
+    conversation is a tool result, or a prior assistant turn it is still
+    acting on); "user" (or nothing at all) means a fresh turn for the VOTER
+    GATE to evaluate.
+    """
+    for msg in reversed(messages):
+        role = msg.get("role")
+        if role != "system":
+            return role
+    return None
+
+
 def _cascade_bypass_mode(common: dict) -> str | None:
     """Reasons a cascade request skips the voter pool for an acting-solo call.
 
-    "tool-solo": the client sent tools (voters cannot drive a client tool
-    loop, and advisory context measurably hurts tool work).
-    "context-solo": the estimated request size exceeds
-    ``cascade.max_context_tokens`` — voter slots are ~128k-context
-    wafer/local models, so an oversized request would error through the
-    whole pool; the acting slot (typically a 400k-class plan model) takes
-    it solo instead. Estimate: total message chars / 4.
+    Checked in this order — context-solo wins first, regardless of tools:
+
+    - "context-solo": the estimated request size exceeds
+      ``cascade.max_context_tokens`` — voter slots are ~128k-context
+      wafer/local models, so an oversized request would error through the
+      whole pool; the acting slot (typically a 400k-class plan model) takes
+      it solo instead. Estimate: total message chars / 4.
+    - "tool-solo": the client sent tools AND ``cascade.tool_turns ==
+      "solo"`` — the addendum v1.4 behavior, kept as an explicit opt-out:
+      every tool-carrying request bypasses voters unconditionally (voters
+      cannot drive a client tool loop, and advisory context measurably
+      hurts tool work).
+    - "tool-solo-mid-loop": tools present, ``cascade.tool_turns ==
+      "detect"`` (the addendum v1.5 default), and the session is already
+      mid an agentic tool loop — the last non-system message is "tool" or
+      "assistant". There is nothing to vote on: the loop is already
+      running, so the acting model continues solo (surfaced with reason
+      "mid-loop").
+    - ``None``: no immediate bypass. Either the request is tool-free (the
+      normal cascade tier-0/1/2 flow applies), or it carries tools with
+      ``tool_turns == "detect"`` and the last non-system message is "user"
+      — a fresh turn the addendum v1.5 VOTER GATE must decide per-turn (see
+      `_run_cascade_tool_turn_gate` / `_stream_cascade_tool_turn_gate`); the
+      caller checks ``common["tools"]`` itself once this returns ``None``
+      to route there instead of the plain tool-free cascade turn.
     """
-    if common["tools"]:
-        return "tool-solo"
     cascade_cfg = common.get("cascade") or {}
     cap = cascade_cfg.get("max_context_tokens") or 0
     if cap:
         est = sum(len(str(m.get("content") or "")) for m in common["messages"]) // 4
         if est > cap:
             return "context-solo"
+    if common["tools"]:
+        if (cascade_cfg.get("tool_turns") or "detect") == "solo":
+            return "tool-solo"
+        if _cascade_last_non_system_role(common["messages"]) in {"tool", "assistant"}:
+            return "tool-solo-mid-loop"
+        return None
     return None
 
 
-def _run_cascade_solo_turn(common: dict, mode: str = "tool-solo") -> dict:
+def _cascade_solo_turn_for_bypass(common: dict, bypass: str) -> dict:
+    """Turn a `_cascade_bypass_mode` sentinel into the actual solo-turn call.
+
+    Addendum v1.5's "tool-solo-mid-loop" sentinel becomes
+    ``{"mode": "tool-solo", "reason": "mid-loop"}``; the plain "tool-solo"
+    (config ``tool_turns: "solo"``) and "context-solo" sentinels pass
+    through unchanged, so ``usage.moa.cascade`` stays byte-identical to
+    addendum v1.4 for those two modes.
+    """
+    if bypass == "tool-solo-mid-loop":
+        return _run_cascade_solo_turn(
+            common, "tool-solo", cascade_extra={"reason": "mid-loop"}
+        )
+    return _run_cascade_solo_turn(common, bypass)
+
+
+def _run_cascade_solo_turn(
+    common: dict,
+    mode: str = "tool-solo",
+    *,
+    reference_outputs: list | None = None,
+    cascade_extra: dict | None = None,
+) -> dict:
     """Addendum v1.4 §A: a tool-carrying request on a cascade preset runs the
-    acting aggregator SOLO — no voters, no advisory guidance at all. Measured
-    basis: advisory context hurts tool/code work, so a cascade preset should
-    behave like a plain solo model whenever the client is driving tool use.
-    Returns the same turn-result dict shape as the other ``_run_turn``
-    branches; ``usage.moa.cascade`` surfaces ``{"tier": None, "mode":
-    "tool-solo"}`` so a client/trace can tell this apart from a fanout call.
+    acting aggregator SOLO — no advisory guidance attached, ever, on this
+    path. Measured basis: advisory context hurts tool/code work, so a
+    cascade preset should behave like a plain solo model whenever the
+    client is driving tool use. Returns the same turn-result dict shape as
+    the other ``_run_turn`` branches; ``usage.moa.cascade`` surfaces
+    ``{"tier": None, "mode": mode}`` (plus any ``cascade_extra`` keys) so a
+    client/trace can tell this apart from a fanout call.
+
+    ``reference_outputs`` (addendum v1.5): reference entries to fold into
+    this turn's billing/trace even though the acting call itself runs
+    solo — used by the VOTER GATE, where the voters DID run (to decide
+    whether to re-engage cascade) even though the winning outcome is still
+    an acting-solo call. ``None`` (default) means no voters ran, preserving
+    the addendum v1.4 shape (``reference_outputs: []``) exactly.
+
+    ``cascade_extra`` (addendum v1.5): additional keys folded into the
+    ``cascade`` usage dict beyond ``tier``/``mode`` (``reason``/``votes``).
+    ``None`` (default) adds nothing, so the plain "tool-solo"/"context-solo"
+    callers get the exact ``{"tier": None, "mode": mode}`` dict addendum
+    v1.4 always returned.
     """
     messages = common["messages"]
     agg_messages = [dict(m) for m in messages]
@@ -403,14 +509,17 @@ def _run_cascade_solo_turn(common: dict, mode: str = "tool-solo") -> dict:
     )
     runtime = _slot_runtime(common["aggregator"])
     agg_usage = _normalize_chunk_usage(getattr(response, "usage", None), runtime)
+    cascade_result: dict[str, Any] = {"tier": None, "mode": mode}
+    if cascade_extra:
+        cascade_result.update(cascade_extra)
     return {
-        "reference_outputs": [],
+        "reference_outputs": list(reference_outputs) if reference_outputs else [],
         "refs_from_cache": False,
         "agg_messages": agg_messages,
         "response": response,
         "agg_usage": agg_usage,
         "acting_slot": common["aggregator"],
-        "cascade": {"tier": None, "mode": mode},
+        "cascade": cascade_result,
         "winner_text": None,
     }
 
@@ -649,6 +758,62 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
             "verify_surface": verify_surface,
             "judge_discord": judge_discord,
             "clean_arbiter": clean_arbiter,
+        }
+    }
+
+
+def _cascade_tool_turn_gate(common: dict, messages: list, voters: list) -> dict:
+    """Addendum v1.5 VOTER GATE decision, given an already-completed
+    tool-aware voter fan-out (voters answered with the tool-awareness system
+    line appended — see `_cascade_tool_awareness_line`,
+    `_run_cascade_tool_turn_gate`, `_stream_cascade_tool_turn_gate`). Shared
+    by both the non-streaming and streaming tool-turn gates so the
+    tool_turn / real-answer / no-consensus decision is identical whichever
+    surface ran the fan-out.
+
+    Returns ``{"result": <turn dict>}`` when the voters converged on a REAL
+    answer — the session has reverted to cascade, tier 0 exactly as the
+    tool-free path (`_cascade_tier0_gate`), including the judge gate and
+    verifier, EXCEPT a "tool_turn" consensus never reaches
+    `_cascade_tier0_gate` at all (so it can never be sent to the verifier).
+    Otherwise returns ``{"solo": {"reason": ..., "extra": {...},
+    "reference_outputs": [...]}}`` — acting-solo w/ tools is required
+    instead, either because the voters voted "tool_turn" (reason
+    "tool_turn_vote", ``extra={"votes": n}``) or no consensus formed at all
+    (reason "no-consensus" — this also covers a struck exact consensus or a
+    judge-different/error freeform result: anything `_cascade_tier0_gate`
+    would otherwise have escalated to the tool-free tier-1 aggregator,
+    which cannot forward tools). ``reference_outputs`` folds in the voters
+    (and any judge/verifier calls that ran) so the solo turn's billing
+    still reflects the vote that happened.
+    """
+    cascade_cfg = common["cascade"] or {}
+    min_consensus = int(cascade_cfg.get("min_consensus") or 2)
+    candidates = [extract_candidate(text) for _label, text, _acct in voters]
+    cons = consensus(candidates, min_consensus)
+
+    if cons == "tool_turn":
+        return {
+            "solo": {
+                "reason": "tool_turn_vote",
+                "extra": {"votes": _cascade_vote_counts(candidates)},
+                "reference_outputs": voters,
+            }
+        }
+
+    gate = _cascade_tier0_gate(common, messages, voters)
+    if gate.get("result") is not None:
+        return gate
+
+    tier1_bundle = gate["tier1"]
+    reference_outputs = (
+        tier1_bundle["voters"] + tier1_bundle["judge_extra"] + tier1_bundle["verify_extra"]
+    )
+    return {
+        "solo": {
+            "reason": "no-consensus",
+            "extra": {},
+            "reference_outputs": reference_outputs,
         }
     }
 
@@ -918,6 +1083,46 @@ def _run_cascade_turn(common: dict) -> dict:
     if gate.get("result") is not None:
         return gate["result"]
     return _run_cascade_tier1_blocking(common, messages, gate["tier1"])
+
+
+def _run_cascade_tool_turn_gate(common: dict) -> dict:
+    """Addendum v1.5 VOTER GATE (non-streaming): reached when the resolved
+    cascade preset carries tools, ``cascade.tool_turns == "detect"`` (the
+    default), and the last non-system message is "user" —
+    `_cascade_bypass_mode` already ruled out the immediate bypasses
+    (context-solo, the config ``tool_turns: "solo"`` opt-out, and
+    mid-loop). Runs the tier-0 voter fan-out with ONE extra tool-awareness
+    system line appended to what each voter sees, then applies the shared
+    `_cascade_tool_turn_gate` decision. See docs/plans/moa-cascade-spec.md
+    addendum v1.5.
+    """
+    messages = common["messages"]
+    reference_models = common["reference_models"]
+    voter_messages = [dict(m) for m in messages] + [
+        {
+            "role": "system",
+            "content": _cascade_tool_awareness_line(_cascade_tool_names(common["tools"])),
+        }
+    ]
+    voters = _run_references_parallel(
+        reference_models,
+        voter_messages,
+        temperature=common["reference_temperature"],
+        max_tokens=common["reference_max_tokens"] or common["max_tokens"],
+        timeout=common["slot_timeout"],
+        quorum_grace=common["preset"].get("reference_quorum_grace"),
+        direct=True,
+    )
+    gate = _cascade_tool_turn_gate(common, messages, voters)
+    if gate.get("result") is not None:
+        return gate["result"]
+    solo = gate["solo"]
+    return _run_cascade_solo_turn(
+        common,
+        "tool-solo",
+        reference_outputs=solo["reference_outputs"],
+        cascade_extra={"reason": solo["reason"], **solo["extra"]},
+    )
 
 
 def _run_cascade_voters_with_progress(
@@ -1465,6 +1670,102 @@ async def _stream_cascade_turn(
 
 
 # ---------------------------------------------------------------------------
+# Streaming tool-turn VOTER GATE (addendum v1.5, docs/plans/moa-cascade-spec.md)
+# ---------------------------------------------------------------------------
+
+
+async def _stream_cascade_tool_turn_gate(
+    common: dict,
+    messages: list,
+    reference_models: list,
+    *,
+    send_chunk,
+    send_reasoning,
+    resp: "web.StreamResponse",
+    loop: asyncio.AbstractEventLoop,
+    abort: threading.Event,
+    include_usage: bool,
+) -> dict | None:
+    """Addendum v1.5 VOTER GATE (streaming): a tool-carrying cascade request
+    whose last non-system message is "user" (`_cascade_bypass_mode` already
+    ruled out the immediate solo bypasses) runs the tier-0 voter fan-out
+    LIVE — the same progress reasoning deltas as the tool-free streaming
+    cascade turn (`_stream_cascade_turn`) — with ONE extra tool-awareness
+    system line appended to what each voter sees (direct-mode voters get no
+    advisory prompt otherwise, so it rides at the end of the client
+    messages), then applies the shared `_cascade_tool_turn_gate` decision.
+
+    Returns ``None`` when the voters converged on a REAL answer and the
+    session has reverted to cascade — the tier-0 winner text was already
+    emitted as one content delta, the final chunk/usage written, and the
+    trace saved (mirrors `_stream_cascade_turn`'s tier-0 branch). Otherwise
+    returns ``{"reference_outputs": [...], "reason": ..., "extra": {...}}``
+    so the caller (`_handle_streaming`) can fall through to the generic
+    aggregator-streaming block with tools forwarded, the voter fan-out
+    already billed, and no guidance attached — the acting model streams
+    live with tools exactly like any other tool-carrying request.
+    """
+    await send_reasoning(f"[cascade: {len(reference_models)} voters answering…]\n")
+
+    tool_names = _cascade_tool_names(common["tools"])
+    voter_messages = [dict(m) for m in messages] + [
+        {"role": "system", "content": _cascade_tool_awareness_line(tool_names)}
+    ]
+
+    voter_queue: asyncio.Queue = asyncio.Queue()
+
+    def _on_voter_done(label: str) -> None:
+        loop.call_soon_threadsafe(voter_queue.put_nowait, label)
+
+    def _voters_worker():
+        try:
+            return _run_cascade_voters_with_progress(
+                reference_models,
+                voter_messages,
+                temperature=common["reference_temperature"],
+                max_tokens=common["reference_max_tokens"] or common["max_tokens"],
+                timeout=common["slot_timeout"],
+                quorum_grace=common["preset"].get("reference_quorum_grace"),
+                on_complete=_on_voter_done,
+            )
+        finally:
+            loop.call_soon_threadsafe(voter_queue.put_nowait, _DONE)
+
+    voters_future = loop.run_in_executor(None, _voters_worker)
+    while True:
+        item = await voter_queue.get()
+        if item is _DONE:
+            break
+        await send_reasoning(f"\n\n[voter {item}: done]")
+    voters = await voters_future
+
+    gate = await asyncio.to_thread(_cascade_tool_turn_gate, common, messages, voters)
+
+    if gate.get("result") is not None:
+        turn = gate["result"]
+        await send_chunk({"content": turn["winner_text"]})
+        await send_chunk(None, finish_reason="stop")
+        if include_usage:
+            await send_chunk(None, usage=_cascade_stream_usage(turn, common), empty_choices=True)
+        await resp.write(b"data: [DONE]\n\n")
+        _save_proxy_trace(
+            common,
+            turn["reference_outputs"],
+            turn["agg_messages"],
+            turn["winner_text"],
+            acting_slot=turn.get("acting_slot"),
+        )
+        return None
+
+    solo = gate["solo"]
+    return {
+        "reference_outputs": solo["reference_outputs"],
+        "reason": solo["reason"],
+        "extra": solo.get("extra") or {},
+    }
+
+
+# ---------------------------------------------------------------------------
 # The aiohttp application
 # ---------------------------------------------------------------------------
 
@@ -1682,10 +1983,17 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             if common["preset"].get("mode") == "cascade":
                 bypass = _cascade_bypass_mode(common)
                 if bypass:
-                    # Addendum v1.4 §A (+context guard): tool-carrying or
-                    # oversized requests run the acting model solo — no
-                    # voters, no guidance.
-                    return _run_cascade_solo_turn(common, bypass)
+                    # Addendum v1.4 §A (+context guard) / v1.5 mid-loop:
+                    # tool-carrying or oversized requests run the acting
+                    # model solo — no voters, no guidance.
+                    return _cascade_solo_turn_for_bypass(common, bypass)
+                if common["tools"] and reference_models:
+                    # Addendum v1.5 VOTER GATE: tools present, tool_turns ==
+                    # "detect", and the last non-system message is "user" —
+                    # `_cascade_bypass_mode` returned None precisely for
+                    # this case. Ask the voters whether the turn even needs
+                    # tools before falling back to acting-solo.
+                    return _run_cascade_tool_turn_gate(common)
                 # Cascade mode (docs/plans/moa-cascade-spec.md) only applies
                 # to tool-free turns on a preset with >=2 reference slots
                 # (config normalization guarantees the slot count whenever
@@ -1920,15 +2228,37 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         # usage surface needs the tool-solo marker (see the include_usage
         # block further down). A tool-free cascade request with >=2
         # reference slots gets a dedicated streaming turn (§B) that never
-        # falls through to the generic path below.
+        # falls through to the generic path below. Addendum v1.5 adds a
+        # third possibility for a tool-carrying request whose last
+        # non-system message is "user": the VOTER GATE
+        # (`_stream_cascade_tool_turn_gate`) decides per-turn whether the
+        # session reverts to cascade or falls through to the generic path.
         cascade_mode = common["preset"].get("mode") == "cascade"
-        cascade_solo_mode = _cascade_bypass_mode(common) if cascade_mode else None
-        cascade_tool_solo = bool(cascade_solo_mode)
+        cascade_bypass = _cascade_bypass_mode(common) if cascade_mode else None
+        cascade_tool_solo = bool(cascade_bypass)
         cascade_streaming = (
-            cascade_mode and not cascade_solo_mode and bool(reference_models)
+            cascade_mode
+            and not cascade_bypass
+            and not common["tools"]
+            and bool(reference_models)
         )
+        cascade_tool_turn_gate = (
+            cascade_mode
+            and not cascade_bypass
+            and bool(common["tools"])
+            and bool(reference_models)
+        )
+        cascade_usage_extra: dict | None = None
         if cascade_tool_solo:
             reference_models = []
+            if cascade_bypass == "tool-solo-mid-loop":
+                cascade_usage_extra = {
+                    "tier": None,
+                    "mode": "tool-solo",
+                    "reason": "mid-loop",
+                }
+            else:
+                cascade_usage_extra = {"tier": None, "mode": cascade_bypass}
 
         if cascade_streaming:
             try:
@@ -1951,66 +2281,104 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             await resp.write_eof()
             return resp
 
-        ref_messages = _reference_messages(messages)
-        cache_key = _advisory_signature(common["preset_name"], ref_messages, reference_models)
-        reference_outputs: list[tuple[str, str, Any]] = []
-        refs_from_cache = False
+        reference_outputs_preset: list | None = None
+        cascade_no_guidance = False
 
         try:
-            cached = _ref_cache_get(cache_key)
-            if cached is not None:
-                # Replay the cached advice as reasoning so the client still
-                # sees what the aggregator is acting on — without re-billing.
-                refs_from_cache = True
-                reference_outputs = cached
-                for idx, (label, text, _acct) in enumerate(cached, start=1):
-                    await send_reasoning(
-                        f"\n\n[Reference {idx}/{len(cached)} — {label} (cached)]\n{text}"
-                    )
-            elif reference_models:
-                # One queue per reference: each worker streams into its own
-                # queue; we drain queue 0 live while 1..n buffer, then flush
-                # each in order. Live tokens, stable labelled ordering.
-                queues: list[asyncio.Queue] = [asyncio.Queue() for _ in reference_models]
+            if cascade_tool_turn_gate:
+                # Addendum v1.5 VOTER GATE.
+                outcome = await _stream_cascade_tool_turn_gate(
+                    common,
+                    messages,
+                    reference_models,
+                    send_chunk=send_chunk,
+                    send_reasoning=send_reasoning,
+                    resp=resp,
+                    loop=loop,
+                    abort=abort,
+                    include_usage=include_usage,
+                )
+                if outcome is None:
+                    # Tier 0 hit: the session reverted to cascade and
+                    # `_stream_cascade_tool_turn_gate` already wrote the
+                    # full SSE response (content delta, finish, usage,
+                    # [DONE]) and saved the trace.
+                    await resp.write_eof()
+                    return resp
+                # "solo" outcome (tool_turn vote or no consensus): fall
+                # through to the generic aggregator-streaming block below,
+                # with the voter fan-out already billed and no guidance
+                # attached — the acting model streams live with tools.
+                reference_models = []
+                reference_outputs_preset = outcome["reference_outputs"]
+                cascade_no_guidance = True
+                cascade_usage_extra = {
+                    "tier": None,
+                    "mode": "tool-solo",
+                    "reason": outcome["reason"],
+                    **outcome["extra"],
+                }
 
-                def _push(q: asyncio.Queue):
-                    def push(text: str) -> None:
-                        loop.call_soon_threadsafe(q.put_nowait, text)
+            ref_messages = _reference_messages(messages)
+            cache_key = _advisory_signature(common["preset_name"], ref_messages, reference_models)
+            reference_outputs: list[tuple[str, str, Any]] = list(reference_outputs_preset or [])
+            refs_from_cache = False
 
-                    return push
-
-                def _worker(slot: dict, q: asyncio.Queue):
-                    try:
-                        return _reference_stream_worker(
-                            slot,
-                            ref_messages,
-                            temperature=common["reference_temperature"],
-                            max_tokens=common["reference_max_tokens"],
-                            timeout=common["slot_timeout"],
-                            push=_push(q),
-                            abort=abort,
+            if reference_outputs_preset is None:
+                cached = _ref_cache_get(cache_key)
+                if cached is not None:
+                    # Replay the cached advice as reasoning so the client still
+                    # sees what the aggregator is acting on — without re-billing.
+                    refs_from_cache = True
+                    reference_outputs = cached
+                    for idx, (label, text, _acct) in enumerate(cached, start=1):
+                        await send_reasoning(
+                            f"\n\n[Reference {idx}/{len(cached)} — {label} (cached)]\n{text}"
                         )
-                    finally:
-                        loop.call_soon_threadsafe(q.put_nowait, _DONE)
+                elif reference_models:
+                    # One queue per reference: each worker streams into its own
+                    # queue; we drain queue 0 live while 1..n buffer, then flush
+                    # each in order. Live tokens, stable labelled ordering.
+                    queues: list[asyncio.Queue] = [asyncio.Queue() for _ in reference_models]
 
-                futures = [
-                    loop.run_in_executor(None, _worker, slot, queue)
-                    for slot, queue in zip(reference_models, queues)
-                ]
-                for idx, (slot, queue) in enumerate(zip(reference_models, queues), start=1):
-                    await send_reasoning(
-                        f"\n\n[Reference {idx}/{len(reference_models)} — {_slot_label(slot)}]\n"
-                    )
-                    while True:
-                        item = await queue.get()
-                        if item is _DONE:
-                            break
-                        await send_reasoning(item)
-                reference_outputs = list(await asyncio.gather(*futures))
-                _ref_cache_put(cache_key, reference_outputs)
+                    def _push(q: asyncio.Queue):
+                        def push(text: str) -> None:
+                            loop.call_soon_threadsafe(q.put_nowait, text)
+
+                        return push
+
+                    def _worker(slot: dict, q: asyncio.Queue):
+                        try:
+                            return _reference_stream_worker(
+                                slot,
+                                ref_messages,
+                                temperature=common["reference_temperature"],
+                                max_tokens=common["reference_max_tokens"],
+                                timeout=common["slot_timeout"],
+                                push=_push(q),
+                                abort=abort,
+                            )
+                        finally:
+                            loop.call_soon_threadsafe(q.put_nowait, _DONE)
+
+                    futures = [
+                        loop.run_in_executor(None, _worker, slot, queue)
+                        for slot, queue in zip(reference_models, queues)
+                    ]
+                    for idx, (slot, queue) in enumerate(zip(reference_models, queues), start=1):
+                        await send_reasoning(
+                            f"\n\n[Reference {idx}/{len(reference_models)} — {_slot_label(slot)}]\n"
+                        )
+                        while True:
+                            item = await queue.get()
+                            if item is _DONE:
+                                break
+                            await send_reasoning(item)
+                    reference_outputs = list(await asyncio.gather(*futures))
+                    _ref_cache_put(cache_key, reference_outputs)
 
             agg_messages = [dict(m) for m in messages]
-            if reference_outputs:
+            if reference_outputs and not cascade_no_guidance:
                 _attach_reference_guidance(
                     agg_messages,
                     _reference_guidance(
@@ -2115,9 +2483,10 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 usage["moa"] = _usage_breakdown(
                     reference_outputs, agg_usage, refs_from_cache, common.get("routing")
                 )
-                if cascade_tool_solo:
-                    # Addendum v1.4 §A (+context guard): acting-solo turn.
-                    usage["moa"]["cascade"] = {"tier": None, "mode": cascade_solo_mode}
+                if cascade_usage_extra is not None:
+                    # Addendum v1.4 §A / v1.5: acting-solo turn (config
+                    # opt-out, mid-loop, tool_turn vote, or no consensus).
+                    usage["moa"]["cascade"] = cascade_usage_extra
                 await send_chunk(None, usage=usage, empty_choices=True)
 
             await resp.write(b"data: [DONE]\n\n")

@@ -197,6 +197,18 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         max_context_tokens = _coerce_int(cascade_raw.get("max_context_tokens"), 100_000)
         if max_context_tokens < 0:
             max_context_tokens = 100_000
+        # Addendum v1.5 (session-aware tool turns): "detect" (default)
+        # re-checks EVERY turn whether the client's tools are still in play
+        # — a fresh user turn re-engages the voter pool (see
+        # moa_server._cascade_bypass_mode / _run_cascade_tool_turn_gate)
+        # instead of pinning the whole session to acting-solo. "solo"
+        # reproduces the addendum v1.4 behavior unconditionally (every
+        # tool-carrying request bypasses voters). Any other/absent value
+        # degrades to "detect", matching the tolerant-degrade style used
+        # throughout this function.
+        tool_turns = str(cascade_raw.get("tool_turns") or "detect").strip().lower()
+        if tool_turns not in {"detect", "solo"}:
+            tool_turns = "detect"
         cascade = {
             "escalate_to": escalate_to,
             "max_context_tokens": max_context_tokens,
@@ -206,6 +218,7 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
             "verify": verify,
             "verifier": verifier,
             "verify_when": verify_when,
+            "tool_turns": tool_turns,
             # When true, the disagreement arbiter (tier-1 aggregator and the
             # tier-2 escalate slot) is called CLEAN — client messages only,
             # no voter context. Measured motivation (2026-07-04): voter

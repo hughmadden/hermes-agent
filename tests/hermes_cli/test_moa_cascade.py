@@ -424,7 +424,12 @@ async def test_escalate_to_nonexistent_normalizes_to_none_stays_tier1(
 
 
 @pytest.mark.asyncio
-async def test_cascade_with_tools_uses_fanout(moa_home, fake_llm):
+async def test_cascade_with_tools_uses_fanout(moa_home_tool_turns_solo, fake_llm):
+    # Addendum v1.5: the default `tool_turns: "detect"` re-checks a fresh
+    # user turn via the VOTER GATE instead of bypassing unconditionally (see
+    # the "Addendum v1.5" test section below), so this scenario now needs
+    # the explicit `tool_turns: solo` opt-out to exercise the unconditional
+    # v1.4 bypass this test is actually checking.
     tools = [
         {
             "type": "function",
@@ -436,7 +441,7 @@ async def test_cascade_with_tools_uses_fanout(moa_home, fake_llm):
         resp = await client.post(
             "/v1/chat/completions",
             json={
-                "model": "moa:casc",
+                "model": "moa:cascsolo",
                 "messages": [{"role": "user", "content": "look something up"}],
                 "tools": tools,
             },
@@ -1952,12 +1957,16 @@ async def test_streaming_tier2_escalation_discord_one_content_delta(
 
 
 @pytest.mark.asyncio
-async def test_cascade_tools_non_streaming_is_tool_solo(moa_home, fake_llm):
-    """A cascade preset request carrying `tools` never runs voters or
-    attaches reference guidance -- the aggregator acts SOLO on the client's
-    messages + tools, exactly like a plain (non-cascade) tool call, and the
-    turn is surfaced as usage.moa.cascade == {"tier": None, "mode":
-    "tool-solo"}."""
+async def test_cascade_tools_non_streaming_is_tool_solo(
+    moa_home_tool_turns_solo, fake_llm
+):
+    """A cascade preset request carrying `tools`, with the explicit
+    `tool_turns: solo` opt-out (addendum v1.5), never runs voters or attaches
+    reference guidance -- the aggregator acts SOLO on the client's messages +
+    tools, exactly like a plain (non-cascade) tool call, and the turn is
+    surfaced as usage.moa.cascade == {"tier": None, "mode": "tool-solo"}.
+    (The `tool_turns: "detect"` default's fresh-user-turn VOTER GATE behavior
+    is covered separately below in the "Addendum v1.5" test section.)"""
     tool_call = SimpleNamespace(
         id="call_abc",
         type="function",
@@ -1977,7 +1986,7 @@ async def test_cascade_tools_non_streaming_is_tool_solo(moa_home, fake_llm):
         resp = await client.post(
             "/v1/chat/completions",
             json={
-                "model": "moa:casc",
+                "model": "moa:cascsolo",
                 "messages": [{"role": "user", "content": "weather in HK?"}],
                 "tools": tools,
             },
@@ -2005,11 +2014,12 @@ async def test_cascade_tools_non_streaming_is_tool_solo(moa_home, fake_llm):
 
 
 @pytest.mark.asyncio
-async def test_cascade_tools_streaming_is_tool_solo(moa_home, fake_llm):
-    """Streaming counterpart: zero moa_reference calls, the aggregator is
-    called WITH the client's tools, a tool_calls delta passes straight
-    through to the client, and the final usage chunk carries
-    usage.moa.cascade == {"tier": None, "mode": "tool-solo"}."""
+async def test_cascade_tools_streaming_is_tool_solo(moa_home_tool_turns_solo, fake_llm):
+    """Streaming counterpart, with the explicit `tool_turns: solo` opt-out
+    (addendum v1.5): zero moa_reference calls, the aggregator is called WITH
+    the client's tools, a tool_calls delta passes straight through to the
+    client, and the final usage chunk carries usage.moa.cascade ==
+    {"tier": None, "mode": "tool-solo"}."""
 
     def agg_stream_handler(kwargs):
         assert kwargs.get("stream") is True
@@ -2035,7 +2045,7 @@ async def test_cascade_tools_streaming_is_tool_solo(moa_home, fake_llm):
         resp = await client.post(
             "/v1/chat/completions",
             json={
-                "model": "moa:casc",
+                "model": "moa:cascsolo",
                 "messages": [{"role": "user", "content": "weather?"}],
                 "tools": tools,
                 "stream": True,
@@ -2267,5 +2277,420 @@ async def test_clean_rlm_arbiter_runs_voter_loop(moa_home_rlm_arbiter, fake_llm,
             if c.get("task") == "moa_reference" and c.get("model") == "open-arbiter"
         ]
         assert arbiter_calls
+    finally:
+        await client.close()
+
+
+# ---------------------------------------------------------------------------
+# Addendum v1.5 -- session-aware tool turns: cascade re-engagement
+# (iteration 40)
+#
+# Agent clients resend `tools` on EVERY request, so v1.4's tool-solo bypass
+# pins whole sessions to acting-solo forever. `cascade.tool_turns: "detect"`
+# (the normalized default) decides per turn, by observation: a mid-loop turn
+# (last message is a tool/assistant turn) stays acting-solo; a fresh user
+# turn asks the tier-0 voters to vote either a real answer or the literal
+# sentinel "ANSWER: TOOL_TURN" first, so the cascade can re-engage on
+# reasoning/answer turns instead of paying acting-solo on every single turn
+# of a tool-using session. `moa_home` (tool_turns unset -> normalizes to the
+# "detect" default) is reused for every detect-mode test below; a dedicated
+# `moa_home_tool_turns_solo` fixture covers the "solo" (v1.4-identical, no
+# per-turn detection at all) config knob.
+# ---------------------------------------------------------------------------
+
+
+# Two named client tools, reused by every test below that needs a `tools`
+# array -- the tool-awareness system line lists these function names.
+_TOOLS_V15 = [
+    {
+        "type": "function",
+        "function": {"name": "get_weather", "parameters": {"type": "object"}},
+    },
+    {
+        "type": "function",
+        "function": {"name": "search_docs", "parameters": {"type": "object"}},
+    },
+]
+
+# A mid-tool-loop transcript: the last non-system message is the "tool" role
+# (a tool result just landed) -- the addendum's turn gate must recognize this
+# as "mid-loop" without ever consulting the voters.
+_MID_LOOP_MESSAGES = [
+    {"role": "user", "content": "what's the weather in HK?"},
+    {
+        "role": "assistant",
+        "content": None,
+        "tool_calls": [
+            {
+                "id": "call_abc",
+                "type": "function",
+                "function": {"name": "get_weather", "arguments": '{"city": "HK"}'},
+            }
+        ],
+    },
+    {"role": "tool", "tool_call_id": "call_abc", "content": "31C, humid"},
+]
+
+# A fresh user turn -- last non-system message is "user" -- so the addendum's
+# turn gate must run the tier-0 voter fan-out (the "VOTER GATE") instead of
+# going straight to acting-solo.
+_USER_TURN_MESSAGES = [{"role": "user", "content": "what should I do next?"}]
+
+
+def _write_tool_turns_solo_cfg(home):
+    """Same voter-pair/aggregator shape as `moa_home`, but with an explicit
+    `cascade.tool_turns: solo` -- the addendum's opt-out that preserves the
+    v1.4 tool-solo-on-every-turn behavior byte-identically, without ever
+    running the "detect" turn gate."""
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: cascsolo
+  presets:
+    cascsolo:
+      mode: cascade
+      cascade:
+        tool_turns: solo
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+      aggregator:
+        provider: openrouter
+        model: mid-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_tool_turns_solo(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_tool_turns_solo_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_tool_turns_detect_mid_loop_is_acting_solo(moa_home, fake_llm):
+    """Last message role "tool" -> mid-loop: acting-solo with tools, with NO
+    voter consultation at all (the addendum only votes on fresh user turns)."""
+    tool_call = SimpleNamespace(
+        id="call_xyz",
+        type="function",
+        function=SimpleNamespace(name="get_weather", arguments='{"city": "HK"}'),
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        None, tool_calls=[tool_call]
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": _MID_LOOP_MESSAGES,
+                "tools": _TOOLS_V15,
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_reference" not in tasks
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        assert agg_call["tools"] == _TOOLS_V15
+
+        assert body["usage"]["moa"]["cascade"] == {
+            "tier": None,
+            "mode": "tool-solo",
+            "reason": "mid-loop",
+        }
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_tool_turns_detect_vote_tool_turn_is_acting_solo(moa_home, fake_llm):
+    """Fresh user turn, both voters vote the literal sentinel
+    "ANSWER: TOOL_TURN" (they judge the request needs a tool they can't call)
+    -> acting-solo with tools, reason "tool_turn_vote". The voters still RAN
+    (and are billed) even though their vote never becomes client-visible
+    text -- `usage.moa.references` must show both of them."""
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response(
+        "This needs live data.\nANSWER: TOOL_TURN"
+    )
+    tool_call = SimpleNamespace(
+        id="call_xyz",
+        type="function",
+        function=SimpleNamespace(name="get_weather", arguments="{}"),
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        None, tool_calls=[tool_call]
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": _USER_TURN_MESSAGES,
+                "tools": _TOOLS_V15,
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_reference") == 2
+        assert tasks.count("moa_aggregator") == 1
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        assert agg_call["tools"] == _TOOLS_V15
+
+        assert body["usage"]["moa"]["cascade"] == {
+            "tier": None,
+            "mode": "tool-solo",
+            "reason": "tool_turn_vote",
+            "votes": 2,
+        }
+        # Voters ran and are billed, even though their vote never surfaces as
+        # client-visible content.
+        assert len(body["usage"]["moa"]["references"]) == 2
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_tool_turns_detect_vote_real_answer_reverts_to_tier0(moa_home, fake_llm):
+    """Fresh user turn, both voters agree on a REAL answer (not TOOL_TURN) ->
+    the session has reverted to cascade: tier 0 returns the winner's text
+    exactly as the tool-free path does, no aggregator call at all, and the
+    client's tools are never forwarded to anything (voters never take a
+    `tools` kwarg, and no acting call happens to forward them to)."""
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response(
+        "Reasoning...\nANSWER: 42"
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": _USER_TURN_MESSAGES,
+                "tools": _TOOLS_V15,
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        content = body["choices"][0]["message"]["content"]
+        assert "ANSWER: 42" in content
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_reference") == 2
+        assert "moa_aggregator" not in tasks
+        assert all(not c.get("tools") for c in fake_llm.calls)
+
+        cascade = body["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["consensus"] == "42"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_tool_turns_detect_no_consensus_is_acting_solo_no_guidance(
+    moa_home, fake_llm
+):
+    """Fresh user turn, voters disagree (neither TOOL_TURN consensus nor a
+    real-answer consensus) -> acting-solo WITH tools and NO reference
+    guidance at all (not tier 1: the arbiter may need to call tools, which
+    the tier-1 guidance-attach machinery does not forward)."""
+
+    def ref_handler(kwargs):
+        model = kwargs.get("model")
+        return _response("ANSWER: 1" if model == "voter-a" else "ANSWER: 2")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    tool_call = SimpleNamespace(
+        id="call_xyz",
+        type="function",
+        function=SimpleNamespace(name="get_weather", arguments="{}"),
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        None, tool_calls=[tool_call]
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": _USER_TURN_MESSAGES,
+                "tools": _TOOLS_V15,
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_reference") == 2
+        assert tasks.count("moa_aggregator") == 1
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        assert agg_call["tools"] == _TOOLS_V15
+        # No tier-1 guidance attach: the acting call's messages are the
+        # client's own turn, nothing else -- no voter text, no "Mixture of
+        # Agents" guidance header.
+        import json as _json
+
+        joined = _json.dumps(agg_call["messages"])
+        assert "ANSWER: 1" not in joined
+        assert "ANSWER: 2" not in joined
+        assert "Mixture of Agents reference context" not in joined
+
+        assert body["usage"]["moa"]["cascade"] == {
+            "tier": None,
+            "mode": "tool-solo",
+            "reason": "no-consensus",
+        }
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_tool_turns_detect_voter_messages_carry_tool_awareness_line(
+    moa_home, fake_llm
+):
+    """The voter gate appends ONE extra system line at the END of each
+    voter's message list (voters get no advisory system prompt in direct
+    mode otherwise) naming the client's tool functions and instructing the
+    literal "ANSWER: TOOL_TURN" reply convention."""
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response("ANSWER: 42")
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": _USER_TURN_MESSAGES,
+                "tools": _TOOLS_V15,
+            },
+        )
+        assert resp.status == 200
+
+        ref_calls = [c for c in fake_llm.calls if c["task"] == "moa_reference"]
+        assert len(ref_calls) == 2
+        for call in ref_calls:
+            msgs = call["messages"]
+            # The client's own messages are untouched and come first; the
+            # tool-awareness line is appended AFTER them, not prepended.
+            assert msgs[: len(_USER_TURN_MESSAGES)] == _USER_TURN_MESSAGES
+            last = msgs[-1]
+            assert last["role"] == "system"
+            assert "get_weather" in last["content"]
+            assert "search_docs" in last["content"]
+            assert "cannot call them" in last["content"]
+            assert "ANSWER: TOOL_TURN" in last["content"]
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_tool_turns_solo_preserves_v14_behavior(
+    moa_home_tool_turns_solo, fake_llm
+):
+    """`cascade.tool_turns: solo` is the v1.4 opt-out: EVERY tool-carrying
+    request is acting-solo with no per-turn detection whatsoever -- even a
+    fresh user-turn message (which "detect" would send to the voter gate)
+    skips the voters entirely, and the usage surface stays byte-identical to
+    the pre-addendum-v1.5 tool-solo shape (no "reason" key)."""
+    tool_call = SimpleNamespace(
+        id="call_abc",
+        type="function",
+        function=SimpleNamespace(name="get_weather", arguments='{"city": "HK"}'),
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        None, tool_calls=[tool_call]
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:cascsolo",
+                "messages": _USER_TURN_MESSAGES,
+                "tools": _TOOLS_V15,
+            },
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert "moa_reference" not in tasks
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        assert agg_call["tools"] == _TOOLS_V15
+
+        assert body["usage"]["moa"]["cascade"] == {"tier": None, "mode": "tool-solo"}
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_tool_turns_detect_streaming_reengagement_tier0(moa_home, fake_llm):
+    """Streaming counterpart of the vote-real-answer case: a fresh user turn
+    carrying tools still runs the live voter fan-out (progress reasoning
+    deltas), the voters agree on a real answer, and the client sees the
+    winner's FULL text as ONE content delta -- never a live token stream, and
+    never an aggregator call -- with `usage.moa.cascade` landing at tier 0."""
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response(
+        "Reasoning...\nANSWER: 42"
+    )
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": _USER_TURN_MESSAGES,
+                "tools": _TOOLS_V15,
+                "stream": True,
+                "stream_options": {"include_usage": True},
+            },
+        )
+        assert resp.status == 200
+        assert resp.headers["Content-Type"].startswith("text/event-stream")
+        events = await _read_sse(resp)
+        assert events[-1] == "[DONE]"
+        chunks = [e for e in events if e != "[DONE]"]
+
+        content_chunks = [
+            c
+            for c in chunks
+            if c["choices"] and c["choices"][0]["delta"].get("content")
+        ]
+        assert len(content_chunks) == 1
+        assert content_chunks[0]["choices"][0]["delta"]["content"] == (
+            "Reasoning...\nANSWER: 42"
+        )
+
+        finish = [
+            c["choices"][0]["finish_reason"]
+            for c in chunks
+            if c["choices"] and c["choices"][0]["finish_reason"]
+        ]
+        assert finish == ["stop"]
+
+        usage_chunks = [c for c in chunks if not c["choices"]]
+        assert len(usage_chunks) == 1
+        cascade = usage_chunks[0]["usage"]["moa"]["cascade"]
+        assert cascade["tier"] == 0
+        assert cascade["consensus"] == "42"
+
+        tasks = [c["task"] for c in fake_llm.calls]
+        assert tasks.count("moa_reference") == 2
+        assert "moa_aggregator" not in tasks
     finally:
         await client.close()
