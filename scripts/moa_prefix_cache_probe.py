@@ -18,11 +18,21 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import time
 import urllib.request
 
 _SYS = "You are a terse assistant inside a long-running agent session."
+_API_KEY_ENV = None
+
+
+def _headers() -> dict:
+    h = {"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"}
+    key = os.environ.get(_API_KEY_ENV) if _API_KEY_ENV else None
+    if key:
+        h["Authorization"] = f"Bearer {key}"
+    return h
 
 
 def _build_prefix(target_tokens: int) -> list[dict]:
@@ -63,7 +73,7 @@ def _ttft(base: str, model: str, messages: list[dict], timeout: int) -> tuple[fl
     req = urllib.request.Request(
         base.rstrip("/") + "/chat/completions",
         data=body,
-        headers={"Content-Type": "application/json", "User-Agent": "Mozilla/5.0"},
+        headers=_headers(),
     )
     t0 = time.time()
     first = None
@@ -109,7 +119,10 @@ def main() -> None:
     ap.add_argument("--timeout", type=int, default=600)
     ap.add_argument("--metrics", default=None)
     ap.add_argument("--out", default=None)
+    ap.add_argument("--api-key-env", default=None)
     args = ap.parse_args()
+    global _API_KEY_ENV
+    _API_KEY_ENV = args.api_key_env
 
     prefix = _build_prefix(args.prefix_tokens)
     results = {"prefix_tokens_target": args.prefix_tokens, "calls": []}
