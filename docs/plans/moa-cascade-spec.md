@@ -443,3 +443,64 @@ patterns from test_moa_proxy_server.py's streaming tests)
   client in the streaming case.
 - RLM voter active in streaming tier-0 (fake fence/FINAL handler → the
   '[rlm]' label appears in cascade voters list).
+
+## Addendum v1.5 — session-aware tool turns: cascade re-engagement (iteration 40)
+
+Problem: agent clients send tool definitions on EVERY request, so v1.4's
+tool-solo bypass pins entire sessions to acting-solo; the cascade never
+re-engages on reasoning/answer turns. Sessions must revert to cascade
+after tool phases — decided per turn, by observation.
+
+### Config
+`cascade.tool_turns: "detect" | "solo"` (normalized key `tool_turns`,
+DEFAULT "detect"; "solo" = v1.4 behavior). Ignored when mode != cascade.
+
+### Turn gate (both streaming and non-streaming; replaces the plain
+tools-present check inside `_cascade_bypass_mode` — context-solo still
+wins first)
+With tools present and `tool_turns == "detect"`:
+- Find the last non-system message. If its role is "tool" (or
+  "assistant") → mid-loop → acting-solo with tools, usage
+  `cascade = {"tier": null, "mode": "tool-solo", "reason": "mid-loop"}`.
+- If its role is "user" → VOTER GATE:
+  1. Run the tier-0 voter fan-out as usual (direct, RLM active), but each
+     voter's message list gains ONE extra system line (append a system
+     message at the END, after client messages — voters have no advisory
+     prompt in direct mode): "The client has external tools available:
+     <comma-joined tool function names>. You cannot call them. If a
+     correct answer requires using those tools rather than reasoning or
+     knowledge, reply exactly: ANSWER: TOOL_TURN — otherwise answer the
+     request directly." For RLM slots the line is appended the same way
+     (their charter already demands FINAL:/ANSWER: terminators; TOOL_TURN
+     rides the same extraction).
+  2. Consensus == "tool_turn" (normalize_candidate lowercases) →
+     acting-solo with tools, `{"mode": "tool-solo", "reason":
+     "tool_turn_vote", "votes": <n>}`; voters' usage still accounted as
+     reference entries (they ran).
+  3. Consensus on a REAL answer (anything else) → tier-0 return exactly
+     as the tool-free path (winner text, `tier: 0`, `gate_used` as
+     normal) — the session has reverted to cascade. Judge gate applies as
+     configured; verification applies as configured EXCEPT a "tool_turn"
+     candidate never goes to the verifier.
+  4. No consensus → acting-solo WITH tools and NO guidance (advisory
+     hurts tool work), `{"mode": "tool-solo", "reason": "no-consensus"}`.
+     (NOT tier-1: the arbiter may need to call tools, which the tier-1
+     machinery does not forward.)
+- Streaming: same gate; voter phase emits the usual reasoning deltas;
+  outcomes 2/4 stream the acting model live with tools (existing
+  machinery, tool_calls deltas pass through); outcome 3 emits the winner
+  as one content delta.
+
+### Tests (append to test_moa_cascade.py)
+- mid-loop (last message role tool) → zero moa_reference calls, solo w/
+  tools, reason "mid-loop".
+- user-turn, voters consensus "ANSWER: TOOL_TURN" → acting called WITH
+  tools, reason "tool_turn_vote", voters visible in usage refs.
+- user-turn, voters agree on a real answer → tier 0, winner text, NO
+  aggregator call, tools never forwarded anywhere.
+- user-turn, no consensus → solo with tools, reason "no-consensus", no
+  tier-1 guidance in the acting call's messages.
+- voter messages carry the tool-awareness system line listing function
+  names (inspect recorded reference calls).
+- tool_turns: "solo" preserves v1.4 behavior byte-identical.
+- streaming variant of the re-engagement case (tier-0 winner delta).
