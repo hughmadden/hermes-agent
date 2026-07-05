@@ -108,6 +108,14 @@ def extract_candidate(text: str) -> str | None:
     answer_matches = _ANSWER_RE.findall(text)
     if answer_matches:
         candidate = answer_matches[-1].strip().splitlines()[0].strip()
+        # RLM voters may stack terminators ("FINAL: ANSWER: 4") when the
+        # client's own prompt also demands an ANSWER: line; the outer match
+        # then captures the inner prefix as part of the candidate and a
+        # mixed RLM/plain voter pool can never reach consensus. Peel any
+        # leading ANSWER:/FINAL: prefixes off the captured candidate.
+        candidate = re.sub(
+            r"^(?:(?:ANSWER|FINAL)\s*:\s*)+", "", candidate, flags=re.IGNORECASE
+        )
         cleaned = _strip_wrapping(candidate)
         return cleaned or None
 

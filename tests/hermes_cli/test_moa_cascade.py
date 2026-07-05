@@ -2694,3 +2694,15 @@ async def test_tool_turns_detect_streaming_reengagement_tier0(moa_home, fake_llm
         assert "moa_aggregator" not in tasks
     finally:
         await client.close()
+
+
+def test_stacked_terminators_extract_clean_candidate():
+    """RLM voters may emit 'FINAL: ANSWER: 4' when the client prompt also
+    demands an ANSWER: line — the candidate must still be '4' or a mixed
+    RLM/plain pool can never reach consensus (found live, 2026-07-06)."""
+    from hermes_cli.proxy.moa_cascade import extract_candidate, normalize_candidate
+
+    assert extract_candidate("blah\nFINAL: ANSWER: 4") == "4"
+    assert extract_candidate("FINAL: answer: 13") == "13"
+    assert extract_candidate("ANSWER: FINAL: 7") == "7"
+    assert normalize_candidate(extract_candidate("done\nFINAL: ANSWER: 36")) == "36"
