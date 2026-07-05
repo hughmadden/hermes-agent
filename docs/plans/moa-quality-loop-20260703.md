@@ -64,6 +64,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 39 | All-open ladder (wafer voters + deepseek-RLM clean arbiter) | Two runs, 2026 sets: tier-0 superb (23/24, 13/13 @3–5s) but arbiter 0/10 in-proxy vs 90% standalone; round-capping made it worse; tail solves need 500–900s via OR | HARD-RESIDUE BUDGET LAW: arbiter tiers need MORE budget than standalone averages, not less. All-open arbitration = batch tier until locally hosted; cascade-rlm stays the production pick |
 
+| 40 | Sessions revert to cascade after tool phases | tool_turns:detect shipped; live walk: answer@1.4s → tool call → mid-loop@0.5s → tier-0 REVERT@0.5s. Found+fixed: stacked FINAL:ANSWER: candidates split mixed pools 2-2 (since iter 31); grader twin bug; rebench bands AIME26 93–97%, HMMT26 90–95% | Production-complete cascade; results published as bands; 179 tests |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
