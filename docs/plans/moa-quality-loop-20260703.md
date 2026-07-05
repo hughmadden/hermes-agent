@@ -66,6 +66,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 40 | Sessions revert to cascade after tool phases | tool_turns:detect shipped; live walk: answer@1.4s → tool call → mid-loop@0.5s → tier-0 REVERT@0.5s. Found+fixed: stacked FINAL:ANSWER: candidates split mixed pools 2-2 (since iter 31); grader twin bug; rebench bands AIME26 93–97%, HMMT26 90–95% | Production-complete cascade; results published as bands; 179 tests |
 
+| 41 | Provider prompt-caching decides agentic session cost | OR study: deepseek 99.5%/40% cut, glm 92%/40%, gpt-5.5 no billed saving, kimi 1-in-3, qwen 0; Cerebras: gemma real cache (3x warm TTFT), wafer prefill ~1.5s cold @30k | Pin cache-critical lanes to deepseek/glm; wafer voter tier needs no cache design — prefill speed is the cache |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
