@@ -1,0 +1,281 @@
+{
+  "dataset": "aime26",
+  "n_tasks": 30,
+  "results": [
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-1",
+      "expected": "277",
+      "answer": "277",
+      "correct": true,
+      "wall_s": 84.8,
+      "rounds": 3,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-6",
+      "expected": "441",
+      "answer": "441",
+      "correct": true,
+      "wall_s": 101.51,
+      "rounds": 3,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-5",
+      "expected": "65",
+      "answer": "65",
+      "correct": true,
+      "wall_s": 127.15,
+      "rounds": 3,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-2",
+      "expected": "62",
+      "answer": "62",
+      "correct": true,
+      "wall_s": 156.17,
+      "rounds": 4,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-7",
+      "expected": "396",
+      "answer": "396",
+      "correct": true,
+      "wall_s": 122.95,
+      "rounds": 3,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-9",
+      "expected": "29",
+      "answer": "29",
+      "correct": true,
+      "wall_s": 110.29,
+      "rounds": 3,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-8",
+      "expected": "244",
+      "answer": "244",
+      "correct": true,
+      "wall_s": 160.42,
+      "rounds": 4,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-3",
+      "expected": "79",
+      "answer": "79",
+      "correct": true,
+      "wall_s": 392.81,
+      "rounds": 8,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-4",
+      "expected": "70",
+      "answer": null,
+      "correct": false,
+      "wall_s": 643.46,
+      "rounds": 13,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-10",
+      "expected": "156",
+      "answer": null,
+      "correct": false,
+      "wall_s": 676.65,
+      "rounds": 13,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-11",
+      "expected": "896",
+      "answer": "896",
+      "correct": true,
+      "wall_s": 648.56,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-12",
+      "expected": "161",
+      "answer": null,
+      "correct": false,
+      "wall_s": 677.99,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-16",
+      "expected": "178",
+      "answer": "178",
+      "correct": true,
+      "wall_s": 100.14,
+      "rounds": 2,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-13",
+      "expected": "39",
+      "answer": null,
+      "correct": false,
+      "wall_s": 681.39,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-20",
+      "expected": "190",
+      "answer": "190",
+      "correct": true,
+      "wall_s": 76.56,
+      "rounds": 3,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-19",
+      "expected": "279",
+      "answer": "279",
+      "correct": true,
+      "wall_s": 99.69,
+      "rounds": 3,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-14",
+      "expected": "681",
+      "answer": null,
+      "correct": false,
+      "wall_s": 682.25,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-15",
+      "expected": "83",
+      "answer": null,
+      "correct": false,
+      "wall_s": 676.43,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-21",
+      "expected": "50",
+      "answer": "50",
+      "correct": true,
+      "wall_s": 384.09,
+      "rounds": 8,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-17",
+      "expected": "243",
+      "answer": null,
+      "correct": false,
+      "wall_s": 675.83,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-18",
+      "expected": "503",
+      "answer": "500",
+      "correct": false,
+      "wall_s": 673.64,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-22",
+      "expected": "754",
+      "answer": null,
+      "correct": false,
+      "wall_s": 667.52,
+      "rounds": 13,
+      "python_calls": 0
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-23",
+      "expected": "245",
+      "answer": "245",
+      "correct": true,
+      "wall_s": 636.29,
+      "rounds": 13,
+      "python_calls": 2
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-29",
+      "expected": "157",
+      "answer": "157",
+      "correct": true,
+      "wall_s": 97.45,
+      "rounds": 3,
+      "python_calls": 1
+    },
+    {
+      "mode": "rlm",
+      "model": "qwen27",
+      "task": "aime26-27",
+      "expected": "223",
+      "answer": "223",
+      "correct": true,
+      "wall_s": 298.43,
+      "rounds": 6,
+      "python_calls": 1
+    }
+  ]
+}
