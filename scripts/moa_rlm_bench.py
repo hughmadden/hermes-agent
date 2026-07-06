@@ -466,6 +466,11 @@ def _dry_run() -> int:
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
+        "--modes",
+        default="rlm,solo",
+        help="comma list of modes to run: rlm,solo (default both)",
+    )
+    parser.add_argument(
         "--api-base",
         default="https://api.cerebras.ai/v1",
         help="OpenAI-compatible API base (default: Cerebras)",
@@ -517,7 +522,9 @@ def main() -> int:
     print(f"Fetched {len(tasks)} {args.dataset} problems")
 
     models = [m.strip() for m in args.models.split(",") if m.strip()]
-    modes = ["rlm", "solo"] if args.baseline else ["rlm"]
+    modes = [x.strip() for x in args.modes.split(",") if x.strip() in ("rlm", "solo")]
+    if not args.baseline and "solo" in modes and args.modes == "rlm,solo":
+        modes = ["rlm"]  # legacy --no-baseline still drops the default solo
 
     jobs = [(mode, m, t) for m in models for mode in modes for t in tasks]
     print(
