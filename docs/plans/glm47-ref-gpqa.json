@@ -1,0 +1,281 @@
+{
+  "dataset": "gpqa",
+  "n_tasks": 25,
+  "results": [
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-2",
+      "expected": "-0.7",
+      "answer": "-0.7",
+      "correct": true,
+      "wall_s": 31.8,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-36",
+      "expected": "3",
+      "answer": null,
+      "correct": false,
+      "wall_s": 37.63,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-23",
+      "expected": "18",
+      "answer": "18",
+      "correct": true,
+      "wall_s": 259.48,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-38",
+      "expected": "0.85",
+      "answer": "0.849322",
+      "correct": false,
+      "wall_s": 277.77,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-1",
+      "expected": "11",
+      "answer": "11",
+      "correct": true,
+      "wall_s": 333.57,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-58",
+      "expected": "12.62",
+      "answer": "12.62",
+      "correct": true,
+      "wall_s": 96.32,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-47",
+      "expected": "6",
+      "answer": "4",
+      "correct": false,
+      "wall_s": 381.98,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-66",
+      "expected": "0",
+      "answer": "0",
+      "correct": true,
+      "wall_s": 66.14,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-71",
+      "expected": "4",
+      "answer": null,
+      "correct": false,
+      "wall_s": 136.52,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-114",
+      "expected": "138",
+      "answer": "\\(\\arccos\\left(-\\frac{\\sqrt{5}}{3}\\right)\\)",
+      "correct": false,
+      "wall_s": 24.04,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-49",
+      "expected": "3",
+      "answer": null,
+      "correct": false,
+      "wall_s": 341.48,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-45",
+      "expected": "6",
+      "answer": "6",
+      "correct": true,
+      "wall_s": 651.18,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-63",
+      "expected": "17",
+      "answer": null,
+      "correct": false,
+      "wall_s": 427.99,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-129",
+      "expected": "1.9",
+      "answer": "1.5",
+      "correct": false,
+      "wall_s": 88.77,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-15",
+      "expected": "3",
+      "answer": "4",
+      "correct": false,
+      "wall_s": 835.29,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-79",
+      "expected": "315",
+      "answer": null,
+      "correct": false,
+      "wall_s": 553.08,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-123",
+      "expected": "54",
+      "answer": null,
+      "correct": false,
+      "wall_s": 398.72,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-136",
+      "expected": "3536",
+      "answer": null,
+      "correct": false,
+      "wall_s": 326.29,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-139",
+      "expected": "35",
+      "answer": "35",
+      "correct": true,
+      "wall_s": 331.54,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-144",
+      "expected": "16",
+      "answer": "16",
+      "correct": true,
+      "wall_s": 207.47,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-166",
+      "expected": "1.38",
+      "answer": null,
+      "correct": false,
+      "wall_s": 230.48,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-140",
+      "expected": "3",
+      "answer": "3",
+      "correct": true,
+      "wall_s": 422.3,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-182",
+      "expected": "1",
+      "answer": "1",
+      "correct": true,
+      "wall_s": 175.47,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-121",
+      "expected": "8",
+      "answer": "15",
+      "correct": false,
+      "wall_s": 954.66,
+      "rounds": null,
+      "python_calls": null
+    },
+    {
+      "mode": "solo",
+      "model": "z-ai/glm-4.7",
+      "task": "gpqa-186",
+      "expected": "3",
+      "answer": "4",
+      "correct": false,
+      "wall_s": 463.76,
+      "rounds": null,
+      "python_calls": null
+    }
+  ]
+}
