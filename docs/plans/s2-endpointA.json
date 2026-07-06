@@ -1,0 +1,80 @@
+{
+  "label": "s2-dual-A",
+  "model": "q80",
+  "max_tokens": 1024,
+  "single_streams": [
+    {
+      "chunks": 1024,
+      "ttft_s": 0.124,
+      "decode_s": 5.828,
+      "decode_tok_s": 175.5,
+      "itl_ms": {
+        "mean": 5.7,
+        "p50": 5.69,
+        "p90": 5.96
+      },
+      "wall_s": 5.95
+    },
+    {
+      "chunks": 1024,
+      "ttft_s": 0.1,
+      "decode_s": 5.818,
+      "decode_tok_s": 175.8,
+      "itl_ms": {
+        "mean": 5.69,
+        "p50": 5.68,
+        "p90": 5.9
+      },
+      "wall_s": 5.92
+    },
+    {
+      "chunks": 1024,
+      "ttft_s": 0.11,
+      "decode_s": 5.824,
+      "decode_tok_s": 175.7,
+      "itl_ms": {
+        "mean": 5.69,
+        "p50": 5.68,
+        "p90": 5.84
+      },
+      "wall_s": 5.93
+    }
+  ],
+  "single_decode_tok_s_best": 175.8,
+  "concurrent": [
+    {
+      "concurrency": 4,
+      "aggregate_tok_s": 444.1,
+      "wall_s": 9.22,
+      "per_stream_decode_tok_s": [
+        113.9,
+        113.9,
+        113.9,
+        113.9
+      ]
+    },
+    {
+      "concurrency": 16,
+      "aggregate_tok_s": 723.4,
+      "wall_s": 22.65,
+      "per_stream_decode_tok_s": [
+        91.9,
+        91.2,
+        91.2,
+        91.2,
+        91.2,
+        91.2,
+        91.2,
+        91.1,
+        92.0,
+        91.9,
+        91.9,
+        91.9,
+        91.9,
+        91.9,
+        91.9,
+        91.9
+      ]
+    }
+  ]
+}

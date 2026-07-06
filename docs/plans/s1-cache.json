@@ -1,0 +1,46 @@
+{
+ "prefix_tokens_target": 60000,
+ "calls": [
+  {
+   "kind": "cold",
+   "ttft_s": 6.2492899894714355,
+   "total_s": 6.253024578094482
+  },
+  {
+   "kind": "warm0",
+   "ttft_s": 0.18410015106201172,
+   "total_s": 0.18442964553833008
+  },
+  {
+   "kind": "warm1",
+   "ttft_s": 0.18282842636108398,
+   "total_s": 0.18430471420288086
+  },
+  {
+   "kind": "warm2",
+   "ttft_s": 0.18602800369262695,
+   "total_s": 0.19340157508850098
+  }
+ ],
+ "metrics_before": {
+  "vllm:prefix_cache_queries_total": 1483.0,
+  "vllm:prefix_cache_queries_created": 1783295539.7476335,
+  "vllm:prefix_cache_hits_total": 0.0,
+  "vllm:prefix_cache_hits_created": 1783295539.7476418,
+  "vllm:external_prefix_cache_queries_total": 0.0,
+  "vllm:external_prefix_cache_queries_created": 1783295539.7476494,
+  "vllm:external_prefix_cache_hits_total": 0.0,
+  "vllm:external_prefix_cache_hits_created": 1783295539.7476575
+ },
+ "metrics_after": {
+  "vllm:prefix_cache_queries_total": 277979.0,
+  "vllm:prefix_cache_queries_created": 1783295539.7476335,
+  "vllm:prefix_cache_hits_total": 205824.0,
+  "vllm:prefix_cache_hits_created": 1783295539.7476418,
+  "vllm:external_prefix_cache_queries_total": 0.0,
+  "vllm:external_prefix_cache_queries_created": 1783295539.7476494,
+  "vllm:external_prefix_cache_hits_total": 0.0,
+  "vllm:external_prefix_cache_hits_created": 1783295539.7476575
+ },
+ "warm_over_cold_ttft": 0.029494368269425954
+}

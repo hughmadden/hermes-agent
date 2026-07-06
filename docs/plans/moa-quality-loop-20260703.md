@@ -68,6 +68,8 @@ the Turq share (services.turquoisebay.ai/share/moa-next-phase/).
 
 | 41 | Provider prompt-caching decides agentic session cost | OR study: deepseek 99.5%/40% cut, glm 92%/40%, gpt-5.5 no billed saving, kimi 1-in-3, qwen 0; Cerebras: gemma real cache (3x warm TTFT), wafer prefill ~1.5s cold @30k | Pin cache-critical lanes to deepseek/glm; wafer voter tier needs no cache design — prefill speed is the cache |
 
+| 42 | 2×Blackwell topology: one big vs several small | Dual instances: 1434 tok/s agg, full speed both; TP=2: 136 tok/s single-stream (23% SLOWER than 1 GPU), half aggregate; 262k ctx on ONE card; 180k warm turn 0.38s (99% TTFT cut) | Independent instances dominate when the model fits one card; TP2 = fit mechanism only; local prefix caching makes agent sessions ~free |
+
 ## AIME 24+25 retest (harder primary benchmark, 60 problems)
 
 fable 100% · gpt5.5 98% · cere-agg-openrefs(gptoss) 95% · mixed-heavy 92%
