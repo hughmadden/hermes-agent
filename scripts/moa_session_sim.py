@@ -257,14 +257,22 @@ def run_session(
     tool_threads: int,
     timeout: int,
     stream: bool,
+    turn_delay: float = 0.0,
 ) -> dict:
     """Drive one growing scripted session; return records + summary."""
     messages = _build_filler(context_tokens)
     records: list[dict] = []
     q_idx = 0
 
+    def _pace() -> None:
+        # Real sessions have user/tool think-time between turns; pacing keeps
+        # provider TPM-burst limits from masquerading as design limits.
+        if turn_delay > 0 and records:
+            time.sleep(turn_delay)
+
     def plain_turn(phase: str) -> dict:
         nonlocal q_idx
+        _pace()
         messages.append({"role": "user", "content": _question(q_idx)})
         q_idx += 1
         rec, raw = _run_turn(base, model, messages, TOOLS, stream, timeout, phase)
@@ -281,6 +289,7 @@ def run_session(
         messages.append({"role": "user", "content": _TOOL_ASK})
         completed = False
         for round_idx in range(1, 5):
+            _pace()
             rec, raw = _run_turn(
                 base, model, messages, TOOLS, stream, timeout, f"tool-thread-{t}-round-{round_idx}"
             )
@@ -474,6 +483,8 @@ def main() -> int:
     ap.add_argument("--turns", type=int, default=8, help="number of initial plain user turns")
     ap.add_argument("--tool-threads", type=int, default=2)
     ap.add_argument("--timeout", type=int, default=600)
+    ap.add_argument("--turn-delay", type=float, default=0.0,
+                    help="seconds to sleep between turns (real sessions have think-time; avoids conflating provider TPM-burst limits with design limits)")
     ap.add_argument("--out", default=None)
     ap.add_argument("--stream", action="store_true", help="use stream:true and measure TTFT")
     ap.add_argument("--selftest", action="store_true", help="run against a local mock server; no network")
@@ -489,8 +500,7 @@ def main() -> int:
     _API_KEY_ENV = args.api_key_env
 
     result = run_session(
-        args.base, args.model, args.context_tokens, args.turns, args.tool_threads, args.timeout, args.stream
-    )
+        args.base, args.model, args.context_tokens, args.turns, args.tool_threads, args.timeout, args.stream, turn_delay=args.turn_delay)
     _print_summary(result)
 
     if args.out:
