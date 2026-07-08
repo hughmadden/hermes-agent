@@ -2706,3 +2706,82 @@ def test_stacked_terminators_extract_clean_candidate():
     assert extract_candidate("FINAL: answer: 13") == "13"
     assert extract_candidate("ANSWER: FINAL: 7") == "7"
     assert normalize_candidate(extract_candidate("done\nFINAL: ANSWER: 36")) == "36"
+
+
+# ---------------------------------------------------------------------------
+# Real-world serving: upstream cache visibility + prompt-cache decoration
+# ---------------------------------------------------------------------------
+
+
+def test_usage_to_openai_surfaces_cached_tokens():
+    """usage always carries prompt_tokens_details.cached_tokens (OpenAI wire
+    shape) so production sessions can OBSERVE provider-side prompt caching —
+    a hard 0 on a warm turn is the signal a lane is not caching, so the key
+    is emitted even when zero. cache_write_tokens only appears when real
+    (Anthropic-style writes), keeping the plain-OpenAI shape untouched."""
+    from agent.usage_pricing import CanonicalUsage
+
+    warm = moa_server._usage_to_openai(
+        CanonicalUsage(
+            input_tokens=100,
+            output_tokens=10,
+            cache_read_tokens=500,
+            cache_write_tokens=200,
+        )
+    )
+    assert warm["prompt_tokens"] == 800  # input + cache reads + cache writes
+    assert warm["prompt_tokens_details"] == {"cached_tokens": 500}
+    assert warm["cache_write_tokens"] == 200
+
+    cold = moa_server._usage_to_openai(
+        CanonicalUsage(input_tokens=100, output_tokens=10)
+    )
+    assert cold["prompt_tokens_details"] == {"cached_tokens": 0}
+    assert "cache_write_tokens" not in cold
+
+
+@pytest.mark.asyncio
+async def test_tool_solo_applies_cache_decoration(
+    moa_home_tool_turns_solo, fake_llm, monkeypatch
+):
+    """The solo lane (the dominant path of a real agent session's tool loop)
+    routes its outgoing messages through _maybe_apply_moa_cache_control,
+    judged on the ACTING slot's own runtime — and call_llm receives exactly
+    what the decorator returned."""
+    seen: dict = {}
+
+    def fake_decorate(messages, runtime):
+        seen["runtime"] = runtime
+        return [{"role": "system", "content": "DECORATED"}, *messages]
+
+    monkeypatch.setattr(moa_server, "_maybe_apply_moa_cache_control", fake_decorate)
+    tool_call = SimpleNamespace(
+        id="call_abc",
+        type="function",
+        function=SimpleNamespace(name="get_weather", arguments='{"city": "HK"}'),
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response(
+        None, tool_calls=[tool_call]
+    )
+    tools = [
+        {
+            "type": "function",
+            "function": {"name": "get_weather", "parameters": {"type": "object"}},
+        }
+    ]
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:cascsolo",
+                "messages": [{"role": "user", "content": "weather in HK?"}],
+                "tools": tools,
+            },
+        )
+        assert resp.status == 200
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        assert agg_call["messages"][0] == {"role": "system", "content": "DECORATED"}
+        assert seen["runtime"].get("provider") == "openrouter"
+    finally:
+        await client.close()

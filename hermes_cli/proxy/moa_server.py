@@ -65,6 +65,7 @@ except ImportError:  # pragma: no cover - exercised via cmd_moa_serve guard
 from agent.auxiliary_client import call_llm
 from agent.moa_loop import (
     _MAX_REFERENCE_WORKERS,
+    _maybe_apply_moa_cache_control,
     _REFERENCE_SYSTEM_PROMPT,
     _RefAccounting,
     _attach_reference_guidance,
@@ -183,11 +184,23 @@ def _usage_to_openai(usage: Any) -> dict[str, int]:
     """
     prompt_tokens = int(getattr(usage, "prompt_tokens", 0) or 0)
     completion_tokens = int(getattr(usage, "output_tokens", 0) or 0)
-    return {
+    out = {
         "prompt_tokens": prompt_tokens,
         "completion_tokens": completion_tokens,
         "total_tokens": prompt_tokens + completion_tokens,
     }
+    # Surface upstream cache activity (OpenAI wire shape) so real-world
+    # sessions can SEE whether provider-side prompt caching is working —
+    # cached_tokens is the sum of every slot's cache reads this turn.
+    # Emitted unconditionally: a hard 0 on a 100k-token warm turn is the
+    # signal that a lane is not caching, and hiding it would make that
+    # indistinguishable from "not measured".
+    cache_read = int(getattr(usage, "cache_read_tokens", 0) or 0)
+    cache_write = int(getattr(usage, "cache_write_tokens", 0) or 0)
+    out["prompt_tokens_details"] = {"cached_tokens": cache_read}
+    if cache_write:
+        out["cache_write_tokens"] = cache_write
+    return out
 
 
 def _normalize_chunk_usage(raw_usage: Any, runtime: dict) -> Any:
@@ -362,7 +375,7 @@ def _run_cascade_verifier(
     try:
         response = call_llm(
             task="moa_verifier",
-            messages=verifier_msgs,
+            messages=_maybe_apply_moa_cache_control(verifier_msgs, verifier_runtime),
             temperature=0.0,
             max_tokens=2000,
             timeout=verifier_timeout,
@@ -497,9 +510,13 @@ def _run_cascade_solo_turn(
     """
     messages = common["messages"]
     agg_messages = [dict(m) for m in messages]
+    # Prompt-cache decoration (see agent/moa_loop._maybe_apply_moa_cache_control):
+    # the solo lane re-sends the whole growing session every tool iteration, so
+    # on cache-honoring routes this is the single biggest cache win in the
+    # proxy. Applied to the outgoing copy only — traces keep the plain shape.
     response = call_llm(
         task="moa_aggregator",
-        messages=agg_messages,
+        messages=_maybe_apply_moa_cache_control(agg_messages, _slot_runtime(common["aggregator"])),
         temperature=common["aggregator_temperature"],
         max_tokens=common["max_tokens"],
         tools=common["tools"],
@@ -653,7 +670,9 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
                 )
                 judge_response = call_llm(
                     task="moa_router",
-                    messages=_judge_messages(messages, text_a, text_b),
+                    messages=_maybe_apply_moa_cache_control(
+                        _judge_messages(messages, text_a, text_b), judge_runtime
+                    ),
                     temperature=0.0,
                     max_tokens=8,
                     timeout=judge_timeout,
@@ -941,7 +960,9 @@ def _cascade_after_tier1(
         _attach_reference_guidance(escalate_messages, escalate_guidance)
     escalate_response = call_llm(
         task="moa_aggregator",
-        messages=escalate_messages,
+        messages=_maybe_apply_moa_cache_control(
+            escalate_messages, _slot_runtime(escalate_aggregator)
+        ),
         temperature=escalate_preset.get("aggregator_temperature", 0.4),
         max_tokens=common["max_tokens"],
         timeout=common["slot_timeout"],
@@ -1030,7 +1051,9 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
         )
     agg_response = call_llm(
         task="moa_aggregator",
-        messages=agg_messages,
+        messages=_maybe_apply_moa_cache_control(
+            agg_messages, _slot_runtime(common["aggregator"])
+        ),
         temperature=common["aggregator_temperature"],
         max_tokens=common["max_tokens"],
         tools=None,
@@ -1380,6 +1403,7 @@ def _reference_stream_worker(
     label = _slot_label(slot)
     runtime = _slot_runtime(slot)
     messages = [{"role": "system", "content": _REFERENCE_SYSTEM_PROMPT}, *ref_messages]
+    messages = _maybe_apply_moa_cache_control(messages, runtime)
     parts: list[str] = []
     usage = CanonicalUsage()
     try:
@@ -1465,7 +1489,7 @@ async def _stream_cascade_tier1_live(
         try:
             stream = call_llm(
                 task="moa_aggregator",
-                messages=agg_messages,
+                messages=_maybe_apply_moa_cache_control(agg_messages, runtime),
                 temperature=common["aggregator_temperature"],
                 max_tokens=common["max_tokens"],
                 tools=None,
@@ -2015,7 +2039,9 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 # precise code edits.
                 draft_response = call_llm(
                     task="moa_aggregator",
-                    messages=[dict(m) for m in messages],
+                    messages=_maybe_apply_moa_cache_control(
+                        [dict(m) for m in messages], _slot_runtime(common["aggregator"])
+                    ),
                     temperature=common["aggregator_temperature"],
                     max_tokens=common["max_tokens"],
                     extra_body=common["extra_body"] or None,
@@ -2077,7 +2103,9 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 _attach_reference_guidance(agg_messages, guidance)
             response = call_llm(
                 task="moa_aggregator",
-                messages=agg_messages,
+                messages=_maybe_apply_moa_cache_control(
+                    agg_messages, _slot_runtime(common["aggregator"])
+                ),
                 temperature=common["aggregator_temperature"],
                 max_tokens=common["max_tokens"],
                 tools=common["tools"],
@@ -2403,7 +2431,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
                 try:
                     stream = call_llm(
                         task="moa_aggregator",
-                        messages=agg_messages,
+                        messages=_maybe_apply_moa_cache_control(agg_messages, runtime),
                         temperature=common["aggregator_temperature"],
                         max_tokens=common["max_tokens"],
                         tools=common["tools"],

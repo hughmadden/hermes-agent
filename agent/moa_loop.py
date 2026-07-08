@@ -321,9 +321,13 @@ def _run_rlm_loop(
     last_reply = ""
 
     for round_idx in range(1, rounds + 1):
+        # Per-round cache decoration: within one voter call the loop is
+        # strictly append-only (charter + task + turn/OUTPUT pairs), so on
+        # cache-honoring routes round N+1 replays round N's prefix; across
+        # client turns the charter + conversation prefix is stable too.
         response = call_llm(
             task="moa_reference",
-            messages=messages,
+            messages=_maybe_apply_moa_cache_control(messages, runtime),
             temperature=temperature,
             max_tokens=per_turn_cap,
             timeout=timeout,
@@ -361,7 +365,7 @@ def _run_rlm_loop(
             # artifact — the transcript is not silently truncated).
             response = call_llm(
                 task="moa_reference",
-                messages=messages,
+                messages=_maybe_apply_moa_cache_control(messages, runtime),
                 temperature=temperature,
                 max_tokens=per_turn_cap,
                 timeout=timeout,
