@@ -515,3 +515,32 @@ def test_thread_safety_smoke_20_threads_x_50_resolves():
 
     assert not errors
     assert len(reg._sessions) <= 64
+
+
+def test_sanitize_acting_messages_strips_response_only_fields():
+    """The acting-lane sanitizer removes reasoning_content /
+    provider_specific_fields / reasoning / refusal (response-only annotations
+    a strict endpoint 400s on replay) while PRESERVING tool_calls, tool ids,
+    content, role — the acting lane is mid an agentic loop. Clean messages
+    pass through as the same object (zero-copy)."""
+    from hermes_cli.proxy.moa_session import sanitize_acting_messages
+
+    dirty = {
+        "role": "assistant",
+        "content": "ok",
+        "reasoning_content": "internal chain of thought",
+        "provider_specific_fields": {"x": 1},
+        "tool_calls": [{"id": "c1", "type": "function", "function": {"name": "f", "arguments": "{}"}}],
+    }
+    clean = {"role": "user", "content": "hi"}
+    out = sanitize_acting_messages([dirty, clean])
+    assert "reasoning_content" not in out[0]
+    assert "provider_specific_fields" not in out[0]
+    assert out[0]["tool_calls"] == dirty["tool_calls"]  # preserved
+    assert out[0]["content"] == "ok"
+    assert out[1] is clean  # untouched, same object
+    # signature/thinking are NOT stripped (native Anthropic tool continuation
+    # needs them) — only the four response-only annotations go.
+    signed = {"role": "assistant", "content": "x", "signature": "sig", "thinking": "t"}
+    out2 = sanitize_acting_messages([signed])
+    assert out2[0]["signature"] == "sig" and out2[0]["thinking"] == "t"

@@ -56,6 +56,7 @@ from typing import Any
 _OPAQUE_FIELDS = (
     "reasoning",
     "reasoning_content",
+    "provider_specific_fields",
     "thinking",
     "signature",
     "cache_control",
@@ -63,6 +64,44 @@ _OPAQUE_FIELDS = (
     "audio",
     "function_call",
 )
+
+# The subset of opaque fields that are pure RESPONSE annotations — a provider
+# emits them on its OWN output but strict endpoints 400 when they are replayed
+# as INPUT (measured 2026-07-08, SWE-bench via moa:auto: kimi-k2.6 emits
+# `reasoning_content` + `provider_specific_fields`, mini-swe-agent echoes them
+# in history, and the acting call is rejected with `wrong_api_format`). Unlike
+# the full voter projection, the ACTING lane must keep real `tool_calls`,
+# `content`, and tool-call ids intact — it is mid an agentic loop — so it gets
+# only this narrow strip, never the flatten-to-text projection. NOT included:
+# `signature`/`thinking`/`cache_control`, which some acting routes (native
+# Anthropic tool continuation) genuinely require verbatim; those are left to
+# the provider's own request builder.
+_ACTING_STRIP_FIELDS = (
+    "reasoning",
+    "reasoning_content",
+    "provider_specific_fields",
+    "refusal",
+)
+
+
+def sanitize_acting_messages(messages: list[dict]) -> list[dict]:
+    """Strip response-only annotation fields (`_ACTING_STRIP_FIELDS`) an
+    upstream reasoning model emitted but a strict endpoint rejects on input,
+    WITHOUT the voter projection's flatten-to-text transform — the acting
+    lane is mid an agentic tool loop and must keep real `tool_calls`/tool ids.
+
+    Per-message and identity-preserving: a message carrying none of the
+    stripped fields is returned unchanged (same object), so a clean history
+    pays nothing and the acting lane's prefix cache is undisturbed.
+    """
+    out: list[dict] = []
+    for msg in messages:
+        if any(f in msg for f in _ACTING_STRIP_FIELDS):
+            out.append({k: v for k, v in msg.items() if k not in _ACTING_STRIP_FIELDS})
+        else:
+            out.append(msg)
+    return out
+
 
 _PLAIN_ROLES = ("system", "user", "assistant")
 
@@ -431,4 +470,4 @@ class SessionRegistry:
                 record["advisor_note"] = note
 
 
-__all__ = ["project_history_for_voters", "window_history", "SessionRegistry"]
+__all__ = ["project_history_for_voters", "sanitize_acting_messages", "window_history", "SessionRegistry"]

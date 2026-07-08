@@ -80,6 +80,7 @@ from hermes_cli.proxy import moa_cascade
 from hermes_cli.proxy.moa_session import (
     SessionRegistry,
     project_history_for_voters,
+    sanitize_acting_messages,
     window_history,
 )
 from hermes_cli.proxy.moa_cascade import (
@@ -2337,7 +2338,12 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             "reference_temperature": reference_temperature,
             "aggregator_temperature": aggregator_temperature,
             "reference_max_tokens": reference_max_tokens,
-            "messages": messages,
+            # Strip response-only opaque fields (reasoning_content,
+            # provider_specific_fields, ...) a prior turn's reasoning model
+            # emitted but strict endpoints reject on replay — measured on
+            # SWE-bench via moa:auto (kimi). Acting lanes keep real
+            # tool_calls/ids; only these annotation fields go.
+            "messages": sanitize_acting_messages(messages),
             "tools": body.get("tools"),
             "max_tokens": body.get("max_tokens") or body.get("max_completion_tokens"),
             "extra_body": extra_body,
