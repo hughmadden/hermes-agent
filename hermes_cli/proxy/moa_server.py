@@ -77,6 +77,11 @@ from agent.moa_loop import (
     aggregation_skill_block,
 )
 from hermes_cli.proxy import moa_cascade
+from hermes_cli.proxy.moa_session import (
+    SessionRegistry,
+    project_history_for_voters,
+    window_history,
+)
 from hermes_cli.proxy.moa_cascade import (
     agrees,
     consensus,
@@ -87,6 +92,12 @@ from hermes_cli.proxy.moa_cascade import (
 )
 
 logger = logging.getLogger(__name__)
+
+# Session bookkeeping for real-world serving: stable per-session cache keys
+# for OpenAI-family acting lanes + last-served-mode observability. TTL+LRU,
+# in-memory only — the proxy stays restart-safe (a lost registry only means
+# a fresh cache key / turn counter, never a wrong answer).
+_session_registry = SessionRegistry()
 
 DEFAULT_MOA_HOST = "127.0.0.1"
 DEFAULT_MOA_PORT = 8646  # existing credential proxy default is 8645
@@ -520,7 +531,7 @@ def _run_cascade_solo_turn(
         temperature=common["aggregator_temperature"],
         max_tokens=common["max_tokens"],
         tools=common["tools"],
-        extra_body=common["extra_body"] or None,
+        extra_body=_acting_extra_body(common, common["aggregator"]),
         timeout=common["slot_timeout"],
         **_slot_runtime(common["aggregator"]),
     )
@@ -963,6 +974,7 @@ def _cascade_after_tier1(
         messages=_maybe_apply_moa_cache_control(
             escalate_messages, _slot_runtime(escalate_aggregator)
         ),
+        extra_body=_acting_extra_body(common, escalate_aggregator),
         temperature=escalate_preset.get("aggregator_temperature", 0.4),
         max_tokens=common["max_tokens"],
         timeout=common["slot_timeout"],
@@ -1075,6 +1087,42 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
     )
 
 
+def _acting_extra_body(common: dict, slot: dict) -> dict | None:
+    """extra_body for an ACTING call to ``slot``: the client's passthrough
+    fields plus, on OpenAI-family slots, a session-stable
+    ``prompt_cache_key`` (upstream routes requests sharing a key to the
+    same cache shard — without it, a multi-lane proxy session load-balances
+    away from its own cached prefix). Identity for every other provider.
+    Never overrides a client-supplied prompt_cache_key.
+    """
+    extra = dict(common.get("extra_body") or {})
+    sess = common.get("session_info")
+    provider = str(slot.get("provider") or "").strip().lower()
+    if sess and provider in {"openai", "openai-codex"} and "prompt_cache_key" not in extra:
+        extra["prompt_cache_key"] = sess["cache_key"]
+    return extra or None
+
+
+def _cascade_voter_view(common: dict, messages: list) -> list:
+    """The voter-facing view of the client conversation (cascade fan-outs
+    only): provider-agnostic plain-text projection + a bounded recency
+    window. The ACTING lanes (solo, tier-1 aggregator, tier-2 escalate)
+    always keep the full verbatim transcript — see
+    hermes_cli/proxy/moa_session.py for both contracts and the measured
+    motivations (cross-provider 400s on replayed tool/opaque content; the
+    Cerebras TPM quota tripped by full-context fan-out after one 10k turn).
+
+    Window stats (when anything was trimmed) are recorded on
+    ``common["voter_view"]`` so usage.moa can surface what the voters saw.
+    """
+    view = project_history_for_voters([dict(m) for m in messages])
+    budget = (common.get("cascade") or {}).get("voter_context_tokens")
+    view, stats = window_history(view, budget)
+    if stats:
+        common["voter_view"] = stats
+    return view
+
+
 def _run_cascade_turn(common: dict) -> dict:
     """Lazy MoA turn: tier-0 wafer-voter consensus, tier-1 aggregator, tier-2
     escalation. See docs/plans/moa-cascade-spec.md.
@@ -1090,12 +1138,12 @@ def _run_cascade_turn(common: dict) -> dict:
     messages = common["messages"]
     reference_models = common["reference_models"]
 
-    # Tier 0: every voter answers the client's ACTUAL request directly and
-    # verbatim — no advisory system prompt, no reference-view trimming — in
-    # parallel.
+    # Tier 0: every voter answers the client's ACTUAL request directly (no
+    # advisory system prompt) in parallel, on the projected + windowed voter
+    # view (`_cascade_voter_view`) — acting lanes keep the full transcript.
     voters = _run_references_parallel(
         reference_models,
-        [dict(m) for m in messages],
+        _cascade_voter_view(common, messages),
         temperature=common["reference_temperature"],
         max_tokens=common["reference_max_tokens"] or common["max_tokens"],
         timeout=common["slot_timeout"],
@@ -1121,7 +1169,7 @@ def _run_cascade_tool_turn_gate(common: dict) -> dict:
     """
     messages = common["messages"]
     reference_models = common["reference_models"]
-    voter_messages = [dict(m) for m in messages] + [
+    voter_messages = _cascade_voter_view(common, messages) + [
         {
             "role": "system",
             "content": _cascade_tool_awareness_line(_cascade_tool_names(common["tools"])),
@@ -1246,6 +1294,32 @@ def _run_cascade_voters_with_progress(
     return [r for r in results if r is not None]
 
 
+def _attach_session_usage(usage: dict, common: dict, cascade: Any) -> None:
+    """Fold session continuity + voter-window observability into usage.moa
+    and remember the mode that served this turn (drives nothing yet; it is
+    the session-level answer to "did this conversation get pinned to solo,
+    or did it revert to cascade?" without trawling logs)."""
+    moa = usage.get("moa")
+    if not isinstance(moa, dict):
+        return
+    if common.get("voter_view"):
+        moa["voter_view"] = common["voter_view"]
+    sess = common.get("session_info")
+    if not sess:
+        return
+    mode = None
+    if isinstance(cascade, dict):
+        tier = cascade.get("tier")
+        mode = cascade.get("mode") or (f"tier{tier}" if tier is not None else None)
+    moa["session"] = {
+        "key": sess["key"],
+        "turns": sess["turns"],
+        "last_mode": sess["last_mode"],
+    }
+    if mode:
+        _session_registry.note_mode(sess["key"], str(mode))
+
+
 def _cascade_stream_usage(turn: dict, common: dict) -> dict:
     """Final-chunk ``usage`` for the streaming cascade turn (addendum v1.4
     §B): the same shape/derivation as the non-streaming path's usage
@@ -1263,6 +1337,7 @@ def _cascade_stream_usage(turn: dict, common: dict) -> dict:
     usage = _usage_to_openai(agg_usage + ref_usage)
     usage["moa"] = _usage_breakdown(reference_outputs, agg_usage, False, common.get("routing"))
     usage["moa"]["cascade"] = turn["cascade"]
+    _attach_session_usage(usage, common, turn["cascade"])
     return usage
 
 
@@ -1602,7 +1677,7 @@ async def _stream_cascade_turn(
         try:
             return _run_cascade_voters_with_progress(
                 reference_models,
-                [dict(m) for m in messages],
+                _cascade_voter_view(common, messages),
                 temperature=common["reference_temperature"],
                 max_tokens=common["reference_max_tokens"] or common["max_tokens"],
                 timeout=common["slot_timeout"],
@@ -1732,7 +1807,7 @@ async def _stream_cascade_tool_turn_gate(
     await send_reasoning(f"[cascade: {len(reference_models)} voters answering…]\n")
 
     tool_names = _cascade_tool_names(common["tools"])
-    voter_messages = [dict(m) for m in messages] + [
+    voter_messages = _cascade_voter_view(common, messages) + [
         {"role": "system", "content": _cascade_tool_awareness_line(tool_names)}
     ]
 
@@ -1966,8 +2041,11 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
             except KeyError:
                 cascade_escalate_preset = None
 
+        session_info = _session_registry.resolve(session_id, messages)
+
         common = {
             "routing": routing,
+            "session_info": session_info,
             "slot_timeout": slot_timeout if slot_timeout > 0 else None,
             "request_id": request_id,
             "created": created,
@@ -2157,6 +2235,7 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         )
         if turn.get("cascade") is not None:
             usage["moa"]["cascade"] = turn["cascade"]
+        _attach_session_usage(usage, common, turn.get("cascade"))
 
         _save_proxy_trace(
             common,

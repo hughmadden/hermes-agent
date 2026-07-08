@@ -2785,3 +2785,83 @@ async def test_tool_solo_applies_cache_decoration(
         assert seen["runtime"].get("provider") == "openrouter"
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_cascade_voters_get_windowed_view_acting_full(moa_home, fake_llm):
+    """Real-session shape: a history far over cascade.voter_context_tokens
+    (default 8000). Voters must receive the projected + windowed view (leading
+    system kept, ONE window marker, recent tail only), while usage.moa
+    reports voter_view stats and session continuity. Voter disagreement then
+    sends the turn to tier-1 — whose aggregator gets the FULL transcript."""
+    answers = iter(["ANSWER: 1", "ANSWER: 2"])
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response(next(answers))
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response("tier1 acted")
+
+    filler = "x" * 2000
+    history = [{"role": "system", "content": "sys"}]
+    for i in range(40):  # ~80k chars ≈ 20k tokens >> 8000-token budget
+        history.append({"role": "user", "content": f"[{i}] {filler}"})
+        history.append({"role": "assistant", "content": f"[{i} reply] {filler}"})
+    history.append({"role": "user", "content": "what is 2+2?"})
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:casc", "messages": history},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+
+        ref_calls = [c for c in fake_llm.calls if c["task"] == "moa_reference"]
+        assert ref_calls
+        for c in ref_calls:
+            msgs = c["messages"]
+            assert msgs[0] == {"role": "system", "content": "sys"}
+            assert "voter context window" in msgs[1]["content"]
+            # the windowed view is a fraction of the full history
+            assert len(msgs) < len(history)
+            assert msgs[-1]["content"] == "what is 2+2?"
+
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        # acting lane sees every original message (plus appended guidance)
+        assert len(agg_call["messages"]) >= len(history)
+
+        moa = body["usage"]["moa"]
+        assert moa["voter_view"]["trimmed"] > 0
+        assert moa["session"]["turns"] == 1
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_cascade_session_tracks_turns_and_mode(moa_home, fake_llm):
+    """Two turns of one conversation (same first user message) land on one
+    session record: turns increments and last_mode carries the PREVIOUS
+    turn's served mode."""
+    fake_llm.handlers["moa_reference"] = lambda kwargs: _response("ANSWER: 4")
+    client = await _client(create_moa_app())
+    try:
+        history = [{"role": "user", "content": "what is 2+2?"}]
+        r1 = await client.post(
+            "/v1/chat/completions", json={"model": "moa:casc", "messages": history}
+        )
+        b1 = await r1.json()
+        s1 = b1["usage"]["moa"]["session"]
+        assert s1["turns"] >= 1 and s1["last_mode"] is None
+
+        history = history + [
+            {"role": "assistant", "content": "4"},
+            {"role": "user", "content": "and 3+3?"},
+        ]
+        fake_llm.handlers["moa_reference"] = lambda kwargs: _response("ANSWER: 6")
+        r2 = await client.post(
+            "/v1/chat/completions", json={"model": "moa:casc", "messages": history}
+        )
+        b2 = await r2.json()
+        s2 = b2["usage"]["moa"]["session"]
+        assert s2["turns"] == s1["turns"] + 1
+        assert s2["last_mode"] == "tier0"
+    finally:
+        await client.close()

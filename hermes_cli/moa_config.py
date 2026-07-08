@@ -244,6 +244,19 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
             "verifier": verifier,
             "verify_when": verify_when,
             "tool_turns": tool_turns,
+            # Recency window (~tokens) each cascade VOTER sees — the acting
+            # lanes always keep the full transcript. Bounds the fan-out
+            # token bill on real sessions (measured: full-context fan-out
+            # tripped the Cerebras TPM quota after one 10k-context turn;
+            # provider prefix caches don't help because quotas count cached
+            # tokens). Default 8000; set 0/negative for the old unbounded
+            # behavior. Short requests (benchmarks) are unaffected — a
+            # history inside the budget passes through untouched.
+            "voter_context_tokens": (
+                _coerce_int(cascade_raw.get("voter_context_tokens"), 8000)
+                if _coerce_int(cascade_raw.get("voter_context_tokens"), 8000) > 0
+                else None
+            ),
             # When true, the disagreement arbiter (tier-1 aggregator and the
             # tier-2 escalate slot) is called CLEAN — client messages only,
             # no voter context. Measured motivation (2026-07-04): voter
