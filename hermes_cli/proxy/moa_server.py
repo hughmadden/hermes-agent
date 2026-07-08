@@ -415,6 +415,126 @@ def _run_cascade_verifier(
     return verdict, entry
 
 
+# ---------------------------------------------------------------------------
+# Advisor lane (addendum v1.6 §B, docs/plans/moa-cascade-spec.md)
+# ---------------------------------------------------------------------------
+
+# A concern-gated reviewer, not a participant: the anchoring law (measured —
+# always-on advisory context hurts precise tool/code work, the same
+# contamination `clean_arbiter` above exists to avoid) forbids an always-on
+# advisory injection, so the charter demands silence be the default output.
+# Only a non-"OK" reply is ever injected, and only on the NEXT turn (see
+# `_apply_advisor_note`) — this call itself never touches the turn that is
+# already in flight.
+_ADVISOR_CHARTER = (
+    "You are an advisor reviewing a live agent conversation — you are not "
+    "a participant in it and nothing you say is shown unless it matters. "
+    "Read the conversation and reply with EXACTLY ONE line: \"OK\" if "
+    "nothing needs saying, \"CONCERN: <one line>\" for a risk or mistake "
+    "worth flagging, or \"BLOCKER: <one line>\" ONLY when the acting agent "
+    "is clearly on a wrong or destructive path. No other output — no "
+    "preamble, no explanation, nothing after the one line."
+)
+
+
+def _parse_advisor_reply(text: str) -> dict | None:
+    """Parse one advisor reply into a note dict, or ``None``.
+
+    Per `_ADVISOR_CHARTER` the advisor's entire output is ONE line: "OK"
+    (nothing worth injecting) or "CONCERN: <one line>" / "BLOCKER: <one
+    line>". Anything else — empty, wrong format, an essay a model wrote
+    despite the charter — also degrades to ``None``. Factored out as a pure
+    function so the parse table is unit-testable without a fake LLM; the
+    advisor is fail-open by construction (see `_run_cascade_advisor`), so a
+    malformed reply is silently swallowed here, never raised. Note text is
+    capped at 300 chars — this is a one-line aside, not a report.
+    """
+    stripped = (text or "").strip()
+    if stripped.startswith("OK"):
+        return None
+    for prefix, kind in (("CONCERN:", "concern"), ("BLOCKER:", "blocker")):
+        if stripped.startswith(prefix):
+            note_text = stripped[len(prefix):].strip()[:300]
+            return {"kind": kind, "text": note_text} if note_text else None
+    return None
+
+
+def _run_cascade_advisor(common: dict) -> None:
+    """Addendum v1.6 §B: the async advisor worker.
+
+    Runs AFTER a cascade turn has already returned to the client (see the
+    fire-and-forget ``threading.Thread`` spawn at the end of
+    `_handle_non_streaming` inside `create_moa_app`), on a wafer-class slot
+    (``cascade.advisor``), over the SAME voter-shaped projected+windowed
+    view voters get — ``project_history_for_voters`` + ``window_history``,
+    built locally here (not via `_cascade_voter_view`) so this call never
+    mutates ``common["voter_view"]``, which belongs to the turn that
+    already responded. Its verdict lands on the SESSION, not this turn:
+    `SessionRegistry.note_advisor` stores it, and `_apply_advisor_note`
+    injects it (once) into whichever acting call runs next.
+
+    Zero added turn latency by construction — it starts after the response
+    is already on the wire — and fail-open by construction: the entire
+    body is wrapped in one try/except so a broken advisor slot, a
+    malformed reply, or a network blip can never turn an already-succeeded
+    turn into a failure; at worst the session simply gets no note this
+    round.
+    """
+    try:
+        cascade_cfg = common.get("cascade") or {}
+        advisor_slot = cascade_cfg.get("advisor")
+        sess = common.get("session_info")
+        if not advisor_slot or not sess:
+            return
+        view = project_history_for_voters([dict(m) for m in common["messages"]])
+        view, _stats = window_history(view, cascade_cfg.get("voter_context_tokens"))
+        advisor_messages = [{"role": "system", "content": _ADVISOR_CHARTER}, *view]
+        slot_timeout = common.get("slot_timeout")
+        response = call_llm(
+            task="moa_reference",
+            messages=advisor_messages,
+            max_tokens=200,
+            timeout=min(30.0, slot_timeout or 30.0),
+            **_slot_runtime(advisor_slot),
+        )
+        reply = _extract_message_fields(response).get("content") or ""
+        note = _parse_advisor_reply(reply)
+        _session_registry.note_advisor(sess["key"], note)
+    except Exception as exc:
+        logger.debug("MoA cascade advisor failed: %s", exc)
+
+
+def _apply_advisor_note(common: dict, messages: list[dict]) -> list[dict]:
+    """Addendum v1.6 §B: inject the session's pending advisor note (if any)
+    as ONE bracketed system message at the TAIL of ``messages`` — appended
+    BEFORE any prompt-cache decoration, which is applied to the outgoing
+    copy inline at each call site, same as everywhere else in this module
+    — then clear it from the registry so it fires exactly once. A no-op
+    (returns ``messages`` unchanged, same list object) when there is no
+    session or no pending note, which is the overwhelmingly common case:
+    the advisor is concern-gated, so most turns leave no note behind at
+    all.
+
+    Called from the two acting call sites the spec designates for
+    injection — `_run_cascade_solo_turn` and `_run_cascade_tier1_blocking`
+    — never from the voter fan-out itself, which by design gets no
+    advisory context (see docs/plans/moa-cascade-spec.md's tier-0 voter
+    contract). Records the injected note on ``common["advisor_injected"]``
+    so `_attach_session_usage` can surface it under
+    ``usage.moa.session.advisor_note``.
+    """
+    sess = common.get("session_info")
+    if not sess:
+        return messages
+    note = sess.get("advisor_note")
+    if not note:
+        return messages
+    _session_registry.note_advisor(sess["key"], None)
+    common["advisor_injected"] = note
+    line = f"[advisor note ({note['kind']}): {note['text']}]"
+    return [*messages, {"role": "system", "content": line}]
+
+
 def _cascade_last_non_system_role(messages: list) -> str | None:
     """Role of the last non-system message in a raw client message list —
     addendum v1.5's mid-loop signal. "tool" or "assistant" means the client
@@ -506,6 +626,13 @@ def _run_cascade_solo_turn(
     ``{"tier": None, "mode": mode}`` (plus any ``cascade_extra`` keys) so a
     client/trace can tell this apart from a fanout call.
 
+    One exception to "no advisory guidance, ever" (addendum v1.6 §B): a
+    pending advisor note gets appended as a single tail system line via
+    `_apply_advisor_note`. That is not voter guidance — it is a one-line,
+    concern-gated aside from an async reviewer, off by default, and the
+    entire reason it survives the anchoring-law restriction that keeps
+    voter advisory context off this path.
+
     ``reference_outputs`` (addendum v1.5): reference entries to fold into
     this turn's billing/trace even though the acting call itself runs
     solo — used by the VOTER GATE, where the voters DID run (to decide
@@ -521,6 +648,11 @@ def _run_cascade_solo_turn(
     """
     messages = common["messages"]
     agg_messages = [dict(m) for m in messages]
+    # Addendum v1.6 §B: inject any advisor note left by a prior turn's async
+    # review (see `_apply_advisor_note`) as the tail message, before cache
+    # decoration — a no-op on the (overwhelmingly common) turn with nothing
+    # pending.
+    agg_messages = _apply_advisor_note(common, agg_messages)
     # Prompt-cache decoration (see agent/moa_loop._maybe_apply_moa_cache_control):
     # the solo lane re-sends the whole growing session every tool iteration, so
     # on cache-honoring routes this is the single biggest cache win in the
@@ -593,6 +725,23 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
     min_consensus = _effective_min_consensus(cascade_cfg, voters)
     reference_models = common["reference_models"]
 
+    # Addendum v1.6 §B (advisor lane, "escalate" mode): a pending BLOCKER
+    # note forces this turn past every tier-0 shortcut into tier 1, even
+    # when the voters DO agree — the advisor flagged the PRIOR turn as
+    # headed somewhere wrong, so this turn earns the full aggregator's
+    # scrutiny instead of the cheap exact/judge shortcut. Read-only here:
+    # the note itself is consumed (cleared + injected into the tier-1
+    # aggregator's own messages) by `_apply_advisor_note` inside
+    # `_run_cascade_tier1_blocking`, not here. "notes" mode (default) never
+    # sets this — it only ever injects prose, never changes gating.
+    sess = common.get("session_info")
+    pending_note = sess.get("advisor_note") if sess else None
+    force_tier1_advisor = (
+        cascade_cfg.get("advisor_mode") == "escalate"
+        and pending_note is not None
+        and pending_note.get("kind") == "blocker"
+    )
+
     candidates = [extract_candidate(text) for _label, text, _acct in voters]
     votes = _cascade_vote_counts(candidates)
     cons = consensus(candidates, min_consensus)
@@ -645,7 +794,7 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
                 if verdict == "wrong":
                     struck_consensus = cons
 
-        if struck_consensus is None:
+        if struck_consensus is None and not force_tier1_advisor:
             cascade_result = {
                 "tier": 0,
                 "consensus": cons,
@@ -669,11 +818,14 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
                     "winner_text": winner_text,
                 }
             }
-        # Verdict "wrong": the consensus answer is struck — fall through to
-        # the same no-consensus path (judge gate, then tier 1) as if the
-        # voters had never agreed at all. `verify_extra` (the verifier LLM's
-        # billing entry) and `struck_consensus` carry forward into whichever
-        # tier ultimately returns.
+        # Verdict "wrong" (the consensus answer is struck), OR (addendum
+        # v1.6 §B) an advisor BLOCKER forcing tier 1 despite consensus:
+        # either way falls through to the same no-consensus path (judge
+        # gate, then tier 1) as if the voters had never agreed at all.
+        # `verify_extra` (the verifier LLM's billing entry) and
+        # `struck_consensus` carry forward into whichever tier ultimately
+        # returns; `force_tier1_advisor`/`cons` do too, via the tier-1
+        # bundle's `advisor_forced_tier1`/`tier0_consensus` fields below.
 
     # Addendum v1.1: judge gate for freeform traffic. Exact consensus just
     # missed (no comparable short candidates agreed) — with gate == "judge",
@@ -730,7 +882,8 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
                         temperature=0.0,
                     ),
                 )
-                if judge_reply.strip().upper().startswith("CONSISTENT"):
+                judge_consistent = judge_reply.strip().upper().startswith("CONSISTENT")
+                if judge_consistent and not force_tier1_advisor:
                     return {
                         "result": {
                             "reference_outputs": voters + [judge_entry],
@@ -750,7 +903,14 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
                             "winner_text": text_a,
                         }
                     }
-                gate_used = "judge-different"
+                if judge_consistent:
+                    # Addendum v1.6 §B: an advisor BLOCKER forces tier 1 even
+                    # though the judge found the voters consistent — tagged
+                    # distinctly from "judge-different" so `judge_discord`
+                    # (a REAL judge disagreement) stays accurate below.
+                    gate_used = "judge-consistent-forced"
+                else:
+                    gate_used = "judge-different"
 
     # Any judge call that actually ran is billed regardless of its verdict
     # (addendum v1.1: "fold ... ONLY when the judge ran"), folded into
@@ -809,6 +969,12 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
             "verify_surface": verify_surface,
             "judge_discord": judge_discord,
             "clean_arbiter": clean_arbiter,
+            # Addendum v1.6 §B: whether an advisor BLOCKER note forced this
+            # turn into tier 1 despite tier-0 consensus, and what that
+            # consensus was (None when the voters never agreed at all) — so
+            # `_cascade_after_tier1` can surface both for observability.
+            "advisor_forced_tier1": force_tier1_advisor,
+            "tier0_consensus": cons if force_tier1_advisor else None,
         }
     }
 
@@ -957,6 +1123,9 @@ def _cascade_after_tier1(
         if verify_mode == "python":
             cascade_result["verify"] = verify_surface
             cascade_result["struck_consensus"] = struck_consensus
+        if tier1_bundle.get("advisor_forced_tier1"):
+            cascade_result["advisor_escalated"] = True
+            cascade_result["tier0_consensus"] = tier1_bundle.get("tier0_consensus")
         return {
             "reference_outputs": voters + judge_extra + verify_extra,
             "refs_from_cache": False,
@@ -1017,6 +1186,9 @@ def _cascade_after_tier1(
     if verify_mode == "python":
         cascade_result["verify"] = verify_surface
         cascade_result["struck_consensus"] = struck_consensus
+    if tier1_bundle.get("advisor_forced_tier1"):
+        cascade_result["advisor_escalated"] = True
+        cascade_result["tier0_consensus"] = tier1_bundle.get("tier0_consensus")
     return {
         "reference_outputs": reference_outputs,
         "refs_from_cache": False,
@@ -1036,8 +1208,14 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
     turn (addendum v1.4 §B step 4) whenever an escalate preset is
     configured — that answer must be inspected before the client sees it, so
     it always runs non-streaming even for a streaming request.
+
+    Addendum v1.6 §B: this is one of the two acting call sites that inject a
+    pending advisor note (`_apply_advisor_note`) — applied to whichever
+    message list is ACTUALLY sent for the branch that runs (the RLM branch
+    below sends a fresh clean-arbiter view, not `tier1_bundle["agg_messages"]`,
+    so the note goes on that view instead). Only one branch ever runs per
+    call, so the note is consumed exactly once regardless of which fires.
     """
-    agg_messages = tier1_bundle["agg_messages"]
     aggregator = common["aggregator"]
     agg_runtime = _slot_runtime(aggregator)
     cascade_cfg = common.get("cascade") or {}
@@ -1049,9 +1227,12 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
         # call `_run_reference(direct=True)` already implements.
         from agent.moa_loop import _run_reference
 
+        rlm_messages = _apply_advisor_note(
+            common, [dict(m) for m in common["messages"]]
+        )
         _label, rlm_text, rlm_acct = _run_reference(
             aggregator,
-            [dict(m) for m in common["messages"]],
+            rlm_messages,
             temperature=common["aggregator_temperature"],
             max_tokens=common["max_tokens"],
             timeout=common["slot_timeout"],
@@ -1080,8 +1261,9 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
             agg_usage=agg_usage,
             agg_runtime=agg_runtime,
             agg_response=agg_response,
-            agg_messages=agg_messages,
+            agg_messages=tier1_bundle["agg_messages"],
         )
+    agg_messages = _apply_advisor_note(common, tier1_bundle["agg_messages"])
     agg_response = call_llm(
         task="moa_aggregator",
         messages=_maybe_apply_moa_cache_control(
@@ -1336,6 +1518,11 @@ def _attach_session_usage(usage: dict, common: dict, cascade: Any) -> None:
         "key": sess["key"],
         "turns": sess["turns"],
         "last_mode": sess["last_mode"],
+        # Addendum v1.6 §B: the advisor note INJECTED into this turn's
+        # acting call (`_apply_advisor_note`), or None on the (usual) turn
+        # with nothing pending — never the note a same-turn advisor run
+        # just wrote, since that only ever applies starting next turn.
+        "advisor_note": common.get("advisor_injected"),
     }
     if mode:
         _session_registry.note_mode(sess["key"], str(mode))
@@ -2257,6 +2444,23 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         if turn.get("cascade") is not None:
             usage["moa"]["cascade"] = turn["cascade"]
         _attach_session_usage(usage, common, turn.get("cascade"))
+
+        # Addendum v1.6 §B: fire-and-forget advisor review, spawned ONLY
+        # from this non-streaming cascade turn path — the response above is
+        # already fully assembled, so the thread adds zero turn latency.
+        # Non-cascade presets have no voter-shaped view for the advisor to
+        # read, and the streaming path is skipped for now (threading a
+        # background call through the SSE writer is unneeded complexity
+        # until the advisor lane earns its A/B — see the spec addendum).
+        cascade_cfg = common.get("cascade") or {}
+        if (
+            common["preset"].get("mode") == "cascade"
+            and cascade_cfg.get("advisor")
+            and common.get("session_info")
+        ):
+            threading.Thread(
+                target=_run_cascade_advisor, args=(common,), daemon=True
+            ).start()
 
         _save_proxy_trace(
             common,

@@ -234,6 +234,22 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         tool_turns = str(cascade_raw.get("tool_turns") or "detect").strip().lower()
         if tool_turns not in {"detect", "solo"}:
             tool_turns = "detect"
+        # Addendum v1.6 §B (advisor lane): an optional slot that reviews the
+        # session ASYNC, after a turn returns, over the same voter-shaped
+        # projected+windowed view (see moa_server._run_cascade_advisor). No
+        # slot configured (the default) means the advisor never runs — the
+        # anchoring law (measured: always-on advisory context hurts precise
+        # tool/code work) means this is opt-in, not a cascade default.
+        # "notes" (default) only ever injects a note as a tail system
+        # message on the NEXT turn; "escalate" additionally lets a BLOCKER
+        # note force that next turn past tier-0 straight to tier-1 (see
+        # moa_server._cascade_tier0_gate). Unknown/absent degrades to
+        # "notes", matching the tolerant-degrade style used throughout this
+        # function.
+        advisor = _clean_slot(cascade_raw.get("advisor"))
+        advisor_mode = str(cascade_raw.get("advisor_mode") or "notes").strip().lower()
+        if advisor_mode not in {"notes", "escalate"}:
+            advisor_mode = "notes"
         cascade = {
             "escalate_to": escalate_to,
             "max_context_tokens": max_context_tokens,
@@ -244,6 +260,8 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
             "verifier": verifier,
             "verify_when": verify_when,
             "tool_turns": tool_turns,
+            "advisor": advisor,
+            "advisor_mode": advisor_mode,
             # Serving robustness: when true, min_consensus degrades to the
             # LIVE voter count (floor 2) during partial fan-out outages
             # (quota 429s, provider blips) instead of counting dead voters

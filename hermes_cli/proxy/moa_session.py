@@ -394,6 +394,12 @@ class SessionRegistry:
                     "cache_key": self._cache_key_for(key),
                     "turns": 0,
                     "last_mode": None,
+                    # Addendum v1.6 §B (advisor lane): the latest pending
+                    # advisor note, or None. Set by `note_advisor` (the
+                    # async advisor worker, after a turn returns) and
+                    # consumed exactly once by the acting call that reads it
+                    # on the NEXT turn (see moa_server._apply_advisor_note).
+                    "advisor_note": None,
                     "created_at": now,
                     "last_seen": now,
                 }
@@ -411,6 +417,18 @@ class SessionRegistry:
             record = self._sessions.get(key)
             if record is not None:
                 record["last_mode"] = mode
+
+    def note_advisor(self, key: str, note: dict | None) -> None:
+        """Store the latest advisor note for session ``key`` (addendum v1.6
+        §B), or clear it with ``note=None``. ``note`` is a ``{"kind":
+        "concern"|"blocker", "text": str}`` dict — the shape
+        `moa_server._parse_advisor_reply` produces. Like `note_mode`, a race
+        with eviction is a harmless no-op: an evicted session has nothing
+        left to advise."""
+        with self._lock:
+            record = self._sessions.get(key)
+            if record is not None:
+                record["advisor_note"] = note
 
 
 __all__ = ["project_history_for_voters", "window_history", "SessionRegistry"]
