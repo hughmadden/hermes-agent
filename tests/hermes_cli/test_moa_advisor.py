@@ -683,3 +683,133 @@ async def test_notes_mode_never_forces_tier1_despite_blocker(
         assert not any(c["task"] == "moa_aggregator" for c in fake_llm.calls)
     finally:
         await client.close()
+
+
+# ---------------------------------------------------------------------------
+# Addendum v1.7 — OMP-faithful inline advisor mode
+# ---------------------------------------------------------------------------
+
+
+def _write_inline_advisor_cfg(home):
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: casc
+  presets:
+    casc:
+      mode: cascade
+      cascade:
+        advisor:
+          provider: openrouter
+          model: advisor-model
+        advisor_mode: inline
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+      aggregator:
+        provider: openrouter
+        model: mid-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_inline_advisor(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_inline_advisor_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+def test_inline_advisor_mode_normalizes():
+    from hermes_cli.moa_config import normalize_moa_config
+
+    cfg = normalize_moa_config(
+        {
+            "presets": {
+                "p": {
+                    "mode": "cascade",
+                    "reference_models": [
+                        {"provider": "openrouter", "model": "a"},
+                        {"provider": "openrouter", "model": "b"},
+                    ],
+                    "aggregator": {"provider": "openrouter", "model": "m"},
+                    "cascade": {
+                        "advisor": {"provider": "openrouter", "model": "adv"},
+                        "advisor_mode": "inline",
+                    },
+                }
+            }
+        }
+    )
+    assert cfg["presets"]["p"]["cascade"]["advisor_mode"] == "inline"
+
+
+@pytest.mark.asyncio
+async def test_inline_advisor_injects_same_turn_synchronously(
+    moa_home_inline_advisor, fake_llm
+):
+    """OMP-faithful: the advisor runs ON this turn (no thread, no prior turn)
+    and its note is injected into the acting call's messages the SAME turn.
+    No async spawn is needed, so this test does NOT use the inline_thread
+    fixture — if inline mode wrongly relied on the background worker, the
+    note would be absent here."""
+    # Voters disagree -> tier-1 aggregator acts (an acting call exists to
+    # inject into).
+    answers = iter(["ANSWER: 1", "ANSWER: 2"])
+    fake_llm.handlers["moa_reference"] = lambda kwargs: (
+        _response("advice: check the edge case")
+        if kwargs.get("model") == "advisor-model"
+        else _response(next(answers))
+    )
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response("acted")
+
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:casc", "messages": [{"role": "user", "content": "hi"}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        # advisor was called on THIS turn
+        advisor_calls = [c for c in fake_llm.calls if c.get("model") == "advisor-model"]
+        assert len(advisor_calls) == 1
+        # and its note reached the acting aggregator's messages this turn
+        agg_call = next(c for c in fake_llm.calls if c["task"] == "moa_aggregator")
+        sys_texts = " ".join(
+            str(m.get("content")) for m in agg_call["messages"] if m.get("role") == "system"
+        )
+        assert "advisor:" in sys_texts and "edge case" in sys_texts
+        assert body["usage"]["moa"]["session"]["advisor_note"]["kind"] == "inline"
+    finally:
+        await client.close()
+
+
+@pytest.mark.asyncio
+async def test_inline_advisor_failure_never_breaks_turn(moa_home_inline_advisor, fake_llm):
+    """A failing inline advisor degrades to a normal turn (fail-open),
+    injecting nothing rather than erroring."""
+    def ref_handler(kwargs):
+        if kwargs.get("model") == "advisor-model":
+            raise RuntimeError("advisor upstream down")
+        return _response("ANSWER: 5")
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    client = await _client(create_moa_app())
+    try:
+        resp = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:casc", "messages": [{"role": "user", "content": "2+3?"}]},
+        )
+        assert resp.status == 200
+        body = await resp.json()
+        # unanimous voters -> tier-0, turn succeeds regardless of advisor
+        assert "5" in (body["choices"][0]["message"]["content"] or "")
+    finally:
+        await client.close()

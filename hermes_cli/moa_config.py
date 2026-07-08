@@ -248,7 +248,7 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
         # function.
         advisor = _clean_slot(cascade_raw.get("advisor"))
         advisor_mode = str(cascade_raw.get("advisor_mode") or "notes").strip().lower()
-        if advisor_mode not in {"notes", "escalate"}:
+        if advisor_mode not in {"notes", "escalate", "inline"}:
             advisor_mode = "notes"
         cascade = {
             "escalate_to": escalate_to,

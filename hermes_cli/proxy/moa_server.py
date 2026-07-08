@@ -535,6 +535,78 @@ def _apply_advisor_note(common: dict, messages: list[dict]) -> list[dict]:
     return [*messages, {"role": "system", "content": line}]
 
 
+# OMP-faithful inline advisor (oh-my-pi's advisor role, replicated straight —
+# see docs/plans/moa-cascade-spec.md addendum v1.7). Unlike `_ADVISOR_CHARTER`
+# (our concern-gated variant, silence-by-default), this charter ALWAYS yields
+# a substantive one-line note — an observation, a concern, or an explicit
+# go-ahead — because OMP injects an advisory aside on EVERY turn, inline, on
+# the hot path. Faithfulness is the point: this is the arm we measure OUR
+# async/gated design against.
+_OMP_ADVISOR_CHARTER = (
+    "You are an advisor watching an agent work, turn by turn. Read the "
+    "conversation so far and reply with EXACTLY ONE short line of guidance "
+    "for the agent's next step: a concern, a risk it may be missing, a "
+    "correction, or — if it is on the right track — a brief go-ahead. Always "
+    "say something useful in one line. No preamble, no lists, one line only."
+)
+
+
+def _run_inline_advisor(common: dict, messages: list[dict]) -> list[dict]:
+    """OMP-faithful inline advisor (addendum v1.7): run the advisor
+    SYNCHRONOUSLY right now and inject its one-line note into THIS turn's
+    outgoing ``messages`` — the hot-path, same-turn, always-on shape oh-my-pi
+    uses, the deliberate opposite of `_run_cascade_advisor` (async, next-turn)
+    + `_apply_advisor_note` (concern-gated). Reached only when
+    ``cascade.advisor_mode == "inline"``.
+
+    Reads the same projected+windowed view voters/the async advisor get,
+    prepends `_OMP_ADVISOR_CHARTER`, and appends the reply as one tail system
+    line ``[advisor: <note>]`` (always — this charter never returns "OK").
+    Fail-open: any error returns ``messages`` unchanged, so a broken advisor
+    slot degrades to a normal turn instead of breaking it — the cost of
+    faithfulness here is LATENCY (a synchronous wafer call before every acting
+    turn), never correctness. Records the note on ``common["advisor_injected"]``
+    for `_attach_session_usage`.
+    """
+    cascade_cfg = common.get("cascade") or {}
+    advisor_slot = cascade_cfg.get("advisor")
+    if not advisor_slot:
+        return messages
+    try:
+        view = project_history_for_voters([dict(m) for m in common["messages"]])
+        view, _stats = window_history(view, cascade_cfg.get("voter_context_tokens"))
+        advisor_messages = [{"role": "system", "content": _OMP_ADVISOR_CHARTER}, *view]
+        response = call_llm(
+            task="moa_reference",
+            messages=advisor_messages,
+            max_tokens=200,
+            timeout=min(30.0, common.get("slot_timeout") or 30.0),
+            **_slot_runtime(advisor_slot),
+        )
+        reply = (_extract_message_fields(response).get("content") or "").strip()
+        reply = reply.splitlines()[0].strip() if reply else ""
+        if not reply:
+            return messages
+        common["advisor_injected"] = {"kind": "inline", "text": reply[:300]}
+        return [*messages, {"role": "system", "content": f"[advisor: {reply[:300]}]"}]
+    except Exception as exc:  # pragma: no cover - inline advisor is fail-open
+        logger.debug("MoA inline advisor failed: %s", exc)
+        return messages
+
+
+def _inject_advisor(common: dict, messages: list[dict]) -> list[dict]:
+    """Advisor injection dispatcher for the acting call sites
+    (`_run_cascade_solo_turn`, `_run_cascade_tier1_blocking`). Routes by
+    ``cascade.advisor_mode``: "inline" runs the OMP-faithful synchronous
+    advisor now (`_run_inline_advisor`); "notes"/"escalate" (our design)
+    inject the note a PRIOR turn's async advisor already left
+    (`_apply_advisor_note`). One seam so both approaches — and any future
+    merged mode — share the same two injection points."""
+    if (common.get("cascade") or {}).get("advisor_mode") == "inline":
+        return _run_inline_advisor(common, messages)
+    return _apply_advisor_note(common, messages)
+
+
 def _cascade_last_non_system_role(messages: list) -> str | None:
     """Role of the last non-system message in a raw client message list —
     addendum v1.5's mid-loop signal. "tool" or "assistant" means the client
@@ -652,7 +724,7 @@ def _run_cascade_solo_turn(
     # review (see `_apply_advisor_note`) as the tail message, before cache
     # decoration — a no-op on the (overwhelmingly common) turn with nothing
     # pending.
-    agg_messages = _apply_advisor_note(common, agg_messages)
+    agg_messages = _inject_advisor(common, agg_messages)
     # Prompt-cache decoration (see agent/moa_loop._maybe_apply_moa_cache_control):
     # the solo lane re-sends the whole growing session every tool iteration, so
     # on cache-honoring routes this is the single biggest cache win in the
@@ -1227,7 +1299,7 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
         # call `_run_reference(direct=True)` already implements.
         from agent.moa_loop import _run_reference
 
-        rlm_messages = _apply_advisor_note(
+        rlm_messages = _inject_advisor(
             common, [dict(m) for m in common["messages"]]
         )
         _label, rlm_text, rlm_acct = _run_reference(
@@ -1263,7 +1335,7 @@ def _run_cascade_tier1_blocking(common: dict, messages: list, tier1_bundle: dict
             agg_response=agg_response,
             agg_messages=tier1_bundle["agg_messages"],
         )
-    agg_messages = _apply_advisor_note(common, tier1_bundle["agg_messages"])
+    agg_messages = _inject_advisor(common, tier1_bundle["agg_messages"])
     agg_response = call_llm(
         task="moa_aggregator",
         messages=_maybe_apply_moa_cache_control(
@@ -2452,10 +2524,15 @@ def create_moa_app(*, api_key: str | None = None) -> "web.Application":
         # read, and the streaming path is skipped for now (threading a
         # background call through the SSE writer is unneeded complexity
         # until the advisor lane earns its A/B — see the spec addendum).
+        # "inline" mode (OMP-faithful) runs the advisor synchronously ON the
+        # turn via `_inject_advisor`, so it must NOT also spawn the async
+        # worker — only "notes"/"escalate" (our design) use the fire-and-forget
+        # next-turn path.
         cascade_cfg = common.get("cascade") or {}
         if (
             common["preset"].get("mode") == "cascade"
             and cascade_cfg.get("advisor")
+            and cascade_cfg.get("advisor_mode") != "inline"
             and common.get("session_info")
         ):
             threading.Thread(
