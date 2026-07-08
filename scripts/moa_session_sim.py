@@ -105,8 +105,19 @@ def _classify_mode(moa: dict | None) -> str:
     """
     if not isinstance(moa, dict) or not moa:
         return "unknown"
+    # Prefer the structured cascade dict: usage.moa also carries session
+    # continuity fields (session.last_mode is the PREVIOUS turn's mode), so a
+    # whole-dict substring scan misclassifies the turn right after a tool
+    # thread — the exact turn the revert check exists to judge.
+    cascade = moa.get("cascade")
+    if isinstance(cascade, dict):
+        if cascade.get("tier") in (0, 1, 2):
+            return "cascade"
+        mode = str(cascade.get("mode") or "").lower()
+        if "solo" in mode:
+            return "solo"
     try:
-        text = json.dumps(moa).lower()
+        text = json.dumps(cascade if cascade is not None else moa).lower()
     except (TypeError, ValueError):
         return "unknown"
     if "solo" in text:
