@@ -2865,3 +2865,33 @@ async def test_cascade_session_tracks_turns_and_mode(moa_home, fake_llm):
         assert s2["last_mode"] == "tier0"
     finally:
         await client.close()
+
+
+@pytest.mark.asyncio
+async def test_degraded_consensus_survives_dead_voters(moa_home, fake_llm, monkeypatch):
+    """cascade.degraded_consensus: with min_consensus 2 configured but one of
+    two voters failing (quota 429 -> boilerplate note), the surviving... —
+    exercised at 4 voters: 2 dead + 2 live agreeing must still serve tier-0
+    when the flag is on (2 == max(2, min(min_consensus, live)))."""
+    from hermes_cli.proxy.moa_server import _effective_min_consensus
+
+    live = [
+        ("a", "ANSWER: 42", None),
+        ("b", "[failed: 429 too_many_tokens]", None),
+        ("c", "ANSWER: 42", None),
+        ("d", "[dropped: reference exceeded the quorum deadline]", None),
+    ]
+    # flag off: strict
+    assert _effective_min_consensus({"min_consensus": 3}, live) == 3
+    # flag on: degrades to live count (2), never below 2
+    assert _effective_min_consensus(
+        {"min_consensus": 3, "degraded_consensus": True}, live
+    ) == 2
+    assert _effective_min_consensus(
+        {"min_consensus": 3, "degraded_consensus": True}, live[:2]
+    ) == 2
+    # full health: identical to configured value
+    healthy = [("a", "ANSWER: 1", None)] * 4
+    assert _effective_min_consensus(
+        {"min_consensus": 3, "degraded_consensus": True}, healthy
+    ) == 3

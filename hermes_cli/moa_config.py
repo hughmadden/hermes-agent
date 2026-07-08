@@ -244,6 +244,12 @@ def _normalize_preset(raw: Any) -> dict[str, Any]:
             "verifier": verifier,
             "verify_when": verify_when,
             "tool_turns": tool_turns,
+            # Serving robustness: when true, min_consensus degrades to the
+            # LIVE voter count (floor 2) during partial fan-out outages
+            # (quota 429s, provider blips) instead of counting dead voters
+            # in the denominator and falling to acting-solo. Default false:
+            # benchmark presets keep strict semantics.
+            "degraded_consensus": bool(cascade_raw.get("degraded_consensus", False)),
             # Recency window (~tokens) each cascade VOTER sees — the acting
             # lanes always keep the full transcript. Bounds the fan-out
             # token bill on real sessions (measured: full-context fan-out

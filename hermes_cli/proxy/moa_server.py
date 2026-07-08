@@ -552,6 +552,27 @@ def _run_cascade_solo_turn(
     }
 
 
+def _effective_min_consensus(cascade_cfg: dict, voters: list) -> int:
+    """min_consensus, degraded to the LIVE voter count when
+    ``cascade.degraded_consensus`` is on (floor 2).
+
+    Measured motivation (2026-07-08 session-sim): upstream quota bursts can
+    kill half the fan-out (2 of 4 voters 429'd) while the survivors agree on
+    the right answer — counting dead voters in the denominator turned a
+    clean 2-of-2 live consensus into acting-solo. Under full health this is
+    byte-identical to the configured min_consensus; it only bends during
+    partial voter outages, and never below 2 independent agreeing voters.
+    Default OFF: benchmark presets keep the strict measured semantics.
+    """
+    base = int(cascade_cfg.get("min_consensus") or 2)
+    if not cascade_cfg.get("degraded_consensus"):
+        return base
+    live = sum(
+        1 for _label, text, _acct in voters if not moa_cascade.is_boilerplate(text)
+    )
+    return max(2, min(base, live))
+
+
 def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
     """Tier-0 voter-agreement gate shared by the non-streaming cascade turn
     (`_run_cascade_turn`) and the streaming cascade turn (addendum v1.4 §B,
@@ -569,7 +590,7 @@ def _cascade_tier0_gate(common: dict, messages: list, voters: list) -> dict:
     from agent.usage_pricing import CanonicalUsage
 
     cascade_cfg = common["cascade"] or {}
-    min_consensus = int(cascade_cfg.get("min_consensus") or 2)
+    min_consensus = _effective_min_consensus(cascade_cfg, voters)
     reference_models = common["reference_models"]
 
     candidates = [extract_candidate(text) for _label, text, _acct in voters]
@@ -818,7 +839,7 @@ def _cascade_tool_turn_gate(common: dict, messages: list, voters: list) -> dict:
     still reflects the vote that happened.
     """
     cascade_cfg = common["cascade"] or {}
-    min_consensus = int(cascade_cfg.get("min_consensus") or 2)
+    min_consensus = _effective_min_consensus(cascade_cfg, voters)
     candidates = [extract_candidate(text) for _label, text, _acct in voters]
     cons = consensus(candidates, min_consensus)
 
