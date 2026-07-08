@@ -1,0 +1,813 @@
+{
+ "base": "http://127.0.0.1:8652/v1",
+ "model": "moa:cascade-live-local",
+ "context_tokens_target": 120000,
+ "stream": false,
+ "records": [
+  {
+   "phase": "plain-init-0",
+   "http_status": 200,
+   "latency_s": 33.337,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 151339,
+    "completion_tokens": 6,
+    "total_tokens": 151345,
+    "prompt_tokens_details": {
+     "cached_tokens": 9088
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 9229,
+       "completion_tokens": 3,
+       "total_tokens": 9232,
+       "prompt_tokens_details": {
+        "cached_tokens": 9088
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 142110,
+      "completion_tokens": 3,
+      "total_tokens": 142113,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": null,
+      "mode": "tool-solo",
+      "reason": "no-consensus"
+     },
+     "voter_view": {
+      "kept": 15,
+      "trimmed": 226
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 9,
+      "last_mode": "tier0"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "36",
+   "error": null
+  },
+  {
+   "phase": "plain-init-1",
+   "http_status": 200,
+   "latency_s": 0.818,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 15796,
+    "completion_tokens": 54,
+    "total_tokens": 15850,
+    "prompt_tokens_details": {
+     "cached_tokens": 15488
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 6540,
+       "completion_tokens": 50,
+       "total_tokens": 6590,
+       "prompt_tokens_details": {
+        "cached_tokens": 6400
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 9256,
+       "completion_tokens": 4,
+       "total_tokens": 9260,
+       "prompt_tokens_details": {
+        "cached_tokens": 9088
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": 0,
+      "consensus": "170",
+      "votes": 2,
+      "voters": [
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b",
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b"
+      ],
+      "candidates": [
+       "170",
+       null,
+       null,
+       "170"
+      ],
+      "gate_used": "exact"
+     },
+     "voter_view": {
+      "kept": 17,
+      "trimmed": 226
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 10,
+      "last_mode": "tool-solo"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "170",
+   "error": null
+  },
+  {
+   "phase": "tool-thread-0-round-1",
+   "http_status": 200,
+   "latency_s": 1.392,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 167325,
+    "completion_tokens": 134,
+    "total_tokens": 167459,
+    "prompt_tokens_details": {
+     "cached_tokens": 24704
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 6571,
+       "completion_tokens": 100,
+       "total_tokens": 6671,
+       "prompt_tokens_details": {
+        "cached_tokens": 6400
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 9292,
+       "completion_tokens": 6,
+       "total_tokens": 9298,
+       "prompt_tokens_details": {
+        "cached_tokens": 9088
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 9292,
+       "completion_tokens": 6,
+       "total_tokens": 9298,
+       "prompt_tokens_details": {
+        "cached_tokens": 9216
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 142170,
+      "completion_tokens": 22,
+      "total_tokens": 142192,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": null,
+      "mode": "tool-solo",
+      "reason": "tool_turn_vote",
+      "votes": 3
+     },
+     "voter_view": {
+      "kept": 19,
+      "trimmed": 226
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 11,
+      "last_mode": "tier0"
+     }
+    }
+   },
+   "finish_reason": "tool_calls",
+   "has_tool_calls": true,
+   "content_snippet": "",
+   "error": null
+  },
+  {
+   "phase": "tool-thread-0-round-2",
+   "http_status": 200,
+   "latency_s": 0.435,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 142210,
+    "completion_tokens": 6,
+    "total_tokens": 142216,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    },
+    "moa": {
+     "references": [],
+     "aggregator": {
+      "prompt_tokens": 142210,
+      "completion_tokens": 6,
+      "total_tokens": 142216,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": null,
+      "mode": "tool-solo",
+      "reason": "mid-loop"
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 12,
+      "last_mode": "tool-solo"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "line one: hello world",
+   "error": null
+  },
+  {
+   "phase": "revert-check-0",
+   "http_status": 200,
+   "latency_s": 0.606,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 16024,
+    "completion_tokens": 48,
+    "total_tokens": 16072,
+    "prompt_tokens_details": {
+     "cached_tokens": 15616
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 6644,
+       "completion_tokens": 44,
+       "total_tokens": 6688,
+       "prompt_tokens_details": {
+        "cached_tokens": 6400
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 9380,
+       "completion_tokens": 4,
+       "total_tokens": 9384,
+       "prompt_tokens_details": {
+        "cached_tokens": 9216
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": 0,
+      "consensus": "374",
+      "votes": 2,
+      "voters": [
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b",
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b"
+      ],
+      "candidates": [
+       "374",
+       "374",
+       null,
+       null
+      ],
+      "gate_used": "exact"
+     },
+     "voter_view": {
+      "kept": 23,
+      "trimmed": 226
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 13,
+      "last_mode": "tool-solo"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "374",
+   "error": null
+  },
+  {
+   "phase": "tool-thread-1-round-1",
+   "http_status": 200,
+   "latency_s": 0.651,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 16091,
+    "completion_tokens": 190,
+    "total_tokens": 16281,
+    "prompt_tokens_details": {
+     "cached_tokens": 15744
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 6675,
+       "completion_tokens": 184,
+       "total_tokens": 6859,
+       "prompt_tokens_details": {
+        "cached_tokens": 6528
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 9416,
+       "completion_tokens": 6,
+       "total_tokens": 9422,
+       "prompt_tokens_details": {
+        "cached_tokens": 9216
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": 0,
+      "consensus": "line one: hello world",
+      "votes": 2,
+      "voters": [
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b",
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b"
+      ],
+      "candidates": [
+       "line one: hello world",
+       "line one: hello world",
+       null,
+       null
+      ],
+      "gate_used": "exact"
+     },
+     "voter_view": {
+      "kept": 25,
+      "trimmed": 226
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 14,
+      "last_mode": "tier0"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "line one: hello world",
+   "error": null
+  },
+  {
+   "phase": "revert-check-1",
+   "http_status": 200,
+   "latency_s": 0.674,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 16111,
+    "completion_tokens": 47,
+    "total_tokens": 16158,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 6687,
+       "completion_tokens": 43,
+       "total_tokens": 6730,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 9424,
+       "completion_tokens": 4,
+       "total_tokens": 9428,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": 0,
+      "consensus": "135",
+      "votes": 2,
+      "voters": [
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b",
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b"
+      ],
+      "candidates": [
+       null,
+       null,
+       "135",
+       "135"
+      ],
+      "gate_used": "exact"
+     },
+     "voter_view": {
+      "kept": 26,
+      "trimmed": 227
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 15,
+      "last_mode": "tier0"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "135",
+   "error": null
+  },
+  {
+   "phase": "plain-final-0",
+   "http_status": 200,
+   "latency_s": 0.599,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 13997,
+    "completion_tokens": 52,
+    "total_tokens": 14049,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 8174,
+       "completion_tokens": 4,
+       "total_tokens": 8178,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 5823,
+       "completion_tokens": 48,
+       "total_tokens": 5871,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": 0,
+      "consensus": "384",
+      "votes": 2,
+      "voters": [
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b",
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b"
+      ],
+      "candidates": [
+       null,
+       "384",
+       "384",
+       null
+      ],
+      "gate_used": "exact"
+     },
+     "voter_view": {
+      "kept": 27,
+      "trimmed": 228
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 16,
+      "last_mode": "tier0"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "384",
+   "error": null
+  },
+  {
+   "phase": "plain-final-1",
+   "http_status": 200,
+   "latency_s": 0.572,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 14049,
+    "completion_tokens": 82,
+    "total_tokens": 14131,
+    "prompt_tokens_details": {
+     "cached_tokens": 13824
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 5847,
+       "completion_tokens": 78,
+       "total_tokens": 5925,
+       "prompt_tokens_details": {
+        "cached_tokens": 5760
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 8202,
+       "completion_tokens": 4,
+       "total_tokens": 8206,
+       "prompt_tokens_details": {
+        "cached_tokens": 8064
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 0,
+      "completion_tokens": 0,
+      "total_tokens": 0,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": 0,
+      "consensus": "703",
+      "votes": 2,
+      "voters": [
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b",
+       "custom:cerebras:gpt-oss-120b",
+       "custom:cerebras:gemma-4-31b"
+      ],
+      "candidates": [
+       "703",
+       "703",
+       null,
+       null
+      ],
+      "gate_used": "exact"
+     },
+     "voter_view": {
+      "kept": 29,
+      "trimmed": 228
+     },
+     "session": {
+      "key": "auto-d361d604929ea916",
+      "turns": 17,
+      "last_mode": "tier0"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "703",
+   "error": null
+  }
+ ],
+ "summary": {
+  "turns_total": 9,
+  "turns_ok": 9,
+  "turns_errored": 0,
+  "tool_threads_run": 2,
+  "tool_threads_completed": 2,
+  "revert_checks": [
+   "passed",
+   "passed"
+  ],
+  "revert_checks_passed": 2,
+  "revert_checks_failed": 0,
+  "revert_checks_unknown": 0,
+  "revert_checks_errored": 0
+ }
+}
