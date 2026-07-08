@@ -504,3 +504,61 @@ With tools present and `tool_turns == "detect"`:
   names (inspect recorded reference calls).
 - tool_turns: "solo" preserves v1.4 behavior byte-identical.
 - streaming variant of the re-engagement case (tier-0 winner delta).
+
+## Addendum v1.6 — real-session serving layer + advisor lane (iteration 44)
+
+### A. Voter projection + window (SHIPPED with this addendum)
+Measured motivations (2026-07-08 session-sim, scripts/moa_session_sim.py):
+- Cerebras caps SOME models per key tier (zai-glm-4.7 = 8192 ctx on our
+  paid key while gemma/gpt-oss serve 23-31k) — an acting/aggregator slot
+  must be context-verified for real sessions, and short-problem benchmarks
+  will never catch it.
+- Full-context voter fan-out is quota-impossible: one 10k-token turn =
+  4 voters + gate + acting ≈ 5-6x session length; tripped the Cerebras
+  TPM quota on turn ONE. Provider prefix caching does NOT relieve quotas
+  (measured 30,848/30,907 cached, full amount counted against TPM).
+Contracts (hermes_cli/proxy/moa_session.py):
+- `project_history_for_voters`: PURE PER-MESSAGE projection (tool_calls/
+  tool results/content blocks/opaque provider fields → plain text);
+  append-only ⇒ prefix-cache preserving; plain messages are identity.
+- `window_history`: leading system + newest suffix within
+  `cascade.voter_context_tokens` (default 8000; ≤0 disables) + ONE
+  deterministic marker naming the trimmed count. VOTERS see the window;
+  ACTING lanes (solo / tier-1 / tier-2) always see the full verbatim
+  transcript. Deep-context questions produce voter discord and escalate
+  to a full-context tier — the cascade's existing division of labor.
+- SessionRegistry: TTL+LRU; stable per-session `prompt_cache_key` for
+  OpenAI-family acting lanes; `usage.moa.session` {key, turns, last_mode}
+  + `usage.moa.voter_view` {kept, trimmed} observability.
+
+### B. Advisor lane (design — replicate-or-better oh-my-pi's advisor role)
+OMP (github.com/can1357/oh-my-pi) pairs a reviewer model to an "advisor"
+role: it reads every turn the acting agent takes and injects inline notes
+("a quiet aside, a concern, or a hard blocker") — mechanical rules catch
+policy departures, the advisor catches semantic drift.
+Our measured campaign laws force two deviations from OMP's shape:
+1. ANCHORING LAW: always-on advisory context measurably hurts precise
+   tool/code work and anchors even frontier arbiters. So the advisor is
+   CONCERN-GATED: it emits `OK` (dropped, zero injection) or
+   `CONCERN: <one line>` / `BLOCKER: <one line>`; only non-OK notes are
+   ever injected, as one bracketed system line appended BEFORE the newest
+   user/tool message (tail injection preserves the acting lane's cached
+   prefix).
+2. LATENCY: the advisor runs ASYNC on the wafer (gemma-4-31b class) over
+   the same projected+windowed view voters get, AFTER the turn returns;
+   its note applies to the NEXT turn. Zero added turn latency (OMP's
+   inline review is on the hot path).
+Better-than-OMP extensions (measure before believing):
+- BLOCKER escalation: a BLOCKER note forces the next fresh user turn to
+  skip tier-0 and run the full-context tier-1/verify path (advisor as a
+  cascade escalation trigger, not just prose).
+- Advisor consensus option (2 cheap advisors, inject only on agreement) —
+  diversity law applied to oversight; halves false-alarm injections.
+Config sketch:
+  cascade:
+    advisor: {provider: custom:cerebras, model: gemma-4-31b}
+    advisor_mode: notes | escalate   # default notes
+State: SessionRegistry gains `advisor_note` (typed: concern|blocker).
+Status: DESIGN ONLY in iteration 44 (serving-viability measurements own
+the iteration); implement + A/B (advisor vs no-advisor on an agentic
+bench, tool-heavy) as its own iteration.
