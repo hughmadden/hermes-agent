@@ -1,0 +1,186 @@
+{
+ "base": "http://127.0.0.1:8652/v1",
+ "model": "moa:cascade-rlm-live",
+ "context_tokens_target": 10000,
+ "stream": false,
+ "records": [
+  {
+   "phase": "plain-init-0",
+   "http_status": 502,
+   "latency_s": 1.473,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "plain-init-1",
+   "http_status": 200,
+   "latency_s": 2.534,
+   "ttft_s": null,
+   "usage": {
+    "prompt_tokens": 9224,
+    "completion_tokens": 38,
+    "total_tokens": 9262,
+    "prompt_tokens_details": {
+     "cached_tokens": 0
+    },
+    "moa": {
+     "references": [
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gpt-oss-120b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      },
+      {
+       "label": "custom:cerebras:gemma-4-31b",
+       "cached": false,
+       "prompt_tokens": 0,
+       "completion_tokens": 0,
+       "total_tokens": 0,
+       "prompt_tokens_details": {
+        "cached_tokens": 0
+       }
+      }
+     ],
+     "aggregator": {
+      "prompt_tokens": 9224,
+      "completion_tokens": 38,
+      "total_tokens": 9262,
+      "prompt_tokens_details": {
+       "cached_tokens": 0
+      }
+     },
+     "cascade": {
+      "tier": null,
+      "mode": "tool-solo",
+      "reason": "no-consensus"
+     }
+    }
+   },
+   "finish_reason": "stop",
+   "has_tool_calls": false,
+   "content_snippet": "170",
+   "error": null
+  },
+  {
+   "phase": "plain-init-2",
+   "http_status": 502,
+   "latency_s": 0.715,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "tool-thread-0-round-1",
+   "http_status": 502,
+   "latency_s": 0.597,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "revert-check-0",
+   "http_status": 502,
+   "latency_s": 0.605,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "tool-thread-1-round-1",
+   "http_status": 502,
+   "latency_s": 0.619,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "revert-check-1",
+   "http_status": 502,
+   "latency_s": 0.625,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "plain-final-0",
+   "http_status": 502,
+   "latency_s": 0.722,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "plain-final-1",
+   "http_status": 502,
+   "latency_s": 0.68,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  }
+ ],
+ "summary": {
+  "turns_total": 9,
+  "turns_ok": 1,
+  "turns_errored": 8,
+  "tool_threads_run": 2,
+  "tool_threads_completed": 0,
+  "revert_checks": [
+   "errored",
+   "errored"
+  ],
+  "revert_checks_passed": 0,
+  "revert_checks_failed": 0,
+  "revert_checks_unknown": 0,
+  "revert_checks_errored": 2
+ }
+}

@@ -1,0 +1,122 @@
+{
+ "base": "http://127.0.0.1:8652/v1",
+ "model": "moa:cascade-rlm",
+ "context_tokens_target": 10000,
+ "stream": false,
+ "records": [
+  {
+   "phase": "plain-init-0",
+   "http_status": 502,
+   "latency_s": 2.624,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 400 - {'message': 'Please reduce the length of the messages or completion. Current length is 9175 while limit is 8192', 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded', 'id': ''}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "plain-init-1",
+   "http_status": 502,
+   "latency_s": 1.25,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 400 - {'message': 'Please reduce the length of the messages or completion. Current length is 9191 while limit is 8192', 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded', 'id': ''}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "plain-init-2",
+   "http_status": 502,
+   "latency_s": 0.737,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 400 - {'message': 'Please reduce the length of the messages or completion. Current length is 9207 while limit is 8192', 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded', 'id': ''}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "tool-thread-0-round-1",
+   "http_status": 502,
+   "latency_s": 0.655,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "revert-check-0",
+   "http_status": 502,
+   "latency_s": 0.587,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "tool-thread-1-round-1",
+   "http_status": 502,
+   "latency_s": 0.65,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "revert-check-1",
+   "http_status": 502,
+   "latency_s": 0.99,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "plain-final-0",
+   "http_status": 502,
+   "latency_s": 0.743,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 400 - {'message': 'Please reduce the length of the messages or completion. Current length is 9297 while limit is 8192', 'type': 'invalid_request_error', 'param': 'messages', 'code': 'context_length_exceeded', 'id': ''}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  },
+  {
+   "phase": "plain-final-1",
+   "http_status": 502,
+   "latency_s": 0.653,
+   "ttft_s": null,
+   "usage": {},
+   "finish_reason": null,
+   "has_tool_calls": false,
+   "content_snippet": "",
+   "error": "{\"error\": {\"message\": \"MoA aggregator call failed: Error code: 429 - {'message': 'Tokens per minute limit exceeded - too many tokens processed.', 'type': 'too_many_tokens_error', 'param': 'quota', 'code': 'token_quota_exceeded'}\", \"type\": \"api_error\", \"code\": \"api_error\"}}"
+  }
+ ],
+ "summary": {
+  "turns_total": 9,
+  "turns_ok": 0,
+  "turns_errored": 9,
+  "tool_threads_run": 2,
+  "tool_threads_completed": 0,
+  "revert_checks": [
+   "errored",
+   "errored"
+  ],
+  "revert_checks_passed": 0,
+  "revert_checks_failed": 0,
+  "revert_checks_unknown": 0,
+  "revert_checks_errored": 2
+ }
+}
