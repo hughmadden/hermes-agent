@@ -562,3 +562,59 @@ State: SessionRegistry gains `advisor_note` (typed: concern|blocker).
 Status: DESIGN ONLY in iteration 44 (serving-viability measurements own
 the iteration); implement + A/B (advisor vs no-advisor on an agentic
 bench, tool-heavy) as its own iteration.
+
+## Addendum v1.7 — advisor variants + real-agentic serving fixes (iteration 46)
+
+### A. OMP-faithful inline advisor (SHIPPED)
+`advisor_mode: inline` replicates oh-my-pi's advisor role straight:
+SYNCHRONOUS, same-turn, always-injecting. Before each acting call the
+advisor reads the projected+windowed view under `_OMP_ADVISOR_CHARTER`
+(which always yields a substantive one-line note) and that note is appended
+as a tail `[advisor: ...]` system line THIS turn. The deliberate opposite of
+our design (`notes`/`escalate`): async (zero turn latency) + concern-gated
+(OK vanishes). `_inject_advisor` dispatches by mode at the shared solo+tier1
+seams; inline skips the async spawn. Cost of faithfulness = latency (a
+synchronous wafer call before every acting turn).
+
+### B. RLM advisor (SHIPPED)
+An advisor slot with `agent: rlm` runs the reason→python→observe loop
+(`_run_rlm_loop`, same as RLM voters) via `_advisor_generate`, so a wafer
+advisor can EXECUTE a self-contained check (a regex, a boundary case, a
+computation) before judging, then emits `FINAL: OK|CONCERN:…|BLOCKER:…`
+(terminator stripped). Edge is narrow and bounded by the sandbox (isolated
+interpreter, no repo access): logic/math it can verify; repo state it cannot.
+
+### C. Acting-lane opaque-field sanitization (SHIPPED — real bug)
+Measured on SWE-bench via `moa:auto`: kimi-k2.6 emits `reasoning_content` +
+`provider_specific_fields` on its output, the client (mini-swe-agent) echoes
+them in history, and the acting call is rejected `wrong_api_format` on
+replay. `sanitize_acting_messages` strips the four response-only annotations
+(`reasoning`/`reasoning_content`/`provider_specific_fields`/`refusal`) from
+every acting lane's outgoing messages — WITHOUT the voter projection's
+flatten-to-text (acting keeps real tool_calls/ids, mid agentic loop) and
+WITHOUT touching `signature`/`thinking` (native Anthropic tool continuation
+needs them). Applied at `common` construction so all downstream paths
+benefit. This is a hard prerequisite for using ANY reasoning-emitting open
+model as a proxy acting lane on a real agent harness.
+
+### D. The variant matrix (under test) + the merge
+Two design axes × advisor model. TIMING: inline (hot path, same turn) vs
+async (zero latency, next turn). GATING: always-inject (OMP) vs
+concern-gated (OK dropped — anchoring-law-safe). MODEL: wafer gemma /
+gemma-RLM / FRONTIER-on-plan reviewing a LOCAL strong actor (q80). Presets:
+`adv-async-gemma` (ours), `adv-inline-gemma` (OMP), `adv-rlm-gemma`,
+`adv-local-frontier` / `-inline` (the composition Hugh named: local acting
+lane, frontier conscience — plan tokens spent only on one short review per
+turn, not on acting). The MERGE to evaluate: inline-timing + concern-gating
+("inline-gated"), and async + escalation + frontier-over-local — take OMP's
+strong-reviewer-every-turn and add our zero-latency + gating + routing hooks.
+Tested on the SWE-bench agentic harness (does the advisor lift task success,
+and at what latency/cost) — results in the iteration-46 report section.
+
+### E. Operational constraint (measured)
+`moa:auto`'s per-request Cerebras classifier + concurrent cascade voters hit
+the shared key's RPM ceiling under parallel agentic load (3 mini-swe workers
+→ 429 request_quota_exceeded). Cerebras-backed lanes must run at bounded
+concurrency or move the classifier off Cerebras; a solo frontier API at a
+paid tier has far higher limits. Part of the honest "good enough to use"
+answer.
