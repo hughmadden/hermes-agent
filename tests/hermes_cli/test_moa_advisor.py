@@ -813,3 +813,88 @@ async def test_inline_advisor_failure_never_breaks_turn(moa_home_inline_advisor,
         assert "5" in (body["choices"][0]["message"]["content"] or "")
     finally:
         await client.close()
+
+
+def _write_rlm_advisor_cfg(home):
+    home.mkdir(parents=True, exist_ok=True)
+    (home / "config.yaml").write_text(
+        """
+moa:
+  default_preset: casc
+  presets:
+    casc:
+      mode: cascade
+      cascade:
+        advisor:
+          provider: openrouter
+          model: advisor-model
+          agent: rlm
+      reference_models:
+        - provider: openrouter
+          model: voter-a
+        - provider: openrouter
+          model: voter-b
+      aggregator:
+        provider: openrouter
+        model: mid-model
+""".strip(),
+        encoding="utf-8",
+    )
+
+
+@pytest.fixture()
+def moa_home_rlm_advisor(monkeypatch, tmp_path):
+    home = tmp_path / ".hermes"
+    _write_rlm_advisor_cfg(home)
+    monkeypatch.setenv("HERMES_HOME", str(home))
+    moa_server._ref_cache.clear()
+    return home
+
+
+@pytest.mark.asyncio
+async def test_rlm_advisor_routes_through_loop_and_strips_final(
+    moa_home_rlm_advisor, fake_llm, inline_thread
+):
+    """An advisor slot with agent: rlm runs the reason->observe loop; the
+    loop's 'FINAL: CONCERN: ...' terminator is stripped so the stored note is
+    a normal concern (kind=concern), injected next turn."""
+    # The RLM loop calls task=moa_reference repeatedly; make the advisor model
+    # finish immediately with a FINAL line, voters disagree so tier-1 acts.
+    voter_answers = iter(["ANSWER: 1", "ANSWER: 2", "ANSWER: 1", "ANSWER: 2"])
+
+    def ref_handler(kwargs):
+        if kwargs.get("model") == "advisor-model":
+            return _response("FINAL: CONCERN: the fix misses a None case")
+        return _response(next(voter_answers))
+
+    fake_llm.handlers["moa_reference"] = ref_handler
+    fake_llm.handlers["moa_aggregator"] = lambda kwargs: _response("acted")
+
+    client = await _client(create_moa_app())
+    try:
+        # turn 1 — advisor runs (async, inline_thread makes it synchronous)
+        r1 = await client.post(
+            "/v1/chat/completions",
+            json={"model": "moa:casc", "messages": [{"role": "user", "content": "fix it"}]},
+        )
+        assert r1.status == 200
+        advisor_calls = [c for c in fake_llm.calls if c.get("model") == "advisor-model"]
+        assert advisor_calls, "RLM advisor never called"
+        # turn 2 — the concern (FINAL: stripped) is injected
+        r2 = await client.post(
+            "/v1/chat/completions",
+            json={
+                "model": "moa:casc",
+                "messages": [
+                    {"role": "user", "content": "fix it"},
+                    {"role": "assistant", "content": "done"},
+                    {"role": "user", "content": "next"},
+                ],
+            },
+        )
+        b2 = await r2.json()
+        note = b2["usage"]["moa"]["session"].get("advisor_note")
+        assert note and note["kind"] == "concern"
+        assert "None case" in note["text"] and "FINAL" not in note["text"]
+    finally:
+        await client.close()

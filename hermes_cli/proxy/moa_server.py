@@ -46,6 +46,7 @@ import asyncio
 import hashlib
 import json
 import logging
+import re
 import sys
 import threading
 import time
@@ -460,6 +461,62 @@ def _parse_advisor_reply(text: str) -> dict | None:
     return None
 
 
+# One-line task appended to the RLM advisor's view: the RLM loop
+# (agent.moa_loop._run_rlm_loop) prepends its own solve-oriented charter and
+# terminates on a "FINAL:" line, so the advisor's actual instruction rides as
+# the last user turn. The reason->python->observe loop lets a wafer advisor
+# EXECUTE a quick check (a regex, a boundary case, a small computation) before
+# it judges — its narrow edge over a one-shot advisor, bounded by the sandbox
+# (isolated interpreter, no repo access): logic/math it can verify, repo state
+# it cannot.
+_ADVISOR_RLM_TASK = (
+    "You are advising the agent whose conversation is above. Reason about "
+    "its latest step; if a quick self-contained check would confirm or refute "
+    "a concern, run it. Then finish with a single line: 'FINAL: OK' if "
+    "nothing needs saying, 'FINAL: CONCERN: <one line>' for a risk or "
+    "mistake, or 'FINAL: BLOCKER: <one line>' if it is clearly on a wrong "
+    "path."
+)
+
+_FINAL_PREFIX_RE = re.compile(r"^\s*FINAL\s*:\s*", re.IGNORECASE)
+
+
+def _advisor_generate(
+    advisor_slot: dict, view: list[dict], charter: str, common: dict
+) -> str:
+    """Produce one advisor reply from ``advisor_slot`` over the projected
+    ``view``. Routes ``agent: "rlm"`` slots through the reason->python->observe
+    loop (`agent.moa_loop._run_rlm_loop`, the same loop RLM voters use) so a
+    wafer advisor can execute a quick check before judging; every other slot is
+    a single ``call_llm`` under ``charter``. The RLM path strips the loop's
+    ``FINAL:`` terminator so `_parse_advisor_reply` sees the bare OK/CONCERN/
+    BLOCKER line either way. Returns "" on any failure (callers are fail-open).
+    """
+    timeout = min(30.0, common.get("slot_timeout") or 30.0)
+    runtime = _slot_runtime(advisor_slot)
+    if str(advisor_slot.get("agent") or "").strip().lower() == "rlm":
+        from agent.moa_loop import _run_rlm_loop
+
+        review_view = [*view, {"role": "user", "content": _ADVISOR_RLM_TASK}]
+        final, _usage, _tx = _run_rlm_loop(
+            advisor_slot,
+            review_view,
+            runtime,
+            temperature=None,
+            max_tokens=800,
+            timeout=timeout,
+        )
+        return _FINAL_PREFIX_RE.sub("", (final or "").strip())
+    response = call_llm(
+        task="moa_reference",
+        messages=[{"role": "system", "content": charter}, *view],
+        max_tokens=200,
+        timeout=timeout,
+        **runtime,
+    )
+    return _extract_message_fields(response).get("content") or ""
+
+
 def _run_cascade_advisor(common: dict) -> None:
     """Addendum v1.6 §B: the async advisor worker.
 
@@ -489,16 +546,7 @@ def _run_cascade_advisor(common: dict) -> None:
             return
         view = project_history_for_voters([dict(m) for m in common["messages"]])
         view, _stats = window_history(view, cascade_cfg.get("voter_context_tokens"))
-        advisor_messages = [{"role": "system", "content": _ADVISOR_CHARTER}, *view]
-        slot_timeout = common.get("slot_timeout")
-        response = call_llm(
-            task="moa_reference",
-            messages=advisor_messages,
-            max_tokens=200,
-            timeout=min(30.0, slot_timeout or 30.0),
-            **_slot_runtime(advisor_slot),
-        )
-        reply = _extract_message_fields(response).get("content") or ""
+        reply = _advisor_generate(advisor_slot, view, _ADVISOR_CHARTER, common)
         note = _parse_advisor_reply(reply)
         _session_registry.note_advisor(sess["key"], note)
     except Exception as exc:
@@ -576,15 +624,7 @@ def _run_inline_advisor(common: dict, messages: list[dict]) -> list[dict]:
     try:
         view = project_history_for_voters([dict(m) for m in common["messages"]])
         view, _stats = window_history(view, cascade_cfg.get("voter_context_tokens"))
-        advisor_messages = [{"role": "system", "content": _OMP_ADVISOR_CHARTER}, *view]
-        response = call_llm(
-            task="moa_reference",
-            messages=advisor_messages,
-            max_tokens=200,
-            timeout=min(30.0, common.get("slot_timeout") or 30.0),
-            **_slot_runtime(advisor_slot),
-        )
-        reply = (_extract_message_fields(response).get("content") or "").strip()
+        reply = _advisor_generate(advisor_slot, view, _OMP_ADVISOR_CHARTER, common).strip()
         reply = reply.splitlines()[0].strip() if reply else ""
         if not reply:
             return messages
