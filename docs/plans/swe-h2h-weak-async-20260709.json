@@ -1,0 +1,17 @@
+{
+ "resolved_instances": 8,
+ "completed_instances": 19,
+ "error_instances": 5,
+ "resolved_ids": [
+  "django__django-10914",
+  "django__django-11001",
+  "django__django-11039",
+  "django__django-11049",
+  "django__django-11099",
+  "django__django-11133",
+  "django__django-11583",
+  "django__django-11620"
+ ],
+ "_actor": "qwen3-coder-30b-a3b-instruct",
+ "_resolve_pct_of_25": 32.0
+}

@@ -1,0 +1,14 @@
+{
+ "resolved_instances": 5,
+ "completed_instances": 9,
+ "error_instances": 6,
+ "resolved_ids": [
+  "astropy__astropy-6938",
+  "django__django-10914",
+  "django__django-11039",
+  "django__django-11099",
+  "django__django-11133"
+ ],
+ "_actor": "qwen3-coder-30b-a3b-instruct",
+ "_resolve_pct_of_25": 20.0
+}
