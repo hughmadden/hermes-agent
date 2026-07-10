@@ -121,7 +121,7 @@ _REFERENCE_SYSTEM_PROMPT = (
 
 
 def _slot_label(slot: dict[str, str]) -> str:
-    return f"{slot.get('provider', '').strip()}:{slot.get('model', '').strip()}"
+    return f"{(slot.get('provider') or '').strip()}:{(slot.get('model') or '').strip()}"
 
 
 # The distilled aggregation skill: durable heuristics mined from graded MoA
