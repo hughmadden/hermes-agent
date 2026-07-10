@@ -1,0 +1,877 @@
+[
+ {
+  "iid": "astropy__astropy-12907",
+  "repo": "astropy/astropy",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-f6b6e3f5f9d0e9eb",
+     "turns": 3,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 10.4,
+  "base_out_tail": "alse, False, True, True]] != [[Tru[46 chars]lse], [False, False, True, False], [False, False, False, True]]\n\nFirst differing element 2:\n[False, False, True, True]\n[False, False, True, False]\n\n  [[True, True, False, False],\n   [True, True, False, False],\n-  [False, False, True, True],\n?                       ^^^\n\n+  [False, False, True, False],\n?                       ^^^^\n\n-  [False, False, True, True]]\n?                 ^^^\n\n+  [False, False, False, True]]\n?                 ^^^^\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "astropy__astropy-14182",
+  "repo": "astropy/astropy",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-bb2da572243a262e",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 25.2,
+  "base_out_tail": "ed/astropy/io/ascii/core.py\", line 1815, in _get_writer\n    writer = Writer(**writer_kwargs)\nTypeError: __init__() got an unexpected keyword argument 'header_rows'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 22, in test_rst_writer_accepts_and_outputs_unit_header_row\n    self.fail(\"ascii.rst writer should accept header_rows\")\nAssertionError: ascii.rst writer should accept header_rows\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "astropy__astropy-14365",
+  "repo": "astropy/astropy",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 1,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-1e437229744657ed",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 26.9,
+  "base_out_tail": "\n    raise ValueError(f\"Unrecognized QDP line: {line}\")\nValueError: Unrecognized QDP line: read serr 1 2\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 22, in test_lowercase_read_serr_command_is_accepted\n    self.fail(f\"Lowercase QDP command should be accepted, but raised: {exc}\")\nAssertionError: Lowercase QDP command should be accepted, but raised: Unrecognized QDP line: read serr 1 2\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "astropy__astropy-14995",
+  "repo": "astropy/astropy",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 1,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-cfd6f2fd5cd80ee0",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 33.1,
+  "base_out_tail": "unsupported operand type(s) for |: 'list' and 'NoneType'\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 24, in test_existing_mask_is_preserved_when_other_operand_has_no_mask\n    self.fail(\nAssertionError: Multiplying a masked NDDataRef by an operand without a mask should preserve the existing mask, not call handle_mask with None: unsupported operand type(s) for |: 'list' and 'NoneType'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "astropy__astropy-6938",
+  "repo": "astropy/astropy",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-4522900207d5dca5",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 41.0,
+  "base_out_tail": "nt_separator (__main__.FitsAsciiTableDExponentTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 27, in test_ascii_table_d_format_writes_d_exponent_separator\n    + repr(row),\nAssertionError: b'D+' not found in b'    1.2345000000E+04' : ASCII table columns using a D format should be written with a D exponent separator, not the default E separator. Raw row was: b'    1.2345000000E+04'\n\n----------------------------------------------------------------------\nRan 1 test in 0.002s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "astropy__astropy-7746",
+  "repo": "astropy/astropy",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-26713bfdf120f25d",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 26.8,
+  "base_out_tail": "ption, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 24, in test_wcs_pix2world_accepts_empty_coordinate_lists\n    \"empty outputs, but raised {}: {}\".format(type(exc).__name__, exc)\nAssertionError: wcs_pix2world should accept empty coordinate lists and return empty outputs, but raised InconsistentAxisTypesError: ERROR 4 in wcsp2s() at line 2647 of file cextern/wcslib/C/wcs.c:\nncoord and/or nelem inconsistent with the wcsprm.\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-10914",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-5d67a563150c26b9",
+     "turns": 3,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 35.9,
+  "base_out_tail": "F\n======================================================================\nFAIL: test_default_file_upload_permissions_is_0644 (__main__.DefaultFileUploadPermissionsTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 15, in test_default_file_upload_permissions_is_0644\n    self.assertEqual(settings.FILE_UPLOAD_PERMISSIONS, 0o644)\nAssertionError: None != 420\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-10924",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "collect_error",
+  "valid": false,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-cf32c37bafa18ae6",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 61.2,
+  "base_out_tail": "another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 48, in test_callable_path_is_evaluated_for_formfield_but_preserved_for_deconstruction\n    \"evaluate it when constructing the form field; got TypeError: %s\" % exc\nAssertionError: FilePathField.formfield() should accept a callable path and evaluate it when constructing the form field; got TypeError: scandir: path should be string, bytes, os.PathLike or None, not function\n\n----------------------------------------------------------------------\nRan 2 tests in 0.002s\n\nFAILED (failures=1, errors=1)\n"
+ },
+ {
+  "iid": "django__django-11001",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-e4161338a1f93b9e",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 40.4,
+  "base_out_tail": "F\n======================================================================\nFAIL: test_distinct_multiline_rawsql_ordering_expressions_are_not_deduplicated (__main__.MultilineRawSQLOrderByTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 54, in test_distinct_multiline_rawsql_ordering_expressions_are_not_deduplicated\n    self.assertEqual(len(order_by), 2)\nAssertionError: 1 != 2\n\n----------------------------------------------------------------------\nRan 1 test in 0.004s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11019",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-d3688fd8160190d1",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 30.0,
+  "base_out_tail": "-------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 48, in test_merging_three_media_objects_does_not_create_spurious_conflict\n    self.assertEqual(conflict_warnings, [])\nAssertionError: Lists differ: [<warnings.WarningMessage object at 0x7d62910a3cc0>] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n<warnings.WarningMessage object at 0x7d62910a3cc0>\n\n- [<warnings.WarningMessage object at 0x7d62910a3cc0>]\n+ []\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11039",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 2,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-8510cd45df68ed59",
+     "turns": 5,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 99.1,
+  "base_out_tail": "_wrap_output_when_ddl_rollback_is_unsupported (__main__.SqlmigrateTransactionalDDLTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 70, in test_sqlmigrate_does_not_wrap_output_when_ddl_rollback_is_unsupported\n    self.assertNotIn(connection.ops.start_transaction_sql(), output)\nAssertionError: 'BEGIN;' unexpectedly found in 'BEGIN;\\nCREATE TABLE fake_table (id integer);\\nCOMMIT;\\n'\n\n----------------------------------------------------------------------\nRan 1 test in 0.020s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11049",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-c80e7115c467ef71",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 33.9,
+  "base_out_tail": "bes_actual_format (__main__.DurationFieldInvalidMessageTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 28, in test_invalid_duration_error_message_describes_actual_format\n    self.assertIn(\"[DD] [[HH:]MM:]ss[.uuuuuu]\", message)\nAssertionError: '[DD] [[HH:]MM:]ss[.uuuuuu]' not found in \"'not-a-duration' value has an invalid format. It must be in [DD] [HH:[MM:]]ss[.uuuuuu] format.\"\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11099",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-e719019677bdddbc",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 14.8,
+  "base_out_tail": "=================================================================\nFAIL: test_username_validators_reject_trailing_newline (__main__.UsernameValidatorTrailingNewlineTests) (validator='UnicodeUsernameValidator')\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 26, in test_username_validators_reject_trailing_newline\n    validator(\"validusername\\n\")\nAssertionError: ValidationError not raised\n\n----------------------------------------------------------------------\nRan 1 test in 0.001s\n\nFAILED (failures=2)\n"
+ },
+ {
+  "iid": "django__django-11133",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-f3b8e3c4ba57a85f",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 10.0,
+  "base_out_tail": "=========================================================\nFAIL: test_memoryview_content_is_converted_to_underlying_bytes (__main__.HttpResponseMemoryViewTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 21, in test_memoryview_content_is_converted_to_underlying_bytes\n    self.assertEqual(response.content, b\"My Content\")\nAssertionError: b'<memory at 0x706d044bb408>' != b'My Content'\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11179",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-07e671847a18adc5",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 18.2,
+  "base_out_tail": "F\n======================================================================\nFAIL: test_delete_without_dependencies_clears_primary_key (__main__.DeleteClearsPrimaryKeyTest)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 45, in test_delete_without_dependencies_clears_primary_key\n    self.assertIsNone(instance.pk)\nAssertionError: 1 is not None\n\n----------------------------------------------------------------------\nRan 1 test in 0.005s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11283",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-c0c048fb5dbe2c73",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 54.7,
+  "base_out_tail": "th_permission.codename\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 85, in test_existing_proxy_permissions_do_not_make_migration_fail\n    \"target proxy permission already exists: %s\" % exc\nAssertionError: auth.0011_update_proxy_permissions must not fail when the target proxy permission already exists: UNIQUE constraint failed: auth_permission.content_type_id, auth_permission.codename\n\n----------------------------------------------------------------------\nRan 1 test in 0.008s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11422",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-ca20d2b8f78eadf1",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 46.2,
+  "base_out_tail": "================\nFAIL: test_main_module_without_spec_is_included_in_watched_files (__main__.StatReloaderManagePyTrackingTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 32, in test_main_module_without_spec_is_included_in_watched_files\n    self.assertIn(Path(__file__).resolve().absolute(), watched_files)\nAssertionError: PosixPath('/injected/test_repro.py') not found in frozenset()\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11564",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "fail",
+  "valid": false,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-974fbc3c5995e569",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 71.2,
+  "base_out_tail": "====================\nFAIL: test_static_url_includes_current_script_name (__main__.ScriptNameStaticMediaURLTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 29, in test_static_url_includes_current_script_name\n    \"/mounted/static/css/site.css\",\nAssertionError: '/static/css/site.css' != '/mounted/static/css/site.css'\n- /static/css/site.css\n+ /mounted/static/css/site.css\n? ++++++++\n\n\n----------------------------------------------------------------------\nRan 2 tests in 0.001s\n\nFAILED (failures=2)\n"
+ },
+ {
+  "iid": "django__django-11583",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-a19449dec116d451",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 49.3,
+  "base_out_tail": "gers/pathlib/resolve/valueerror.py\"]),\nValueError: embedded null byte\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 47, in test_iter_modules_and_files_ignores_value_error_from_path_resolve\n    \"Path.resolve() raises ValueError, but it raised: %s\" % exc\nAssertionError: iter_modules_and_files() should ignore paths whose Path.resolve() raises ValueError, but it raised: embedded null byte\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11620",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 1,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-962c424282c3e1b8",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 60.0,
+  "base_out_tail": "p.response.Http404: converter raised Http404\n\nDuring handling of the above exception, another exception occurred:\n\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 50, in test_http404_from_converter_returns_debug_404_response\n    self.fail(\"Http404 raised by a path converter should produce a debug 404 response, not escape: %s\" % exc)\nAssertionError: Http404 raised by a path converter should produce a debug 404 response, not escape: converter raised Http404\n\n----------------------------------------------------------------------\nRan 1 test in 0.010s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11630",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-2cbdfa977f7f6e88",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 82.1,
+  "base_out_tail": "sertionError: Lists differ: [<Error: level=40, msg=\"db_table 'shared_t[112 chars]28'>] != []\n\nFirst list contains 1 additional elements.\nFirst extra element 0:\n<Error: level=40, msg=\"db_table 'shared_table' is used by multiple models: base.ModelName, app2.ModelName.\", hint=None, obj='shared_table', id='models.E028'>\n\n- [<Error: level=40, msg=\"db_table 'shared_table' is used by multiple models: base.ModelName, app2.ModelName.\", hint=None, obj='shared_table', id='models.E028'>]\n+ []\n\n----------------------------------------------------------------------\nRan 1 test in 0.029s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11742",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-e687270d1c3ab30d",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 15.6,
+  "base_out_tail": "F\n======================================================================\nFAIL: test_charfield_max_length_must_fit_longest_choice_value (__main__.ChoiceMaxLengthCheckTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 36, in test_charfield_max_length_must_fit_longest_choice_value\n    self.assertIn(\"fields.E009\", error_ids)\nAssertionError: 'fields.E009' not found in []\n\n----------------------------------------------------------------------\nRan 1 test in 0.031s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11797",
+  "repo": "django/django",
+  "base": "pass",
+  "gold": null,
+  "valid": false,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-3974b4791ef0515e",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 16.0,
+  "base_out_tail": ".\n----------------------------------------------------------------------\nRan 1 test in 0.005s\n\nOK\n"
+ },
+ {
+  "iid": "django__django-11815",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 0,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-a011e35f316cfa93",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 35.6,
+  "base_out_tail": "n__.EnumMigrationSerializationTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 30, in test_enum_member_default_is_serialized_by_name\n    self.assertEqual(serialized, \"%s.Status['GOOD']\" % Status.__module__)\nAssertionError: \"__main__.Status('Good')\" != \"__main__.Status['GOOD']\"\n- __main__.Status('Good')\n?                ^  ^^^ ^\n+ __main__.Status['GOOD']\n?                ^  ^^^ ^\n\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ },
+ {
+  "iid": "django__django-11848",
+  "repo": "django/django",
+  "base": "fail",
+  "gold": "pass",
+  "valid": true,
+  "repair_rounds": 1,
+  "author_usage": {
+   "prompt_tokens": 0,
+   "completion_tokens": 0,
+   "total_tokens": 0,
+   "prompt_tokens_details": {
+    "cached_tokens": 0
+   },
+   "moa": {
+    "references": [],
+    "aggregator": {
+     "prompt_tokens": 0,
+     "completion_tokens": 0,
+     "total_tokens": 0,
+     "prompt_tokens_details": {
+      "cached_tokens": 0
+     }
+    },
+    "session": {
+     "key": "auto-4dab92802cd521bf",
+     "turns": 1,
+     "last_mode": null,
+     "advisor_note": null
+    }
+   }
+  },
+  "secs": 89.0,
+  "base_out_tail": "F\n======================================================================\nFAIL: test_rfc850_two_digit_year_uses_rolling_fifty_year_window (__main__.ParseHttpDateTwoDigitYearTests)\n----------------------------------------------------------------------\nTraceback (most recent call last):\n  File \"/injected/test_repro.py\", line 56, in test_rfc850_two_digit_year_uses_rolling_fifty_year_window\n    self.assertEqual(parsed, expected)\nAssertionError: 0 != 3155760000\n\n----------------------------------------------------------------------\nRan 1 test in 0.000s\n\nFAILED (failures=1)\n"
+ }
+]
