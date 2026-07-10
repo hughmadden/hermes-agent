@@ -1286,6 +1286,29 @@ class _AnthropicCompletionsAdapter:
         )
         finish_reason = _nr.finish_reason
 
+        # Proxy fix: build_anthropic_kwargs prefixes every tool name to
+        # ``mcp__<name>`` for Anthropic's OAuth billing classifier, and the
+        # transport reverses it only for Hermes-internal *registry* tools. When
+        # this client is the MoA proxy serving an external OpenAI client (e.g.
+        # mini-swe-agent) that advertises its own tools (``bash``), the bare name
+        # is not in the registry, so it leaks back as ``mcp__bash`` — the client
+        # can't match its own tool call and aborts (RepeatedFormatError). Reverse
+        # ``mcp__<name>`` -> ``<name>`` for any tool the caller actually sent.
+        if self._is_oauth and getattr(assistant_message, "tool_calls", None) and tools:
+            _client_tool_names = {
+                (t.get("function") or {}).get("name")
+                for t in tools
+                if isinstance(t, dict) and isinstance(t.get("function"), dict)
+            }
+            _client_tool_names.discard(None)
+            for _tc in assistant_message.tool_calls:
+                _cur = getattr(_tc, "name", None)
+                if _cur and _cur.startswith("mcp__") and _cur[len("mcp__"):] in _client_tool_names:
+                    try:
+                        _tc.name = _cur[len("mcp__"):]
+                    except Exception:
+                        pass
+
         usage = None
         if hasattr(response, "usage") and response.usage:
             prompt_tokens = getattr(response.usage, "input_tokens", 0) or 0
