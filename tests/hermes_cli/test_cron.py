@@ -1,6 +1,7 @@
 """Tests for hermes_cli.cron command handling."""
 
 from argparse import Namespace
+import os
 from types import SimpleNamespace
 
 import pytest
@@ -334,6 +335,33 @@ def test_cron_tick_invokes_scheduler_tick_with_verbose(monkeypatch):
     cron_cli.cron_tick()
 
     assert calls == [True]
+
+
+def test_manual_cron_run_strips_all_kanban_env_and_restores_parent(monkeypatch):
+    inherited = {
+        "HERMES_KANBAN_TASK": "t_parent",
+        "HERMES_KANBAN_RUN_ID": "42",
+        "HERMES_KANBAN_CLAIM_LOCK": "claim",
+        "HERMES_KANBAN_FUTURE_IDENTITY": "must-also-be-stripped",
+    }
+    for key, value in inherited.items():
+        monkeypatch.setenv(key, value)
+
+    observed = {}
+
+    def fake_cron_api(**kwargs):
+        observed.update(
+            (key, value)
+            for key, value in os.environ.items()
+            if key.startswith("HERMES_KANBAN_")
+        )
+        return {"success": True, "job": {"name": "probe"}}
+
+    monkeypatch.setattr(cron_cli, "_cron_api", fake_cron_api)
+
+    assert cron_cli._job_action("run", "probe-id", "Triggered") == 0
+    assert observed == {}
+    assert {key: os.environ.get(key) for key in inherited} == inherited
 
 
 def test_cron_create_success_prints_job_details(monkeypatch, capsys):

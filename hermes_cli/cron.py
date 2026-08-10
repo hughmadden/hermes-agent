@@ -6,6 +6,7 @@ pause/resume/run/remove, status, and tick.
 """
 
 import json
+import os
 import sys
 from pathlib import Path
 from typing import Iterable, List, Optional
@@ -421,7 +422,26 @@ def cron_edit(args):
 
 
 def _job_action(action: str, job_id: str, success_verb: str) -> int:
-    result = _cron_api(action=action, job_id=job_id)
+    # ``hermes cron run`` may be invoked from a dispatcher-worker shell. This
+    # CLI is a fresh child process, not the worker that owns the inherited
+    # HERMES_KANBAN_* identity. Strip the whole namespace for the manual run so
+    # its cron agent cannot see worker-only tools or protocol. Prefix matching
+    # makes future dispatcher variables fail safe without an allowlist update.
+    inherited_kanban = (
+        {
+            key: value
+            for key, value in os.environ.items()
+            if key.startswith("HERMES_KANBAN_")
+        }
+        if action == "run"
+        else {}
+    )
+    try:
+        for key in inherited_kanban:
+            os.environ.pop(key, None)
+        result = _cron_api(action=action, job_id=job_id)
+    finally:
+        os.environ.update(inherited_kanban)
     if not result.get("success"):
         print(color(f"Failed to {action} job: {result.get('error', 'unknown error')}", Colors.RED))
         return 1
