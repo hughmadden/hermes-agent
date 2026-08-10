@@ -212,6 +212,69 @@ def _enforce_worker_task_ownership(tid: str) -> Optional[str]:
     return None
 
 
+def _enforce_active_worker_provenance(tool_name: str) -> Optional[str]:
+    """Require inherited worker identity to match the board's active claim.
+
+    An explicitly configured orchestrator has no ``HERMES_KANBAN_TASK`` and is
+    intentionally unaffected. Once that variable is present, however, its mere
+    presence is not authority: the caller must be the dispatcher-owned context
+    and present the active run id, claim lock, profile, and worker process.
+    """
+    env_tid = os.environ.get("HERMES_KANBAN_TASK")
+    if not env_tid:
+        return None
+    if not _is_dispatcher_owned_worker():
+        return tool_error(
+            f"{tool_name} refused: this session inherited Kanban worker "
+            "environment but is not the dispatcher-owned worker context."
+        )
+
+    raw_run_id = os.environ.get("HERMES_KANBAN_RUN_ID")
+    claim_lock = os.environ.get("HERMES_KANBAN_CLAIM_LOCK")
+    profile = os.environ.get("HERMES_PROFILE")
+    if not raw_run_id or not claim_lock or not profile:
+        return tool_error(
+            f"{tool_name} refused: missing dispatcher provenance for task "
+            f"{env_tid} (requires run id, claim lock, and profile)."
+        )
+    try:
+        run_id = int(raw_run_id)
+    except ValueError:
+        return tool_error(
+            f"{tool_name} refused: invalid HERMES_KANBAN_RUN_ID for task {env_tid}."
+        )
+
+    try:
+        kb, conn = _connect()
+        try:
+            task = kb.get_task(conn, env_tid)
+            run = kb.get_run(conn, run_id)
+            if (
+                task is None
+                or task.status != "running"
+                or task.current_run_id != run_id
+                or task.claim_lock != claim_lock
+                or task.worker_pid != os.getpid()
+                or run is None
+                or run.task_id != env_tid
+                or run.status != "running"
+                or run.profile != profile
+            ):
+                return tool_error(
+                    f"{tool_name} refused: stale or mismatched dispatcher "
+                    f"provenance for task {env_tid}; only its active claimed "
+                    "run may mutate the board."
+                )
+        finally:
+            conn.close()
+    except Exception as exc:
+        logger.exception("%s provenance check failed", tool_name)
+        return tool_error(
+            f"{tool_name} refused: could not verify dispatcher provenance: {exc}"
+        )
+    return None
+
+
 def _connect(board: Optional[str] = None):
     """Import + connect lazily so the module imports cleanly in non-kanban
     contexts (e.g. test rigs that import every tool module).
@@ -635,6 +698,9 @@ def _handle_complete(args: dict, **kw) -> str:
     delegated_err = _reject_delegated_child_mutation("kanban_complete")
     if delegated_err:
         return delegated_err
+    provenance_err = _enforce_active_worker_provenance("kanban_complete")
+    if provenance_err:
+        return provenance_err
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
@@ -814,6 +880,9 @@ def _handle_block(args: dict, **kw) -> str:
     delegated_err = _reject_delegated_child_mutation("kanban_block")
     if delegated_err:
         return delegated_err
+    provenance_err = _enforce_active_worker_provenance("kanban_block")
+    if provenance_err:
+        return provenance_err
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
@@ -903,6 +972,9 @@ def _handle_heartbeat(args: dict, **kw) -> str:
     delegated_err = _reject_delegated_child_mutation("kanban_heartbeat")
     if delegated_err:
         return delegated_err
+    provenance_err = _enforce_active_worker_provenance("kanban_heartbeat")
+    if provenance_err:
+        return provenance_err
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
@@ -949,6 +1021,9 @@ def _handle_comment(args: dict, **kw) -> str:
     delegated_err = _reject_delegated_child_mutation("kanban_comment")
     if delegated_err:
         return delegated_err
+    provenance_err = _enforce_active_worker_provenance("kanban_comment")
+    if provenance_err:
+        return provenance_err
     tid = args.get("task_id")
     if not tid:
         return tool_error(
@@ -997,6 +1072,9 @@ def _handle_attach(args: dict, **kw) -> str:
     delegated_err = _reject_delegated_child_mutation("kanban_attach")
     if delegated_err:
         return delegated_err
+    provenance_err = _enforce_active_worker_provenance("kanban_attach")
+    if provenance_err:
+        return provenance_err
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(
@@ -1119,6 +1197,9 @@ def _handle_attach_url(args: dict, **kw) -> str:
     delegated_err = _reject_delegated_child_mutation("kanban_attach_url")
     if delegated_err:
         return delegated_err
+    provenance_err = _enforce_active_worker_provenance("kanban_attach_url")
+    if provenance_err:
+        return provenance_err
     tid = _default_task_id(args.get("task_id"))
     if not tid:
         return tool_error(

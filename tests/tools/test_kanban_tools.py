@@ -62,10 +62,16 @@ def worker_env(monkeypatch, tmp_path):
     conn = kb.connect()
     try:
         tid = kb.create_task(conn, title="worker-test", assignee="test-worker")
-        kb.claim_task(conn, tid)
+        claimed = kb.claim_task(conn, tid)
+        assert claimed is not None
+        kb._set_worker_pid(conn, tid, os.getpid())
+        claimed = kb.get_task(conn, tid)
+        assert claimed is not None
     finally:
         conn.close()
     monkeypatch.setenv("HERMES_KANBAN_TASK", tid)
+    monkeypatch.setenv("HERMES_KANBAN_RUN_ID", str(claimed.current_run_id))
+    monkeypatch.setenv("HERMES_KANBAN_CLAIM_LOCK", str(claimed.claim_lock))
     return tid
 
 
@@ -132,6 +138,95 @@ def test_complete_happy_path(worker_env):
         conn.close()
 
 
+@pytest.mark.parametrize(
+    ("env_name", "env_value", "expected"),
+    [
+        ("HERMES_KANBAN_RUN_ID", None, "missing dispatcher provenance"),
+        ("HERMES_KANBAN_RUN_ID", "999999", "stale or mismatched"),
+        ("HERMES_KANBAN_CLAIM_LOCK", "wrong-claim", "stale or mismatched"),
+        ("HERMES_PROFILE", "wrong-profile", "stale or mismatched"),
+    ],
+)
+def test_complete_refuses_missing_or_stale_worker_provenance(
+    monkeypatch, worker_env, env_name, env_value, expected
+):
+    from hermes_cli import kanban_db as kb
+    from tools import kanban_tools as kt
+
+    if env_value is None:
+        monkeypatch.delenv(env_name)
+    else:
+        monkeypatch.setenv(env_name, env_value)
+
+    result = json.loads(kt._handle_complete({"summary": "must not land"}))
+    assert expected in result["error"]
+
+    conn = kb.connect()
+    try:
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        assert task.status == "running"
+    finally:
+        conn.close()
+
+
+def test_complete_refuses_inherited_identity_from_descendant_process(
+    monkeypatch, worker_env
+):
+    from hermes_cli import kanban_db as kb
+    from tools import kanban_tools as kt
+
+    # A shell child inherits every HERMES_KANBAN_* value, including the active
+    # run id and claim lock. Its PID is still not the dispatcher's worker PID.
+    worker_pid = os.getpid()
+    monkeypatch.setattr(kt.os, "getpid", lambda: worker_pid + 1)
+    result = json.loads(kt._handle_complete({"summary": "must not land"}))
+    assert "stale or mismatched" in result["error"]
+
+    conn = kb.connect()
+    try:
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        assert task.status == "running"
+    finally:
+        conn.close()
+
+
+def test_comment_refuses_stale_worker_provenance(monkeypatch, worker_env):
+    from hermes_cli import kanban_db as kb
+    from tools import kanban_tools as kt
+
+    monkeypatch.setenv("HERMES_KANBAN_RUN_ID", "999999")
+    result = json.loads(kt._handle_comment({
+        "task_id": worker_env,
+        "body": "must not land",
+    }))
+    assert "stale or mismatched" in result["error"]
+
+    conn = kb.connect()
+    try:
+        assert kb.list_comments(conn, worker_env) == []
+    finally:
+        conn.close()
+
+
+def test_block_refuses_stale_worker_provenance(monkeypatch, worker_env):
+    from hermes_cli import kanban_db as kb
+    from tools import kanban_tools as kt
+
+    monkeypatch.setenv("HERMES_KANBAN_RUN_ID", "999999")
+    result = json.loads(kt._handle_block({"reason": "must not land"}))
+    assert "stale or mismatched" in result["error"]
+
+    conn = kb.connect()
+    try:
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        assert task.status == "running"
+    finally:
+        conn.close()
+
+
 def test_complete_retry_with_empty_created_cards_succeeds(worker_env):
     """After a phantom rejection, retrying kanban_complete with
     created_cards=[] (the documented escape hatch) must complete the
@@ -183,10 +278,16 @@ def test_complete_goal_mode_rejected_by_judge(monkeypatch, tmp_path):
             conn, title="goal-mode-test", assignee="test-worker",
             body="Must achieve X with verified evidence.", goal_mode=True
         )
-        kb.claim_task(conn, goal_task_id)
+        claimed = kb.claim_task(conn, goal_task_id)
+        assert claimed is not None
+        kb._set_worker_pid(conn, goal_task_id, os.getpid())
+        claimed = kb.get_task(conn, goal_task_id)
+        assert claimed is not None
     finally:
         conn.close()
     monkeypatch.setenv("HERMES_KANBAN_TASK", goal_task_id)
+    monkeypatch.setenv("HERMES_KANBAN_RUN_ID", str(claimed.current_run_id))
+    monkeypatch.setenv("HERMES_KANBAN_CLAIM_LOCK", str(claimed.claim_lock))
 
     # Mock the judge to reject the completion. The gate only runs when a
     # judge is reachable, so force the availability probe True as well.
@@ -249,10 +350,16 @@ def _make_goal_mode_worker_env(monkeypatch, tmp_path):
             conn, title="goal-mode-block-test", assignee="test-worker",
             body="Must achieve X.", goal_mode=True,
         )
-        kb.claim_task(conn, goal_task_id)
+        claimed = kb.claim_task(conn, goal_task_id)
+        assert claimed is not None
+        kb._set_worker_pid(conn, goal_task_id, os.getpid())
+        claimed = kb.get_task(conn, goal_task_id)
+        assert claimed is not None
     finally:
         conn.close()
     monkeypatch.setenv("HERMES_KANBAN_TASK", goal_task_id)
+    monkeypatch.setenv("HERMES_KANBAN_RUN_ID", str(claimed.current_run_id))
+    monkeypatch.setenv("HERMES_KANBAN_CLAIM_LOCK", str(claimed.claim_lock))
     return goal_task_id
 
 
