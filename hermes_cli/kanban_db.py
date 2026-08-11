@@ -281,6 +281,15 @@ DEFAULT_CRASH_GRACE_SECONDS = 30
 # 0/1/2 codes the worker uses for success / generic failure / usage error.
 KANBAN_RATE_LIMIT_EXIT_CODE = 75
 
+# Bounded, evidence-based retry for provider-side crashes that happen before a
+# worker can make its terminal kanban call. These defaults are exposed by the
+# gateway and standalone CLI as ``kanban.*`` config knobs.
+DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS = 300
+DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H = 2
+_TRANSIENT_AUTO_RECLAIM_WINDOW_SECONDS = 24 * 60 * 60
+_TRANSIENT_LOG_TAIL_BYTES = 64 * 1024
+_WORKER_LOG_RUN_MARKER = "--- HERMES KANBAN RUN "
+
 
 def _resolve_crash_grace_seconds() -> int:
     """Return the crash-detection grace period in seconds.
@@ -6844,6 +6853,10 @@ class DispatchResult:
     (EX_TEMPFAIL sentinel exit) and were released back to ``ready`` WITHOUT
     counting a failure. These never trip the circuit breaker — a long quota
     window just makes the task bounce cheaply until the window clears."""
+    auto_reclaimed: list[str] = field(default_factory=list)
+    """Task ids requeued after their worker log's last terminal error was
+    classified as a transient provider failure. The failure counter is not
+    incremented; cooldown and daily budgets bound this retry path."""
     skipped_locked: bool = False
     """True when this tick was skipped because another process already held
     the board's dispatch lock (issue #35240). A losing dispatcher does no
@@ -7609,7 +7622,179 @@ def _protocol_violation_streak(conn: sqlite3.Connection, task_id: str) -> int:
     return streak
 
 
-def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
+_TERMINAL_LOG_ERROR_RE = re.compile(
+    r"(?i)(?:\berror\b|\bexception\b|"
+    r"\b[a-z_][a-z0-9_]*(?:error|exception)\b|"
+    r"\bfailed\b|\bfailure\b|\btimeout\b|\btimed[ -]?out\b|"
+    r"\bhttp\s*[45]\d\d\b|"
+    r"\bstatus(?:\s+code)?\s*[:=]?\s*[45]\d\d\b|\bconnection\b)"
+)
+_TRANSIENT_PROVIDER_LOG_PATTERNS: tuple[tuple[str, re.Pattern[str]], ...] = (
+    (
+        "http_5xx",
+        re.compile(
+            r"(?i)(?:\bhttp(?:/\d(?:\.\d)?)?\s*[:=]?\s*5\d\d\b|"
+            r"\bstatus(?:\s+code)?\s*[:=]?\s*5\d\d\b|"
+            r"\b5\d\d\s+(?:internal\s+server\s+error|bad\s+gateway|"
+            r"service\s+unavailable|gateway\s+timeout)\b)"
+        ),
+    ),
+    (
+        "timeout",
+        re.compile(
+            r"(?i)(?:\brequest\s+timed[ -]?out\b|\bread\s+timeout\b|"
+            r"\bconnect(?:ion)?\s+timeout\b|\btimeout(?:error|exception)\b|"
+            r"\b(?:api|read|connect|write|pool)timeout(?:error|exception)?\b|"
+            r"\btimed[ -]?out\b)"
+        ),
+    ),
+    (
+        "connection_error",
+        re.compile(
+            r"(?i)(?:\b(?:api)?connectionerror\b|\bconnection\s+(?:error|"
+            r"refused|reset|aborted|closed)\b|\bfailed\s+to\s+connect\b|"
+            r"\b(?:connecterror|clientconnectorerror|connection(?:refused|"
+            r"reset|aborted)error)\b|"
+            r"\bnetwork\s+is\s+unreachable\b)"
+        ),
+    ),
+)
+
+
+def _classify_transient_provider_log(
+    task_id: str, *, board: Optional[str] = None,
+) -> Optional[dict[str, str]]:
+    """Classify only the last terminal error in a worker-log tail.
+
+    Missing/unreadable logs, tails with no terminal error, and a transient
+    line followed by any later non-transient terminal error all fail closed.
+    """
+    tail = read_worker_log(
+        task_id, tail_bytes=_TRANSIENT_LOG_TAIL_BYTES, board=board,
+    )
+    if not tail:
+        return None
+    # Logs append across retries. A dispatcher-written run marker prevents an
+    # old transient error from being attributed to a later ambiguous crash.
+    if _WORKER_LOG_RUN_MARKER in tail:
+        tail = tail.rsplit(_WORKER_LOG_RUN_MARKER, 1)[-1]
+    for raw_line in reversed(tail.splitlines()):
+        line = raw_line.strip()
+        if not line or not _TERMINAL_LOG_ERROR_RE.search(line):
+            continue
+        for cause, pattern in _TRANSIENT_PROVIDER_LOG_PATTERNS:
+            if pattern.search(line):
+                return {"cause": cause, "evidence": line[:500]}
+        return None
+    return None
+
+
+def _transient_auto_reclaim_budget_available(
+    conn: sqlite3.Connection,
+    task_id: str,
+    *,
+    now: int,
+    cooldown_seconds: int,
+    max_per_24h: int,
+) -> bool:
+    """Return whether the event-backed cooldown and daily budgets allow one."""
+    if max_per_24h <= 0:
+        return False
+    rows = conn.execute(
+        "SELECT created_at FROM task_events "
+        "WHERE task_id = ? AND kind = 'auto_reclaim' "
+        "  AND created_at >= ? ORDER BY created_at DESC",
+        (task_id, now - _TRANSIENT_AUTO_RECLAIM_WINDOW_SECONDS),
+    ).fetchall()
+    if len(rows) >= max_per_24h:
+        return False
+    if rows and now - int(rows[0]["created_at"]) < max(0, cooldown_seconds):
+        return False
+    return True
+
+
+def _failure_follows_auto_reclaim(
+    conn: sqlite3.Connection, task_id: str, run_id: Optional[int],
+) -> bool:
+    """True when ``run_id`` is the immediate retry of an auto-reclaimed run."""
+    if run_id is None:
+        return False
+    previous = conn.execute(
+        "SELECT outcome FROM task_runs WHERE task_id = ? AND id < ? "
+        "ORDER BY id DESC LIMIT 1",
+        (task_id, int(run_id)),
+    ).fetchone()
+    return bool(previous and previous["outcome"] == "auto_reclaimed")
+
+
+def _record_transient_auto_reclaim(
+    conn: sqlite3.Connection,
+    task_id: str,
+    run_id: Optional[int],
+    classification: dict[str, str],
+) -> None:
+    """Write the comment + audit event without touching failure accounting."""
+    now = int(time.time())
+    payload = {
+        "classification": "provider_transient",
+        "cause": classification["cause"],
+        "evidence": classification["evidence"],
+        "failure_counted": False,
+    }
+    comment = (
+        "Dispatcher auto-reclaimed this worker without counting a failure: "
+        f"classified {classification['cause']} from terminal log evidence: "
+        f"{classification['evidence']}"
+    )
+    with write_txn(conn):
+        if run_id is not None:
+            row = conn.execute(
+                "SELECT metadata FROM task_runs WHERE id = ? AND task_id = ?",
+                (int(run_id), task_id),
+            ).fetchone()
+            metadata: dict[str, Any] = {}
+            if row and row["metadata"]:
+                try:
+                    parsed = json.loads(row["metadata"])
+                    if isinstance(parsed, dict):
+                        metadata.update(parsed)
+                except (TypeError, ValueError):
+                    pass
+            metadata["auto_reclaim"] = payload
+            conn.execute(
+                "UPDATE task_runs SET status = 'auto_reclaimed', "
+                "outcome = 'auto_reclaimed', metadata = ? "
+                "WHERE id = ? AND task_id = ?",
+                (json.dumps(metadata), int(run_id), task_id),
+            )
+        conn.execute(
+            "UPDATE tasks SET last_failure_error = ? WHERE id = ?",
+            (comment[:500], task_id),
+        )
+        conn.execute(
+            "INSERT INTO task_comments (task_id, author, body, created_at) "
+            "VALUES (?, 'dispatcher', ?, ?)",
+            (task_id, comment, now),
+        )
+        _append_event(
+            conn, task_id, "commented",
+            {"author": "dispatcher", "len": len(comment)}, run_id=run_id,
+        )
+        _append_event(conn, task_id, "auto_reclaim", payload, run_id=run_id)
+
+
+def detect_crashed_workers(
+    conn: sqlite3.Connection,
+    *,
+    failure_limit: int = DEFAULT_SPAWN_FAILURE_LIMIT,
+    board: Optional[str] = None,
+    transient_auto_reclaim_cooldown_seconds: int = (
+        DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS
+    ),
+    transient_auto_reclaim_max_per_24h: int = (
+        DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H
+    ),
+) -> list[str]:
     """Reclaim ``running`` tasks whose worker PID is no longer alive.
 
     Appends a ``crashed`` event and drops the task back to ``ready``.
@@ -7645,8 +7830,8 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
     # clean-exit-but-still-running case, which is accounted against its
     # own bounded violation streak instead of the unified failure
     # counter (see the post-txn loop below).
-    crash_details: list[tuple[str, int, str, bool, str]] = []
-    # (task_id, pid, claimer, protocol_violation, error_text)
+    crash_details: list[tuple[str, int, str, bool, str, Optional[int]]] = []
+    # (task_id, pid, claimer, protocol_violation, error_text, run_id)
     with write_txn(conn):
         rows = conn.execute(
             "SELECT id, worker_pid, claim_lock, started_at FROM tasks "
@@ -7783,7 +7968,7 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
                     crashed.append(row["id"])
                     crash_details.append(
                         (row["id"], pid, row["claim_lock"],
-                         protocol_violation, error_text)
+                         protocol_violation, error_text, run_id)
                     )
     # Outside the main txn: account each crashed task and maybe trip the
     # breaker (the task transitions ready → blocked with a ``gave_up`` event
@@ -7802,13 +7987,56 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
     # top precedence it has for every other failure kind. Systemic same-error
     # crashes still trip immediately.
     auto_blocked: list[str] = []
+    auto_reclaimed: list[str] = []
     if crash_details:
         # Fingerprint errors to detect systemic failures.
         _fp_counts: dict[str, int] = {}
-        for _, _, _, _, err_text in crash_details:
+        for _, _, _, _, err_text, _ in crash_details:
             fp = _error_fingerprint(err_text)
             _fp_counts[fp] = _fp_counts.get(fp, 0) + 1
-        for tid, pid, claimer, protocol_violation, error_text in crash_details:
+        for tid, pid, claimer, protocol_violation, error_text, run_id in crash_details:
+            follows_auto_reclaim = _failure_follows_auto_reclaim(conn, tid, run_id)
+            classification = _classify_transient_provider_log(tid, board=board)
+            if (
+                classification is not None
+                and not follows_auto_reclaim
+                and _transient_auto_reclaim_budget_available(
+                    conn,
+                    tid,
+                    now=int(time.time()),
+                    cooldown_seconds=transient_auto_reclaim_cooldown_seconds,
+                    max_per_24h=transient_auto_reclaim_max_per_24h,
+                )
+            ):
+                _record_transient_auto_reclaim(
+                    conn, tid, run_id, classification,
+                )
+                auto_reclaimed.append(tid)
+                continue
+            # A retry spawned by auto-reclaim gets exactly one chance: any
+            # subsequent failure trips the normal breaker immediately. If the
+            # evidence is transient but the cooldown/daily budget is exhausted,
+            # account it through the ordinary consecutive-failure path instead
+            # of falling into the separate protocol-violation retry budget.
+            if follows_auto_reclaim or classification is not None:
+                tripped = _record_task_failure(
+                    conn, tid,
+                    error=error_text,
+                    outcome="crashed",
+                    failure_limit=failure_limit,
+                    force_trip=follows_auto_reclaim,
+                    release_claim=False,
+                    end_run=False,
+                    event_payload_extra={
+                        "pid": pid,
+                        "claimer": claimer,
+                        "provider_transient": classification is not None,
+                        "auto_reclaim_retry_failed": follows_auto_reclaim,
+                    },
+                )
+                if tripped:
+                    auto_blocked.append(tid)
+                continue
             if protocol_violation:
                 streak = _protocol_violation_streak(conn, tid)
                 trow = conn.execute(
@@ -7861,7 +8089,8 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
                 conn, tid,
                 error=error_text,
                 outcome="crashed",
-                failure_limit=1 if is_systemic else None,
+                failure_limit=1 if is_systemic else failure_limit,
+                force_trip=follows_auto_reclaim,
                 release_claim=False,
                 end_run=False,
                 event_payload_extra={"pid": pid, "claimer": claimer},
@@ -7876,6 +8105,7 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
     # Same side-channel for rate-limited requeues — these did NOT count a
     # failure and are NOT crashes, so they stay out of the ``crashed`` return.
     detect_crashed_workers._last_rate_limited = rate_limited  # type: ignore[attr-defined]
+    detect_crashed_workers._last_auto_reclaimed = auto_reclaimed  # type: ignore[attr-defined]
     return crashed
 
 
@@ -8309,6 +8539,12 @@ def dispatch_once(
     default_assignee: Optional[str] = None,
     max_in_progress_per_profile: Optional[int] = None,
     reconcile_orphans: bool = True,
+    transient_auto_reclaim_cooldown_seconds: int = (
+        DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS
+    ),
+    transient_auto_reclaim_max_per_24h: int = (
+        DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H
+    ),
 ) -> DispatchResult:
     """Run one dispatcher tick under the board's single-writer lock.
 
@@ -8344,6 +8580,8 @@ def dispatch_once(
             default_assignee=default_assignee,
             max_in_progress_per_profile=max_in_progress_per_profile,
             reconcile_orphans=reconcile_orphans,
+            transient_auto_reclaim_cooldown_seconds=transient_auto_reclaim_cooldown_seconds,
+            transient_auto_reclaim_max_per_24h=transient_auto_reclaim_max_per_24h,
         )
     with _dispatch_tick_lock(db_path) as held:
         if not held:
@@ -8361,6 +8599,8 @@ def dispatch_once(
             default_assignee=default_assignee,
             max_in_progress_per_profile=max_in_progress_per_profile,
             reconcile_orphans=reconcile_orphans,
+            transient_auto_reclaim_cooldown_seconds=transient_auto_reclaim_cooldown_seconds,
+            transient_auto_reclaim_max_per_24h=transient_auto_reclaim_max_per_24h,
         )
         # Still under the dispatch lock: opportunistically truncate the WAL
         # at a coarse interval so it cannot grow unbounded between restarts.
@@ -8382,6 +8622,12 @@ def _dispatch_once_locked(
     default_assignee: Optional[str] = None,
     max_in_progress_per_profile: Optional[int] = None,
     reconcile_orphans: bool = True,
+    transient_auto_reclaim_cooldown_seconds: int = (
+        DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS
+    ),
+    transient_auto_reclaim_max_per_24h: int = (
+        DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H
+    ),
 ) -> DispatchResult:
     """Run one dispatcher tick.
 
@@ -8425,7 +8671,15 @@ def _dispatch_once_locked(
     result.stale = detect_stale_running(
         conn, stale_timeout_seconds=stale_timeout_seconds,
     )
-    result.crashed = detect_crashed_workers(conn)
+    result.crashed = detect_crashed_workers(
+        conn,
+        failure_limit=failure_limit,
+        board=board,
+        transient_auto_reclaim_cooldown_seconds=(
+            transient_auto_reclaim_cooldown_seconds
+        ),
+        transient_auto_reclaim_max_per_24h=transient_auto_reclaim_max_per_24h,
+    )
     # detect_crashed_workers stashes protocol-violation auto-blocks on
     # itself so the public list-return stays stable. Pull them into the
     # DispatchResult here so telemetry / tests see the trip.
@@ -8442,6 +8696,11 @@ def _dispatch_once_locked(
     )
     if _crash_rate_limited:
         result.rate_limited.extend(_crash_rate_limited)
+    _crash_auto_reclaimed = getattr(
+        detect_crashed_workers, "_last_auto_reclaimed", []
+    )
+    if _crash_auto_reclaimed:
+        result.auto_reclaimed.extend(_crash_auto_reclaimed)
     result.timed_out = enforce_max_runtime(conn)
     result.promoted = recompute_ready(conn, failure_limit=failure_limit)
 
@@ -9254,6 +9513,12 @@ def _default_spawn(
 
     # Use 'a' so a re-run on unblock appends rather than overwrites.
     log_f = open(log_path, "ab")
+    marker = (
+        f"\n{_WORKER_LOG_RUN_MARKER}{task.current_run_id or 'unknown'} "
+        f"START {int(time.time())} ---\n"
+    )
+    log_f.write(marker.encode("utf-8"))
+    log_f.flush()
     try:
         proc = subprocess.Popen(  # noqa: S603 -- argv is a fixed list built above
             cmd,

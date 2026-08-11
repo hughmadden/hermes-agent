@@ -1099,6 +1099,33 @@ class GatewayKanbanWatchersMixin:
             )
             failure_limit = _kb.DEFAULT_FAILURE_LIMIT
 
+        def _nonnegative_config_int(key: str, default: int) -> int:
+            raw = kanban_cfg.get(key, default)
+            try:
+                value = int(raw)
+            except (TypeError, ValueError):
+                logger.warning(
+                    "kanban dispatcher: invalid kanban.%s=%r; using default %d",
+                    key, raw, default,
+                )
+                return default
+            if value < 0:
+                logger.warning(
+                    "kanban dispatcher: kanban.%s=%r is below 0; using default %d",
+                    key, raw, default,
+                )
+                return default
+            return value
+
+        transient_auto_reclaim_cooldown_seconds = _nonnegative_config_int(
+            "transient_auto_reclaim_cooldown_seconds",
+            _kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS,
+        )
+        transient_auto_reclaim_max_per_24h = _nonnegative_config_int(
+            "transient_auto_reclaim_max_per_24h",
+            _kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H,
+        )
+
         # Read stale_timeout_seconds — 0 disables stale detection.
         raw_stale = kanban_cfg.get("dispatch_stale_timeout_seconds", 0)
         try:
@@ -1254,6 +1281,12 @@ class GatewayKanbanWatchersMixin:
                     default_assignee=default_assignee,
                     max_in_progress_per_profile=max_in_progress_per_profile,
                     reconcile_orphans=reconcile_orphans,
+                    transient_auto_reclaim_cooldown_seconds=(
+                        transient_auto_reclaim_cooldown_seconds
+                    ),
+                    transient_auto_reclaim_max_per_24h=(
+                        transient_auto_reclaim_max_per_24h
+                    ),
                 )
             except sqlite3.DatabaseError as exc:
                 if _is_corrupt_board_db_error(exc):

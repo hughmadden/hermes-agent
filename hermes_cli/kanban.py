@@ -2466,11 +2466,38 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
         max_spawn = cli_max if cli_max is not None else _coerce_positive_int(
             _kanban_cfg.get("max_spawn")
         )
+        def _coerce_nonnegative_int(value, default):
+            try:
+                parsed = int(value)
+            except (TypeError, ValueError):
+                return default
+            return parsed if parsed >= 0 else default
+
+        transient_auto_reclaim_cooldown_seconds = _coerce_nonnegative_int(
+            _kanban_cfg.get(
+                "transient_auto_reclaim_cooldown_seconds",
+                kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS,
+            ),
+            kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS,
+        )
+        transient_auto_reclaim_max_per_24h = _coerce_nonnegative_int(
+            _kanban_cfg.get(
+                "transient_auto_reclaim_max_per_24h",
+                kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H,
+            ),
+            kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H,
+        )
     except Exception:
         default_assignee = None
         max_in_progress_per_profile = None
         max_in_progress = None
         max_spawn = getattr(args, "max", None)
+        transient_auto_reclaim_cooldown_seconds = (
+            kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_COOLDOWN_SECONDS
+        )
+        transient_auto_reclaim_max_per_24h = (
+            kb.DEFAULT_TRANSIENT_AUTO_RECLAIM_MAX_PER_24H
+        )
     with kb.connect_closing() as conn:
         res = kb.dispatch_once(
             conn,
@@ -2480,6 +2507,12 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
             failure_limit=getattr(args, "failure_limit", kb.DEFAULT_SPAWN_FAILURE_LIMIT),
             default_assignee=default_assignee,
             max_in_progress_per_profile=max_in_progress_per_profile,
+            transient_auto_reclaim_cooldown_seconds=(
+                transient_auto_reclaim_cooldown_seconds
+            ),
+            transient_auto_reclaim_max_per_24h=(
+                transient_auto_reclaim_max_per_24h
+            ),
         )
     if getattr(args, "json", False):
         print(json.dumps({
@@ -2488,6 +2521,7 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
             "timed_out": res.timed_out,
             "stale": res.stale,
             "auto_blocked": res.auto_blocked,
+            "auto_reclaimed": res.auto_reclaimed,
             "promoted": res.promoted,
             "spawned": [
                 {"task_id": tid, "assignee": who, "workspace": ws}
