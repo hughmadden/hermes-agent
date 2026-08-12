@@ -443,7 +443,10 @@ async function startSocket() {
         if (!PAIR_JSON) {
           console.log('❌ Logged out. Delete session and restart to re-authenticate.');
         }
-        process.exit(1);
+        // Distinguish a terminal logout from transient bridge crashes. The
+        // Python adapter treats 42 as non-retryable so the gateway does not
+        // respawn this process every five minutes until a human re-pairs it.
+        process.exit(42);
       } else {
         // 515 = restart requested (common after pairing). Always reconnect.
         emitPairEvent({ event: 'disconnected', reason });

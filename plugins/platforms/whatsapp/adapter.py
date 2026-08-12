@@ -748,6 +748,12 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                 if self._bridge_process.poll() is not None:
                     print(f"[{self.name}] Bridge process died (exit code {self._bridge_process.returncode})")
                     print(f"[{self.name}] Check log: {self._bridge_log}")
+                    if self._bridge_process.returncode == 42:
+                        self._set_fatal_error(
+                            "whatsapp_logged_out",
+                            "WhatsApp session is logged out; re-pair with `hermes whatsapp`.",
+                            retryable=False,
+                        )
                     self._close_bridge_log()
                     return False
                 try:
@@ -780,6 +786,12 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
                     if self._bridge_process.poll() is not None:
                         print(f"[{self.name}] Bridge process died during connection")
                         print(f"[{self.name}] Check log: {self._bridge_log}")
+                        if self._bridge_process.returncode == 42:
+                            self._set_fatal_error(
+                                "whatsapp_logged_out",
+                                "WhatsApp session is logged out; re-pair with `hermes whatsapp`.",
+                                retryable=False,
+                            )
                         self._close_bridge_log()
                         return False
                     try:
@@ -854,10 +866,19 @@ class WhatsAppAdapter(WhatsAppBehaviorMixin, BasePlatformAdapter):
             )
             return None
 
-        message = f"WhatsApp bridge process exited unexpectedly (code {returncode})."
+        logged_out = returncode == 42
+        message = (
+            "WhatsApp session is logged out; re-pair with `hermes whatsapp`."
+            if logged_out
+            else f"WhatsApp bridge process exited unexpectedly (code {returncode})."
+        )
         if not self.has_fatal_error:
             logger.error("[%s] %s", self.name, message)
-            self._set_fatal_error("whatsapp_bridge_exited", message, retryable=True)
+            self._set_fatal_error(
+                "whatsapp_logged_out" if logged_out else "whatsapp_bridge_exited",
+                message,
+                retryable=not logged_out,
+            )
             self._close_bridge_log()
             await self._notify_fatal_error()
         return self.fatal_error_message or message

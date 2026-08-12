@@ -195,6 +195,25 @@ class TestFileHandleClosedOnError:
         mock_fh.close.assert_called_once()
         assert adapter._bridge_log_fh is None
 
+    @pytest.mark.asyncio
+    async def test_logged_out_bridge_is_non_retryable_during_connect(self):
+        """Exit 42 means re-pairing is required, so reconnect loops must stop."""
+        adapter = _make_adapter()
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 42
+        mock_proc.returncode = 42
+        mock_fh = MagicMock()
+        patches = _connect_patches(mock_proc, mock_fh)
+
+        with patches[0], patches[1], patches[2], patches[3], patches[4], \
+             patches[5], patches[6], patches[7]:
+            result = await adapter.connect()
+
+        assert result is False
+        assert adapter.fatal_error_code == "whatsapp_logged_out"
+        assert adapter.fatal_error_retryable is False
+        mock_fh.close.assert_called_once()
+
 
 class TestConnectCleanup:
     """Verify failure paths release the scoped session lock."""
@@ -246,6 +265,28 @@ class TestBridgeRuntimeFailure:
         fatal_handler.assert_awaited_once()
         mock_fh.close.assert_called_once()
         assert adapter._bridge_log_fh is None
+
+    @pytest.mark.asyncio
+    async def test_send_marks_logged_out_bridge_non_retryable(self):
+        adapter = _make_adapter()
+        fatal_handler = AsyncMock()
+        adapter.set_fatal_error_handler(fatal_handler)
+        adapter._running = True
+        adapter._http_session = MagicMock()
+        mock_fh = MagicMock()
+        adapter._bridge_log_fh = mock_fh
+        mock_proc = MagicMock()
+        mock_proc.poll.return_value = 42
+        adapter._bridge_process = mock_proc
+
+        result = await adapter.send("chat-123", "hello")
+
+        assert result.success is False
+        assert result.error is not None
+        assert "logged out" in result.error
+        assert adapter.fatal_error_code == "whatsapp_logged_out"
+        assert adapter.fatal_error_retryable is False
+        fatal_handler.assert_awaited_once()
 
     @pytest.mark.asyncio
     async def test_send_normalizes_bare_phone_numbers_to_jid(self):
