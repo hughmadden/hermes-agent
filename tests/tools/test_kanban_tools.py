@@ -138,6 +138,41 @@ def test_complete_happy_path(worker_env):
         conn.close()
 
 
+def test_complete_reports_durable_scratch_artifact_paths(worker_env):
+    """The transcript-facing tool result must name the surviving attachment.
+
+    Desktop's Artifacts browser indexes tool results. Returning only the
+    original scratch path leaves it indexing a file that completion deletes.
+    """
+    from hermes_cli import kanban_db as kb
+    from tools import kanban_tools as kt
+
+    conn = kb.connect()
+    try:
+        task = kb.get_task(conn, worker_env)
+        assert task is not None
+        workspace = kb.resolve_workspace(task)
+        kb.set_workspace_path(conn, worker_env, workspace)
+    finally:
+        conn.close()
+
+    artifact = workspace / "result.txt"
+    artifact.write_text("survives\n")
+
+    result = json.loads(kt._handle_complete({
+        "summary": "saved result",
+        "artifacts": [str(artifact)],
+    }))
+
+    assert result["ok"] is True
+    assert len(result["artifacts"]) == 1
+    persisted = result["artifacts"][0]
+    assert persisted != str(artifact)
+    assert persisted.endswith(f"/attachments/{worker_env}/result.txt")
+    assert os.path.isfile(persisted)
+    assert not workspace.exists()
+
+
 @pytest.mark.parametrize(
     ("env_name", "env_value", "expected"),
     [
@@ -176,8 +211,6 @@ def test_complete_refuses_inherited_identity_from_descendant_process(
     from hermes_cli import kanban_db as kb
     from tools import kanban_tools as kt
 
-    # A shell child inherits every HERMES_KANBAN_* value, including the active
-    # run id and claim lock. Its PID is still not the dispatcher's worker PID.
     worker_pid = os.getpid()
     monkeypatch.setattr(kt.os, "getpid", lambda: worker_pid + 1)
     result = json.loads(kt._handle_complete({"summary": "must not land"}))
