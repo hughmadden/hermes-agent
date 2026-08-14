@@ -333,6 +333,74 @@ class TestSvgNormalization:
         assert "rasterizer" in err
 
 
+class TestCorruptRasterNormalization:
+    """Regression: a header-valid but data-stream-broken raster must never be
+    embedded raw into the provider request.
+
+    Root cause of the 2026-08-12 kanban evaluator crashes (t_0b287bce): a
+    truncated demo GIF passed the MIME allowlist untouched, the provider
+    rejected the embedded bytes with a non-retryable 400, and the
+    session-fatal error killed three worker runs.  The normalize step now
+    decode-verifies allowlisted rasters and salvages the first frame to PNG.
+    """
+
+    @staticmethod
+    def _make_noise_gif(path: Path, frames: int = 6, size: int = 64) -> Path:
+        import os
+
+        from PIL import Image
+
+        imgs = [
+            Image.frombytes("RGB", (size, size), os.urandom(size * size * 3))
+            for _ in range(frames)
+        ]
+        imgs[0].save(path, format="GIF", save_all=True, append_images=imgs[1:])
+        return path
+
+    def test_valid_gif_passes_through_untouched(self, tmp_path, monkeypatch):
+        from tools import vision_tools as vt
+
+        _reload(monkeypatch, tmp_path / "hermes")
+        gif = self._make_noise_gif(tmp_path / "ok.gif")
+        before = gif.read_bytes()
+        path, mime, err = vt._normalize_to_supported_image(gif, "image/gif")
+        assert err is None
+        assert mime == "image/gif"
+        assert path == gif
+        assert gif.read_bytes() == before
+
+    def test_truncated_gif_salvaged_to_first_frame_png(self, tmp_path, monkeypatch):
+        from tools import vision_tools as vt
+
+        _reload(monkeypatch, tmp_path / "hermes")
+        gif = self._make_noise_gif(tmp_path / "anim.gif")
+        data = gif.read_bytes()
+        # Cut the tail: header + early frames intact, later LZW stream broken.
+        broken = tmp_path / "broken.gif"
+        broken.write_bytes(data[: int(len(data) * 0.85)])
+
+        path, mime, err = vt._normalize_to_supported_image(broken, "image/gif")
+        assert err is None
+        assert mime == "image/png"
+        assert path is not None and path != broken
+        from PIL import Image
+
+        with Image.open(path) as img:
+            img.load()  # the salvaged PNG must itself decode cleanly
+        path.unlink()
+
+    def test_undecodable_image_returns_actionable_error(self, tmp_path, monkeypatch):
+        from tools import vision_tools as vt
+
+        _reload(monkeypatch, tmp_path / "hermes")
+        junk = tmp_path / "junk.png"
+        junk.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+        path, mime, err = vt._normalize_to_supported_image(junk, "image/png")
+        assert path is None
+        assert mime is None
+        assert err is not None and "corrupt" in err
+
+
 class TestLazySandboxBringUp:
     """Issue #62825: under a non-local backend, the FIRST vision_analyze of a
     session (before any terminal command) must bring the sandbox up itself

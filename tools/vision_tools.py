@@ -321,6 +321,61 @@ def _rasterize_svg_to_png(svg_path: Path, out_path: Path) -> bool:
     return False
 
 
+def _verify_raster_decodes(image_path: Path, detected_mime: str) -> Optional[str]:
+    """Fully decode an allowlisted raster image to catch corrupt files.
+
+    MIME sniffing only reads the header — a file can present as a valid
+    GIF/JPEG/PNG yet have a broken data stream partway through (truncated
+    download, interrupted encoder).  Vision providers reject such bytes with
+    a non-retryable 400, and once the image is embedded into immutable
+    conversation history that error wedges the whole session (observed
+    2026-08-12: a truncated GIF attachment killed three kanban worker runs
+    with 'The image data you provided does not represent a valid image').
+
+    Returns ``None`` when the image decodes cleanly (or Pillow is unavailable
+    to check — pass through, preserving pre-check behaviour).  Returns an
+    error description string when decoding fails.
+    """
+    try:
+        from PIL import Image, ImageSequence
+    except Exception:
+        return None
+    try:
+        with Image.open(image_path) as img:
+            for frame in ImageSequence.Iterator(img):
+                frame.load()
+        return None
+    except Exception as exc:
+        return f"{type(exc).__name__}: {exc}"
+
+
+def _salvage_broken_image(image_path: Path, out_path: Path) -> bool:
+    """Best-effort rescue of a corrupt raster image: tolerate truncation and
+    keep the first decodable frame as PNG.  Returns True on success.
+
+    Loses animation/extra frames, but a partial still is strictly better than
+    embedding bytes the provider will 400 on (session-fatal) — the model
+    keeps visual evidence and the run survives.
+    """
+    try:
+        from PIL import Image, ImageFile
+    except Exception:
+        return False
+    prev_flag = ImageFile.LOAD_TRUNCATED_IMAGES
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
+    try:
+        with Image.open(image_path) as img:
+            frame = img if img.mode in ("RGB", "RGBA", "L") else img.convert("RGBA")
+            frame.load()
+            frame.save(out_path, format="PNG")
+        return out_path.exists() and out_path.stat().st_size > 0
+    except Exception as exc:
+        logger.warning("Image salvage failed for %s: %s", image_path, exc)
+        return False
+    finally:
+        ImageFile.LOAD_TRUNCATED_IMAGES = prev_flag
+
+
 def _normalize_to_supported_image(
     image_path: Path, detected_mime: str
 ) -> tuple[Optional[Path], Optional[str], Optional[str]]:
@@ -336,12 +391,34 @@ def _normalize_to_supported_image(
     Pillow can read (BMP, TIFF, etc.) are re-encoded to PNG.  This runs BEFORE
     the image is base64-embedded into conversation history, so an unsupported
     media_type can never reach the provider and wedge the session.
-    """
-    if detected_mime in _ANTHROPIC_SUPPORTED_MEDIA_TYPES:
-        return image_path, detected_mime, None
 
+    Already-allowlisted raster types (jpeg/png/gif/webp) are additionally
+    decode-verified: a file whose header sniffs as valid but whose data
+    stream is broken is salvaged to a first-frame PNG when possible, and
+    rejected with an actionable error otherwise.
+    """
     out_dir = get_hermes_dir("cache/vision", "temp_vision_images")
     out_dir.mkdir(parents=True, exist_ok=True)
+
+    if detected_mime in _ANTHROPIC_SUPPORTED_MEDIA_TYPES:
+        decode_err = _verify_raster_decodes(image_path, detected_mime)
+        if decode_err is None:
+            return image_path, detected_mime, None
+        salvaged_path = out_dir / f"salvaged_{uuid.uuid4()}.png"
+        if _salvage_broken_image(image_path, salvaged_path):
+            logger.warning(
+                "Corrupt %s image salvaged to first-frame PNG: %s (%s)",
+                detected_mime, image_path, decode_err,
+            )
+            return salvaged_path, "image/png", None
+        return (
+            None,
+            None,
+            f"Image file is corrupt and could not be decoded "
+            f"({detected_mime}: {decode_err}). Re-export or re-download it "
+            f"(e.g. re-run the encoder that produced it) and try again.",
+        )
+
     out_path = out_dir / f"converted_{uuid.uuid4()}.png"
 
     # SVG: needs a rasterizer (Pillow cannot render SVG).

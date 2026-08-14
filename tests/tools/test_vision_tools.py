@@ -29,6 +29,14 @@ from tools.vision_tools import (
 
 _RESOLVES = [(2, 1, 6, "", ("93.184.216.34", 0))]
 
+# Real, fully-decodable 1x1 PNG. Tests that exercise the vision pipeline
+# end-to-end must use valid image bytes: _normalize_to_supported_image now
+# decode-verifies allowlisted raster types, so the old fake-header stubs
+# (b"\x89PNG\r\n\x1a\n" + zeros) are rejected as corrupt before the API call.
+_REAL_TINY_PNG = base64.b64decode(
+    b"iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII="
+)
+
 
 # ---------------------------------------------------------------------------
 # _validate_image_url — urlparse-based validation
@@ -245,7 +253,7 @@ class TestVisionConfig:
     @pytest.mark.asyncio
     async def test_temperature_and_timeout_come_from_config_with_defaults(self, tmp_path):
         img = tmp_path / "test.png"
-        img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
+        img.write_bytes(_REAL_TINY_PNG)
 
         async def call_with(config):
             mock_response = MagicMock()
@@ -528,7 +536,7 @@ class TestLocalPathForms:
         fake_home = tmp_path / "fakehome"
         fake_home.mkdir()
         img = fake_home / "test_image.png"
-        img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
+        img.write_bytes(_REAL_TINY_PNG)
 
         # Windows expanduser() prefers USERPROFILE over HOME; POSIX uses HOME.
         monkeypatch.setenv("HOME", str(fake_home))
@@ -565,7 +573,7 @@ class TestLocalPathForms:
     @pytest.mark.asyncio
     async def test_file_uri_resolved_as_local_path(self, tmp_path):
         img = tmp_path / "photo.png"
-        img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 8)
+        img.write_bytes(_REAL_TINY_PNG)
 
         mock_response = MagicMock()
         mock_choice = MagicMock()
@@ -605,8 +613,13 @@ class TestBase64SizeLimit:
 
     @pytest.mark.asyncio
     async def test_oversized_rejected_before_api_call_small_passes(self, tmp_path):
+        from PIL import Image
+
         img = tmp_path / "huge.png"
-        img.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * (4 * 1024 * 1024))
+        # A real, decodable PNG whose base64 form exceeds the patched limit.
+        Image.frombytes("RGB", (64, 64), os.urandom(64 * 64 * 3)).save(
+            img, format="PNG"
+        )
 
         # Patch the hard limit to a small value so the test runs fast.
         with patch("tools.vision_tools._MAX_BASE64_BYTES", 1000), \
@@ -619,7 +632,7 @@ class TestBase64SizeLimit:
 
         # An image well under the limit passes the size check.
         small = tmp_path / "small.png"
-        small.write_bytes(b"\x89PNG\r\n\x1a\n" + b"\x00" * 64)
+        small.write_bytes(_REAL_TINY_PNG)
 
         mock_response = MagicMock()
         mock_choice = MagicMock()
