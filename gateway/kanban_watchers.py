@@ -217,7 +217,7 @@ class GatewayKanbanWatchersMixin:
         # but is not a block (see kanban_db.request_review); the task is not
         # archived, so the subscription stays alive and later review
         # cycles keep notifying.
-        TERMINAL_KINDS = ("completed", "blocked", "gave_up", "crashed", "timed_out", "status", "archived", "unblocked", "block_loop_detected", "review_requested")
+        TERMINAL_KINDS = ("completed", "blocked", "gave_up", "crashed", "timed_out", "status", "archived", "unblocked", "block_loop_detected", "review_requested", "assignee_quarantined", "unknown_assignee_skipped")
         # Subscriptions are removed only when the task reaches the irreversible
         # archived status. ``done`` is reversible in review/controller flows,
         # so removing its subscription would silence a later reopen. We used
@@ -614,6 +614,24 @@ class GatewayKanbanWatchersMixin:
                             msg = (
                                 f"🛑 {board_tag}{tag}Kanban {sub['task_id']} routed to TRIAGE"
                                 f" — needs a human decision{rc}{reason}"
+                            )
+                        elif kind == "assignee_quarantined":
+                            assignee = str(
+                                (ev.payload or {}).get("assignee") or who or "unknown"
+                            )
+                            run_count = len((ev.payload or {}).get("run_ids") or [])
+                            msg = (
+                                f"🛑 {board_tag}Kanban assignee @{assignee} quarantined "
+                                f"after {run_count or 3} consecutive boot failures; "
+                                "ready cards will remain unclaimed until a healthy smoke run"
+                            )
+                        elif kind == "unknown_assignee_skipped":
+                            assignee = str(
+                                (ev.payload or {}).get("assignee") or who or "unknown"
+                            )
+                            msg = (
+                                f"⚠ {board_tag}Kanban {sub['task_id']} has unknown "
+                                f"assignee @{assignee}; dispatcher left the card ready"
                             )
                         else:
                             # archived / unblocked are claimed by TERMINAL_KINDS

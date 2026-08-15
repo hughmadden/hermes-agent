@@ -245,6 +245,31 @@ the old standalone daemon alive for one release cycle, but running both
 a gateway-embedded dispatcher AND a standalone daemon against the same
 `kanban.db` causes claim races and is not supported.
 
+#### Assignee quarantine recovery
+
+The dispatcher quarantines an assignee after its three newest runs are all
+short (`<120s`) boot-phase protocol violations with no worker kanban event,
+provided those runs span at least two cards. Quarantine is assignee-wide: its
+cards remain `ready`, are not claimed, and do not consume their per-card retry
+budgets. The dispatcher writes one `assignee_quarantined` audit event,
+comments on the newest affected card, and routes the audit event through an
+existing gateway subscription for that card or a queued card for the same
+assignee when one is available.
+
+Manual recovery is deliberately simple:
+
+1. Fix the profile's boot/configuration problem.
+2. Claim and run one smoke card for that assignee through a manual or external
+   worker path (the quarantined dispatcher lane will not claim it for you).
+3. Make at least one kanban call and finish the smoke run normally. On the next
+   tick, the healthy run breaks the failure streak and the dispatcher emits
+   `assignee_unquarantined`; queued cards resume automatically.
+
+A card assigned to a profile name that does not exist is also left `ready`, but
+is no longer silent: the dispatcher emits one deduplicated
+`unknown_assignee_skipped` event, logs an operator error, and routes the event
+through the card's existing gateway notification subscription.
+
 ### Idempotent create (for automation / webhooks)
 
 ```bash

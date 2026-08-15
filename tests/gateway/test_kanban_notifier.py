@@ -622,3 +622,52 @@ def test_notifier_delivers_block_loop_detected_triage_ping(tmp_path, monkeypatch
     finally:
         conn.close()
     assert remaining == []
+
+
+def test_notifier_delivers_assignee_quarantine_and_unknown_assignee_alerts(
+    tmp_path, monkeypatch
+):
+    db_path = tmp_path / "assignee-alerts.db"
+    monkeypatch.setenv("HERMES_KANBAN_DB", str(db_path))
+    kb.init_db()
+
+    conn = kb.connect()
+    try:
+        quarantined = kb.create_task(
+            conn, title="boot loop", assignee="broken"
+        )
+        unknown = kb.create_task(
+            conn, title="bad route", assignee="does-not-exist"
+        )
+        for task_id in (quarantined, unknown):
+            kb.add_notify_sub(
+                conn, task_id=task_id, platform="telegram", chat_id="chat-1"
+            )
+        with kb.write_txn(conn):
+            kb._append_event(
+                conn,
+                quarantined,
+                "assignee_quarantined",
+                {
+                    "assignee": "broken",
+                    "run_ids": [3, 2, 1],
+                    "task_ids": [quarantined, unknown],
+                },
+            )
+            kb._append_event(
+                conn,
+                unknown,
+                "unknown_assignee_skipped",
+                {"assignee": "does-not-exist"},
+            )
+    finally:
+        conn.close()
+
+    adapter = RecordingAdapter()
+    runner = _make_runner(adapter)
+    asyncio.run(_run_one_notifier_tick(monkeypatch, runner))
+
+    texts = [delivery["text"] for delivery in adapter.sent]
+    assert len(texts) == 2
+    assert any("@broken quarantined" in text for text in texts)
+    assert any("unknown assignee @does-not-exist" in text for text in texts)

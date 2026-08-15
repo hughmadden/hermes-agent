@@ -344,6 +344,8 @@ def _fire_dispatch_tick_hook(
             result.skipped_per_profile_capped,
             result.skipped_unassigned,
             result.skipped_nonspawnable,
+            result.skipped_unknown_assignee,
+            result.skipped_assignee_quarantined,
         )):
             outcome = "idle"
         invoke_hook(
@@ -1470,8 +1472,8 @@ CREATE TABLE IF NOT EXISTS task_runs (
     started_at          INTEGER NOT NULL,
     ended_at            INTEGER,
     outcome             TEXT,
-    -- outcome: completed | blocked | crashed | timed_out | spawn_failed |
-    --          gave_up | reclaimed | (null while still running)
+    -- outcome: completed | blocked | crashed | protocol_violation | timed_out |
+    --          spawn_failed | gave_up | reclaimed | (null while still running)
     summary             TEXT,
     metadata            TEXT,
     error               TEXT
@@ -7920,6 +7922,14 @@ class DispatchResult:
     operator-actionable failure. Tracked separately so health telemetry
     can distinguish "real stuck" (nothing spawned but spawnable work
     available) from "correctly idle" (nothing spawnable in the queue)."""
+    skipped_unknown_assignee: list[str] = field(default_factory=list)
+    """Ready task ids skipped because their assignee is not an installed
+    Hermes profile. Each card receives a deduplicated audit event so this
+    operator-actionable routing error cannot remain silent."""
+    skipped_assignee_quarantined: list[tuple[str, str]] = field(default_factory=list)
+    """Ready tasks skipped by the assignee-level boot-failure circuit breaker,
+    as ``(task_id, assignee)`` pairs. Cards remain ready and are never charged
+    against their per-card retry budget by this guard."""
     skipped_per_profile_capped: list[tuple[str, str, int]] = field(default_factory=list)
     """Tasks deferred this tick because their assignee is already at
     ``kanban.max_in_progress_per_profile`` (#21582). Each entry is
@@ -8702,7 +8712,7 @@ def _protocol_violation_streak(conn: sqlite3.Connection, task_id: str) -> int:
         outcome = row["outcome"] or ""
         if outcome == "rate_limited":
             continue
-        if outcome == "crashed":
+        if outcome in ("protocol_violation", "crashed"):
             is_violation = False
             raw_meta = row["metadata"]
             if raw_meta:
@@ -8719,6 +8729,248 @@ def _protocol_violation_streak(conn: sqlite3.Connection, task_id: str) -> int:
                 continue
         break
     return streak
+
+
+_ASSIGNEE_BOOT_FAILURE_LIMIT = 3
+_ASSIGNEE_BOOT_FAILURE_MAX_SECONDS = 120
+_ASSIGNEE_NON_PROGRESS_EVENT_KINDS = (
+    "spawned",
+    "tip_scratch_workspace",
+)
+
+
+def _run_is_assignee_boot_failure(conn: sqlite3.Connection, row: sqlite3.Row) -> bool:
+    """Return whether a closed run is a short, event-free boot failure."""
+    if row["outcome"] != "protocol_violation":
+        return False
+    started = row["started_at"]
+    ended = row["ended_at"]
+    if started is None or ended is None:
+        return False
+    duration = int(ended) - int(started)
+    if duration < 0 or duration >= _ASSIGNEE_BOOT_FAILURE_MAX_SECONDS:
+        return False
+    claim = conn.execute(
+        "SELECT id FROM task_events WHERE run_id = ? AND kind = 'claimed' "
+        "ORDER BY id ASC LIMIT 1",
+        (row["id"],),
+    ).fetchone()
+    terminal = conn.execute(
+        "SELECT id FROM task_events WHERE run_id = ? "
+        "AND kind = 'protocol_violation' ORDER BY id DESC LIMIT 1",
+        (row["id"],),
+    ).fetchone()
+    if claim is None or terminal is None:
+        return False
+    progress = conn.execute(
+        "SELECT 1 FROM task_events WHERE task_id = ? AND id > ? AND id < ? "
+        "AND kind NOT IN (?, ?) LIMIT 1",
+        (
+            row["task_id"],
+            claim["id"],
+            terminal["id"],
+            *_ASSIGNEE_NON_PROGRESS_EVENT_KINDS,
+        ),
+    ).fetchone()
+    return progress is None
+
+
+def _assignee_quarantine_candidate(
+    conn: sqlite3.Connection, assignee: str
+) -> Optional[dict[str, Any]]:
+    """Derive the assignee's current circuit state from its newest runs."""
+    rows = conn.execute(
+        "SELECT id, task_id, profile, started_at, ended_at, outcome "
+        "FROM task_runs WHERE profile = ? "
+        "ORDER BY id DESC LIMIT ?",
+        (assignee, _ASSIGNEE_BOOT_FAILURE_LIMIT),
+    ).fetchall()
+    if len(rows) != _ASSIGNEE_BOOT_FAILURE_LIMIT:
+        return None
+    if not all(_run_is_assignee_boot_failure(conn, row) for row in rows):
+        return None
+    task_ids = list(dict.fromkeys(str(row["task_id"]) for row in rows))
+    if len(task_ids) < 2:
+        return None
+    return {
+        "assignee": assignee,
+        "run_ids": [int(row["id"]) for row in rows],
+        "task_ids": task_ids,
+        "anchor_task_id": str(rows[0]["task_id"]),
+    }
+
+
+def _assignee_audit_states(conn: sqlite3.Connection) -> dict[str, dict[str, Any]]:
+    """Return each assignee's newest persisted quarantine audit state."""
+    states: dict[str, dict[str, Any]] = {}
+    rows = conn.execute(
+        "SELECT kind, payload FROM task_events "
+        "WHERE kind IN ('assignee_quarantined', 'assignee_unquarantined') "
+        "ORDER BY id DESC"
+    ).fetchall()
+    for row in rows:
+        try:
+            payload = json.loads(row["payload"] or "{}")
+            assignee = str(payload.get("assignee") or "")
+        except (TypeError, ValueError):
+            continue
+        if assignee and assignee not in states:
+            states[assignee] = {"kind": str(row["kind"]), "payload": payload}
+    return states
+
+
+def _assignee_reset_run(
+    conn: sqlite3.Connection,
+    assignee: str,
+    quarantine_payload: Mapping[str, Any],
+) -> Optional[sqlite3.Row]:
+    """Return the first post-quarantine run that breaks the boot-failure streak."""
+    prior_ids = [
+        int(run_id)
+        for run_id in (quarantine_payload.get("run_ids") or [])
+        if str(run_id).isdigit()
+    ]
+    if not prior_ids:
+        return None
+    rows = conn.execute(
+        "SELECT id, task_id, started_at, ended_at, outcome FROM task_runs "
+        "WHERE profile = ? AND id > ? ORDER BY id ASC",
+        (assignee, max(prior_ids)),
+    ).fetchall()
+    for row in rows:
+        outcome = str(row["outcome"] or "")
+        # The contract deliberately uses any non-protocol outcome as a reset
+        # signal. Protocol-violation and still-running attempts instead need a
+        # worker-originated kanban event after claim.
+        if outcome and outcome != "protocol_violation":
+            return row
+        claim = conn.execute(
+            "SELECT id FROM task_events WHERE run_id = ? AND kind = 'claimed' "
+            "ORDER BY id ASC LIMIT 1",
+            (row["id"],),
+        ).fetchone()
+        if claim is None:
+            continue
+        terminal = conn.execute(
+            "SELECT id FROM task_events WHERE run_id = ? "
+            "AND kind = 'protocol_violation' ORDER BY id DESC LIMIT 1",
+            (row["id"],),
+        ).fetchone()
+        params: list[Any] = [
+            row["task_id"],
+            claim["id"],
+            *_ASSIGNEE_NON_PROGRESS_EVENT_KINDS,
+        ]
+        sql = (
+            "SELECT 1 FROM task_events WHERE task_id = ? AND id > ? "
+            "AND kind NOT IN (?, ?) "
+        )
+        if terminal is not None:
+            sql += "AND id < ? "
+            params.append(terminal["id"])
+        sql += "LIMIT 1"
+        if conn.execute(sql, params).fetchone() is not None:
+            return row
+    return None
+
+
+def _record_assignee_quarantine(
+    conn: sqlite3.Connection, candidate: Mapping[str, Any]
+) -> None:
+    assignee = str(candidate["assignee"])
+    anchor = str(candidate["anchor_task_id"])
+    event_task_id = str(candidate.get("event_task_id") or anchor)
+    payload = {
+        "assignee": assignee,
+        "run_ids": list(candidate["run_ids"]),
+        "task_ids": list(candidate["task_ids"]),
+    }
+    body = (
+        f"dispatcher: assignee '{assignee}' quarantined after "
+        f"{_ASSIGNEE_BOOT_FAILURE_LIMIT} consecutive short protocol violations "
+        f"across {len(payload['task_ids'])} cards; fix the profile, then run a "
+        "manual smoke card to clear the quarantine automatically"
+    )
+    now = int(time.time())
+    with write_txn(conn):
+        _append_event(conn, event_task_id, "assignee_quarantined", payload)
+        conn.execute(
+            "INSERT INTO task_comments (task_id, author, body, created_at) "
+            "VALUES (?, 'dispatcher', ?, ?)",
+            (anchor, body, now),
+        )
+        _append_event(
+            conn, anchor, "commented", {"author": "dispatcher", "len": len(body)}
+        )
+    _log.error(
+        "kanban dispatcher: assignee %s quarantined after boot failures; "
+        "ready cards will not be claimed (runs=%s tasks=%s)",
+        assignee, payload["run_ids"], payload["task_ids"],
+    )
+
+
+def _assignee_quarantine_event_task(
+    conn: sqlite3.Connection,
+    candidate: Mapping[str, Any],
+    ready_task_ids: Iterable[str],
+) -> str:
+    """Choose a task whose existing gateway subscription can carry the alert."""
+    anchor = str(candidate["anchor_task_id"])
+    choices = list(dict.fromkeys([anchor, *(str(tid) for tid in ready_task_ids)]))
+    if not choices:
+        return anchor
+    placeholders = ", ".join("?" for _ in choices)
+    subscribed = {
+        str(row["task_id"])
+        for row in conn.execute(
+            f"SELECT DISTINCT task_id FROM kanban_notify_subs "
+            f"WHERE task_id IN ({placeholders})",
+            choices,
+        ).fetchall()
+    }
+    return next((task_id for task_id in choices if task_id in subscribed), anchor)
+
+
+def _record_assignee_unquarantine(
+    conn: sqlite3.Connection, assignee: str, row: sqlite3.Row
+) -> None:
+    payload = {
+        "assignee": assignee,
+        "run_id": int(row["id"]),
+        "task_id": str(row["task_id"]),
+    }
+    with write_txn(conn):
+        _append_event(conn, str(row["task_id"]), "assignee_unquarantined", payload)
+    _log.warning(
+        "kanban dispatcher: assignee %s quarantine cleared by healthy run %s",
+        assignee, row["id"],
+    )
+
+
+def _record_unknown_assignee_skip(
+    conn: sqlite3.Connection, task_id: str, assignee: str
+) -> None:
+    """Emit one loud audit event per card/assignee while the skip persists."""
+    row = conn.execute(
+        "SELECT payload FROM task_events WHERE task_id = ? "
+        "AND kind = 'unknown_assignee_skipped' ORDER BY id DESC LIMIT 1",
+        (task_id,),
+    ).fetchone()
+    if row is not None:
+        try:
+            if json.loads(row["payload"] or "{}").get("assignee") == assignee:
+                return
+        except (TypeError, ValueError):
+            pass
+    with write_txn(conn):
+        _append_event(
+            conn, task_id, "unknown_assignee_skipped", {"assignee": assignee}
+        )
+    _log.error(
+        "kanban dispatcher: task %s skipped because unknown assignee %r has "
+        "no installed Hermes profile",
+        task_id, assignee,
+    )
 
 
 def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
@@ -8862,7 +9114,11 @@ def detect_crashed_workers(conn: sqlite3.Connection) -> list[str]:
                 # Rate-limited requeues are a clean release, not a crash —
                 # record the run outcome as ``rate_limited`` so the board
                 # history doesn't show a phantom crash for a quota wall.
-                _run_outcome = "rate_limited" if rate_limited_exit else "crashed"
+                _run_outcome = (
+                    "rate_limited" if rate_limited_exit else
+                    "protocol_violation" if protocol_violation else
+                    "crashed"
+                )
                 run_id = _end_run(
                     conn, row["id"],
                     outcome=_run_outcome, status=_run_outcome,
@@ -9669,6 +9925,76 @@ def _dispatch_once_locked(
         "WHERE status = 'ready' AND claim_lock IS NULL "
         "ORDER BY priority DESC, created_at ASC"
     ).fetchall()
+    # Assignee-level circuit breaker: derive state from board-wide run/event
+    # history on every tick. Audit events provide dedupe only; they are not
+    # the source of truth for whether an assignee is quarantined.
+    audit_states = _assignee_audit_states(conn)
+    ready_assignees = {
+        str(row["assignee"]) for row in ready_rows if row["assignee"]
+    }
+    ready_task_ids_by_assignee: dict[str, list[str]] = {}
+    for row in ready_rows:
+        if row["assignee"]:
+            ready_task_ids_by_assignee.setdefault(str(row["assignee"]), []).append(
+                str(row["id"])
+            )
+    fallback_assignee = (default_assignee or "").strip()
+    if fallback_assignee and any(not row["assignee"] for row in ready_rows):
+        ready_assignees.add(fallback_assignee)
+        ready_task_ids_by_assignee.setdefault(fallback_assignee, []).extend(
+            str(row["id"]) for row in ready_rows if not row["assignee"]
+        )
+    active_audited = {
+        assignee
+        for assignee, state in audit_states.items()
+        if state["kind"] == "assignee_quarantined"
+    }
+    quarantined_assignees: set[str] = set()
+    for assignee in sorted(ready_assignees | active_audited):
+        audit_state = audit_states.get(assignee)
+        if audit_state and audit_state["kind"] == "assignee_quarantined":
+            reset_run = _assignee_reset_run(
+                conn, assignee, audit_state["payload"]
+            )
+            if reset_run is None:
+                # Once opened, the breaker stays open until positive evidence
+                # from a newer run clears it. Merely falling out of the newest
+                # three-run window (for example because a smoke run was only
+                # claimed) is not a healthy signal.
+                quarantined_assignees.add(assignee)
+                continue
+            if not dry_run:
+                _record_assignee_unquarantine(conn, assignee, reset_run)
+            # Continue evaluating the newest streak in this same tick. A
+            # healthy smoke run clears the old quarantine, but three still
+            # newer boot failures must immediately open a fresh one.
+            audit_state = {
+                "kind": "assignee_unquarantined",
+                "payload": {"run_id": int(reset_run["id"])},
+            }
+
+        candidate = _assignee_quarantine_candidate(conn, assignee)
+        if candidate is None:
+            continue
+        # A persisted healthy reset is newer than the old failure streak it
+        # cleared. Do not immediately re-open the breaker from those same
+        # historical failures when no newer run has started yet.
+        reset_run_id = 0
+        if audit_state and audit_state["kind"] == "assignee_unquarantined":
+            try:
+                reset_run_id = int(audit_state["payload"].get("run_id") or 0)
+            except (TypeError, ValueError):
+                reset_run_id = 0
+        if max(candidate["run_ids"]) <= reset_run_id:
+            continue
+        quarantined_assignees.add(assignee)
+        if not dry_run:
+            candidate["event_task_id"] = _assignee_quarantine_event_task(
+                conn,
+                candidate,
+                ready_task_ids_by_assignee.get(assignee, []),
+            )
+            _record_assignee_quarantine(conn, candidate)
     spawned = 0
     # Per-profile concurrency cap (#21582): when set, track how many
     # workers each assignee already has in flight, and refuse to spawn
@@ -9753,6 +10079,11 @@ def _dispatch_once_locked(
             else:
                 result.skipped_unassigned.append(row["id"])
                 continue
+        if row_assignee in quarantined_assignees:
+            result.skipped_assignee_quarantined.append(
+                (row["id"], row_assignee)
+            )
+            continue
         # Skip ready tasks whose assignee is not a real Hermes profile.
         # `_default_spawn` invokes ``hermes -p <assignee>`` which fails
         # with "Profile 'X' does not exist" when the assignee names a
@@ -9775,6 +10106,9 @@ def _dispatch_once_locked(
             # multi-lane setups where the ready queue is steadily full
             # of human-pulled work.
             result.skipped_nonspawnable.append(row["id"])
+            result.skipped_unknown_assignee.append(row["id"])
+            if not dry_run:
+                _record_unknown_assignee_skip(conn, row["id"], row_assignee)
             continue
         # Per-profile concurrency cap (#21582): even if there's global
         # headroom, refuse to spawn for an assignee that's already at
@@ -9917,12 +10251,22 @@ def _dispatch_once_locked(
         if not row["assignee"]:
             result.skipped_unassigned.append(row["id"])
             continue
+        if row["assignee"] in quarantined_assignees:
+            result.skipped_assignee_quarantined.append(
+                (row["id"], row["assignee"])
+            )
+            continue
         try:
             from hermes_cli.profiles import profile_exists
         except Exception:
             profile_exists = None  # type: ignore[assignment]
         if profile_exists is not None and not profile_exists(row["assignee"]):
             result.skipped_nonspawnable.append(row["id"])
+            result.skipped_unknown_assignee.append(row["id"])
+            if not dry_run:
+                _record_unknown_assignee_skip(
+                    conn, row["id"], row["assignee"]
+                )
             continue
         if _per_profile_cap is not None:
             current = _per_profile_running.get(row["assignee"], 0)

@@ -2678,6 +2678,11 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
             ],
             "skipped_unassigned": res.skipped_unassigned,
             "skipped_nonspawnable": res.skipped_nonspawnable,
+            "skipped_unknown_assignee": res.skipped_unknown_assignee,
+            "skipped_assignee_quarantined": [
+                {"task_id": tid, "assignee": who}
+                for (tid, who) in res.skipped_assignee_quarantined
+            ],
             "skipped_per_profile_capped": [
                 {"task_id": tid, "assignee": who, "current": current}
                 for (tid, who, current) in res.skipped_per_profile_capped
@@ -2717,9 +2722,11 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
             )
     if res.skipped_nonspawnable:
         print(
-            f"Skipped (non-spawnable assignee — terminal lane, OK): "
+            f"Skipped (unknown/non-spawnable assignee — operator action needed): "
             f"{', '.join(res.skipped_nonspawnable)}"
         )
+    for tid, who in res.skipped_assignee_quarantined:
+        print(f"Deferred (assignee {who} quarantined): {tid}")
     return 0
 
 
