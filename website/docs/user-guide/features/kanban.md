@@ -268,7 +268,17 @@ Manual recovery is deliberately simple:
 A card assigned to a profile name that does not exist is also left `ready`, but
 is no longer silent: the dispatcher emits one deduplicated
 `unknown_assignee_skipped` event, logs an operator error, and routes the event
-through the card's existing gateway notification subscription.
+through the card's existing gateway notification subscription. External/manual
+pull lanes that intentionally have no Hermes profile must be registered so they
+remain quiet expected work rather than looking like routing mistakes:
+
+```yaml
+kanban:
+  nonspawnable_assignees: [orion-cc, orion-research]
+```
+
+Registration is exact-name matching. These cards remain in `ready` and appear
+in `skipped_nonspawnable`, but do not emit unknown-assignee events or alerts.
 
 ### Idempotent create (for automation / webhooks)
 
@@ -555,7 +565,7 @@ Use it for open-ended, multi-step, or "keep going until X is true" cards. Skip i
 
 ### How the orchestrator behaves
 
-A **well-behaved orchestrator does not do the work itself.** It decomposes the user's goal into tasks, links them, assigns each to one of the profiles you've set up, and steps back. The orchestrator guidance — anti-temptation rules, a Step-0 profile-discovery prompt (the dispatcher silently fails on unknown assignee names, so the orchestrator must ground every card in profiles that actually exist on your machine), and a decomposition playbook keyed on `kanban_create` / `kanban_link` / `kanban_comment` — is injected into the worker's system prompt automatically; there is nothing to install.
+A **well-behaved orchestrator does not do the work itself.** It decomposes the user's goal into tasks, links them, assigns each to one of the profiles you've set up, and steps back. The orchestrator guidance — anti-temptation rules, a Step-0 profile-discovery prompt (unknown assignees remain unclaimed and produce an operator-visible audit event, so the orchestrator must ground every card in profiles that actually exist on your machine), and a decomposition playbook keyed on `kanban_create` / `kanban_link` / `kanban_comment` — is injected into the worker's system prompt automatically; there is nothing to install.
 
 A canonical orchestrator turn (two parallel researchers handing off to a writer):
 

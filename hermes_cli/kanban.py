@@ -2629,6 +2629,16 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
         _cfg = load_config()
         _kanban_cfg = _cfg.get("kanban", {}) if isinstance(_cfg, dict) else {}
         default_assignee = (_kanban_cfg.get("default_assignee") or "").strip() or None
+        raw_nonspawnable = _kanban_cfg.get("nonspawnable_assignees", [])
+        nonspawnable_assignees = (
+            {
+                str(name).strip()
+                for name in raw_nonspawnable
+                if str(name).strip()
+            }
+            if isinstance(raw_nonspawnable, (list, tuple, set))
+            else set()
+        )
 
         def _coerce_positive_int(value):
             if value is None:
@@ -2651,6 +2661,7 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
         )
     except Exception:
         default_assignee = None
+        nonspawnable_assignees = set()
         max_in_progress_per_profile = None
         max_in_progress = None
         max_spawn = getattr(args, "max", None)
@@ -2663,6 +2674,7 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
             failure_limit=getattr(args, "failure_limit", kb.DEFAULT_SPAWN_FAILURE_LIMIT),
             default_assignee=default_assignee,
             max_in_progress_per_profile=max_in_progress_per_profile,
+            nonspawnable_assignees=nonspawnable_assignees,
         )
     if getattr(args, "json", False):
         print(json.dumps({
@@ -2722,8 +2734,13 @@ def _cmd_dispatch(args: argparse.Namespace) -> int:
             )
     if res.skipped_nonspawnable:
         print(
-            f"Skipped (unknown/non-spawnable assignee — operator action needed): "
+            f"Skipped (registered non-spawnable assignee): "
             f"{', '.join(res.skipped_nonspawnable)}"
+        )
+    if res.skipped_unknown_assignee:
+        print(
+            f"Skipped (unknown assignee — operator action needed): "
+            f"{', '.join(res.skipped_unknown_assignee)}"
         )
     for tid, who in res.skipped_assignee_quarantined:
         print(f"Deferred (assignee {who} quarantined): {tid}")

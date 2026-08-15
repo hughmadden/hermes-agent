@@ -9751,6 +9751,7 @@ def dispatch_once(
     board: Optional[str] = None,
     default_assignee: Optional[str] = None,
     max_in_progress_per_profile: Optional[int] = None,
+    nonspawnable_assignees: Optional[Iterable[str]] = None,
     reconcile_orphans: bool = True,
 ) -> DispatchResult:
     """Run one dispatcher tick under the board's single-writer lock.
@@ -9786,6 +9787,7 @@ def dispatch_once(
             board=board,
             default_assignee=default_assignee,
             max_in_progress_per_profile=max_in_progress_per_profile,
+            nonspawnable_assignees=nonspawnable_assignees,
             reconcile_orphans=reconcile_orphans,
         )
         _fire_dispatch_tick_hook(result, board=board, dry_run=dry_run)
@@ -9806,6 +9808,7 @@ def dispatch_once(
                 board=board,
                 default_assignee=default_assignee,
                 max_in_progress_per_profile=max_in_progress_per_profile,
+                nonspawnable_assignees=nonspawnable_assignees,
                 reconcile_orphans=reconcile_orphans,
             )
             # Still under the dispatch lock: run the periodic PASSIVE WAL
@@ -9833,6 +9836,7 @@ def _dispatch_once_locked(
     board: Optional[str] = None,
     default_assignee: Optional[str] = None,
     max_in_progress_per_profile: Optional[int] = None,
+    nonspawnable_assignees: Optional[Iterable[str]] = None,
     reconcile_orphans: bool = True,
 ) -> DispatchResult:
     """Run one dispatcher tick.
@@ -9868,6 +9872,11 @@ def _dispatch_once_locked(
     reap_worker_zombies()
 
     result = DispatchResult()
+    registered_nonspawnable = {
+        str(name).strip()
+        for name in (nonspawnable_assignees or ())
+        if str(name).strip()
+    }
     result.reclaimed = release_stale_claims(conn)
     if reconcile_orphans:
         # Orphaned-card reconciliation: requeue 'running' cards whose claim
@@ -10099,16 +10108,17 @@ def _dispatch_once_locked(
         except Exception:
             profile_exists = None  # type: ignore[assignment]
         if profile_exists is not None and not profile_exists(row_assignee):
-            # Bucket separately from skipped_unassigned: the operator
-            # cannot fix this by assigning a profile (the assignee IS the
-            # intended owner — a terminal lane). Health telemetry uses
-            # this distinction to suppress spurious "stuck" warnings on
-            # multi-lane setups where the ready queue is steadily full
-            # of human-pulled work.
-            result.skipped_nonspawnable.append(row["id"])
-            result.skipped_unknown_assignee.append(row["id"])
-            if not dry_run:
-                _record_unknown_assignee_skip(conn, row["id"], row_assignee)
+            if row_assignee in registered_nonspawnable:
+                # Registered pull/control-plane lanes are expected to remain
+                # ready until their external worker claims them.
+                result.skipped_nonspawnable.append(row["id"])
+            else:
+                # Missing profiles are operator-actionable only when they are
+                # not configured external lanes. Keep the buckets disjoint so
+                # correctly-idle work never produces audit events or alerts.
+                result.skipped_unknown_assignee.append(row["id"])
+                if not dry_run:
+                    _record_unknown_assignee_skip(conn, row["id"], row_assignee)
             continue
         # Per-profile concurrency cap (#21582): even if there's global
         # headroom, refuse to spawn for an assignee that's already at

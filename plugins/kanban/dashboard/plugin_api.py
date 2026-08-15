@@ -2287,8 +2287,25 @@ def dispatch(
     board = _resolve_board(board)
     conn = _conn(board=board)
     try:
+        try:
+            from hermes_cli.config import load_config
+            cfg = load_config() or {}
+            raw_nonspawnable = (cfg.get("kanban") or {}).get(
+                "nonspawnable_assignees", []
+            )
+            nonspawnable_assignees = (
+                raw_nonspawnable
+                if isinstance(raw_nonspawnable, (list, tuple, set))
+                else []
+            )
+        except Exception:
+            nonspawnable_assignees = []
         result = kanban_db.dispatch_once(
-            conn, dry_run=dry_run, max_spawn=max_n, board=board,
+            conn,
+            dry_run=dry_run,
+            max_spawn=max_n,
+            board=board,
+            nonspawnable_assignees=nonspawnable_assignees,
         )
         # DispatchResult is a dataclass.
         try:

@@ -317,6 +317,29 @@ def test_kanban_event_disqualifies_protocol_violation_as_boot_failure(
         conn.close()
 
 
+def test_registered_nonspawnable_assignee_stays_quiet(
+    kanban_home, monkeypatch, caplog
+):
+    monkeypatch.setattr("hermes_cli.profiles.profile_exists", lambda name: False)
+    conn = kb.connect()
+    try:
+        task_id = _create_task(conn, title="external pull", assignee="orion-cc")
+
+        result = kb.dispatch_once(
+            conn,
+            spawn_fn=lambda task, workspace: 123,
+            nonspawnable_assignees={"orion-cc", "orion-research"},
+        )
+
+        assert task_id in result.skipped_nonspawnable
+        assert task_id not in result.skipped_unknown_assignee
+        assert _all_events(conn, "unknown_assignee_skipped") == []
+        assert "unknown assignee" not in caplog.text.lower()
+        assert kb.get_task(conn, task_id).status == "ready"
+    finally:
+        conn.close()
+
+
 def test_unknown_assignee_skip_emits_loud_audit_event_once(
     kanban_home, monkeypatch, caplog
 ):
@@ -327,8 +350,13 @@ def test_unknown_assignee_skip_emits_loud_audit_event_once(
             conn, title="stranded", assignee="does-not-exist"
         )
 
-        result = kb.dispatch_once(conn, spawn_fn=lambda task, workspace: 123)
+        result = kb.dispatch_once(
+            conn,
+            spawn_fn=lambda task, workspace: 123,
+            nonspawnable_assignees={"orion-cc", "orion-research"},
+        )
         assert task_id in result.skipped_unknown_assignee
+        assert task_id not in result.skipped_nonspawnable
         events = _all_events(conn, "unknown_assignee_skipped")
         assert len(events) == 1
         assert json.loads(events[0]["payload"]) == {
@@ -336,7 +364,11 @@ def test_unknown_assignee_skip_emits_loud_audit_event_once(
         }
         assert "unknown assignee" in caplog.text.lower()
 
-        kb.dispatch_once(conn, spawn_fn=lambda task, workspace: 124)
+        kb.dispatch_once(
+            conn,
+            spawn_fn=lambda task, workspace: 124,
+            nonspawnable_assignees={"orion-cc", "orion-research"},
+        )
         assert len(_all_events(conn, "unknown_assignee_skipped")) == 1
         assert kb.get_task(conn, task_id).status == "ready"
     finally:

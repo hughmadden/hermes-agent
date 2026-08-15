@@ -1362,6 +1362,22 @@ class GatewayKanbanWatchersMixin:
                 default_assignee,
             )
 
+        # Assignees for external/manual pull lanes that intentionally have no
+        # Hermes profile. This is the machine-readable boundary between an
+        # expected non-spawnable lane and a typo/deleted profile that needs a
+        # loud operator alert.
+        raw_nonspawnable = kanban_cfg.get("nonspawnable_assignees", [])
+        if isinstance(raw_nonspawnable, (list, tuple, set)):
+            nonspawnable_assignees = {
+                str(name).strip() for name in raw_nonspawnable if str(name).strip()
+            }
+        else:
+            logger.warning(
+                "kanban dispatcher: kanban.nonspawnable_assignees must be a list; ignoring %r",
+                raw_nonspawnable,
+            )
+            nonspawnable_assignees = set()
+
         # Read kanban.max_in_progress_per_profile — per-profile concurrency
         # cap (#21582). When set, no single profile gets more than N
         # workers running at once, even if the global max_in_progress
@@ -1484,6 +1500,7 @@ class GatewayKanbanWatchersMixin:
                     stale_timeout_seconds=stale_timeout_seconds,
                     default_assignee=default_assignee,
                     max_in_progress_per_profile=max_in_progress_per_profile,
+                    nonspawnable_assignees=nonspawnable_assignees,
                     reconcile_orphans=reconcile_orphans,
                 )
             except sqlite3.DatabaseError as exc:
