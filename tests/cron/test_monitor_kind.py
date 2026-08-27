@@ -12,6 +12,14 @@ A monitor job runs a cheap *monitor source* (``monitor_script`` or
 * source failure    → treated as an ERROR (alert delivered), never as a
   change — and the stored hash is NOT updated.
 
+Commit-on-success semantics (the silent-event-loss fix): the candidate new
+state produced by a changed/first tick is persisted only AFTER the agent
+run reports success. A FAILED agent run (exception, retries exhausted,
+timeout) keeps the previous persisted state, so the next scheduled tick
+re-detects the SAME diff and re-fires the agent — the next tick IS the
+retry. Delivery outcome is independent: state advances on agent success
+even if a later delivery step fails.
+
 State (`monitor_state.last_output_hash` / `last_changed_at`) lives on the
 job record in jobs.json plus a snapshot file, so suppression survives
 scheduler restarts.
@@ -386,6 +394,213 @@ def test_monitor_script_failure_is_error_not_change(hermes_env, monkeypatch):
     assert observed["agent_runs"] == 1  # agent NOT invoked on source failure
     # Stored hash untouched — a later recovery to 'state A' still suppresses.
     assert get_job(job["id"])["monitor_state"]["last_output_hash"] == stored_hash
+
+
+# ---------------------------------------------------------------------------
+# scheduler.run_job: commit-on-success semantics (silent-event-loss fix)
+# ---------------------------------------------------------------------------
+
+
+def _install_agent_stubs_with_behavior(monkeypatch, observed: dict, behavior: dict):
+    """Like _install_agent_stubs, but ``behavior['mode']`` controls the agent:
+    'ok' returns normally; 'fail' raises (simulating a provider exception /
+    retries-exhausted / timeout that kills the agent run)."""
+    import cron.scheduler as sched
+
+    observed.setdefault("prompts", [])
+    observed.setdefault("agent_runs", 0)
+
+    class FakeAgent:
+        def __init__(self, **kwargs):
+            pass
+
+        def run_conversation(self, prompt, *_a, **_kw):
+            observed["agent_runs"] += 1
+            observed["prompts"].append(prompt)
+            if behavior.get("mode") == "fail":
+                raise RuntimeError("HTTP 429: simulated provider overload")
+            return {"final_response": "agent done", "messages": []}
+
+        def get_activity_summary(self):
+            return {"seconds_since_activity": 0.0}
+
+    fake_mod = type(sys)("run_agent")
+    fake_mod.AIAgent = FakeAgent
+    monkeypatch.setitem(sys.modules, "run_agent", fake_mod)
+
+    from hermes_cli import runtime_provider as _rtp
+    monkeypatch.setattr(
+        _rtp,
+        "resolve_runtime_provider",
+        lambda **_kw: {
+            "provider": "test",
+            "api_key": "k",
+            "base_url": "http://test.local",
+            "api_mode": "chat_completions",
+        },
+    )
+
+    monkeypatch.setattr(sched, "_resolve_origin", lambda job: None)
+    monkeypatch.setattr(sched, "_resolve_delivery_target", lambda job: None)
+    monkeypatch.setattr(sched, "_resolve_cron_enabled_toolsets", lambda job, cfg: None)
+    monkeypatch.setenv("HERMES_CRON_TIMEOUT", "0")
+
+    import dotenv
+    monkeypatch.setattr(dotenv, "load_dotenv", lambda *_a, **_kw: True)
+
+
+def _snapshot_text(home, job_id) -> str:
+    path = home / "cron" / "output" / job_id / "monitor_last_output.txt"
+    return path.read_text(encoding="utf-8") if path.exists() else ""
+
+
+def test_successful_run_advances_state_first_run(hermes_env, monkeypatch):
+    """(a)+(d) First-run baseline fires the agent and, on success, persists
+    the digest state (hash on the job + snapshot file)."""
+    from cron.jobs import get_job
+    from cron.monitor import hash_monitor_output
+    from cron.scheduler import run_job
+
+    job = _make_monitor_job(hermes_env, "echo 'state A'\n")
+    observed: dict = {}
+    _install_agent_stubs(monkeypatch, observed)
+
+    success, doc, final, error = run_job(job)
+    assert success is True and error is None
+    assert observed["agent_runs"] == 1
+
+    # _run_job_script trims the script's stdout ('state A\n' -> 'state A').
+    stored = get_job(job["id"])["monitor_state"]
+    assert stored["last_output_hash"] == hash_monitor_output("state A")
+    assert _snapshot_text(hermes_env, job["id"]) == "state A"
+
+
+def test_failed_agent_run_retains_state_and_next_run_refires_same_diff(
+    hermes_env, monkeypatch, caplog
+):
+    """(b) The incident shape: digest flips, the agent run dies (e.g. HTTP
+    429), the previous state MUST survive so the next tick re-detects the
+    SAME diff and re-fires the agent; only then does state advance."""
+    import logging
+
+    from cron.jobs import get_job
+    from cron.monitor import hash_monitor_output
+    from cron.scheduler import run_job
+
+    job = _make_monitor_job(hermes_env, "echo 'state A'\n")
+    observed: dict = {}
+    _install_agent_stubs_with_behavior(monkeypatch, observed, {"mode": "ok"})
+
+    # Tick 1 — baseline succeeds, state advances to hash(A).
+    success, *_ = run_job(job)
+    assert success is True
+    hash_a = get_job(job["id"])["monitor_state"]["last_output_hash"]
+    assert hash_a == hash_monitor_output("state A")
+
+    # Flip the digest and make the agent fail — the 2026-08-27 incident.
+    _write_script(hermes_env, "mon.sh", "echo 'state B'\n")
+    _install_agent_stubs_with_behavior(monkeypatch, observed, {"mode": "fail"})
+    job = get_job(job["id"])
+    with caplog.at_level(logging.WARNING, logger="cron.scheduler"):
+        success, doc, final, error = run_job(job)
+    assert success is False
+    assert error is not None
+    assert observed["agent_runs"] == 2  # agent WAS invoked (change detected)
+    # State did NOT advance: hash + snapshot still reflect 'state A'.
+    assert get_job(job["id"])["monitor_state"]["last_output_hash"] == hash_a
+    assert _snapshot_text(hermes_env, job["id"]) == "state A"
+    # The retention event is visible in logs.
+    assert any(
+        "monitor state retained" in rec.message for rec in caplog.records
+    ), f"expected retention log line, got: {[r.message for r in caplog.records]}"
+
+    # Next tick, same digest ('state B'), agent healthy again → re-fires
+    # with the IDENTICAL diff and advances state on success.
+    _install_agent_stubs_with_behavior(monkeypatch, observed, {"mode": "ok"})
+    job = get_job(job["id"])
+    success, doc, final, error = run_job(job)
+    assert success is True and error is None
+    assert observed["agent_runs"] == 3
+    refire_prompt = observed["prompts"][2]
+    assert "MONITOR CHANGE DETECTED" in refire_prompt
+    assert "-state A" in refire_prompt and "+state B" in refire_prompt
+    assert get_job(job["id"])["monitor_state"]["last_output_hash"] == hash_monitor_output(
+        "state B"
+    )
+    assert _snapshot_text(hermes_env, job["id"]) == "state B"
+
+    # And the tick after: unchanged digest suppresses again (fixed point).
+    job = get_job(job["id"])
+    success, doc, final, error = run_job(job)
+    assert success is True
+    assert observed["agent_runs"] == 3  # suppressed — no extra agent run
+    assert "no_change" in doc
+
+
+def test_successive_failures_keep_re_firing_until_success(hermes_env, monkeypatch):
+    """Repeated agent failures never lose the event: every tick re-detects
+    the change until one run finally succeeds."""
+    from cron.jobs import get_job
+    from cron.monitor import hash_monitor_output
+    from cron.scheduler import run_job
+
+    job = _make_monitor_job(hermes_env, "echo 'state A'\n")
+    observed: dict = {}
+    _install_agent_stubs_with_behavior(monkeypatch, observed, {"mode": "ok"})
+    run_job(job)
+    hash_a = get_job(job["id"])["monitor_state"]["last_output_hash"]
+
+    _write_script(hermes_env, "mon.sh", "echo 'state Z'\n")
+    _install_agent_stubs_with_behavior(monkeypatch, observed, {"mode": "fail"})
+
+    for tick in range(3):
+        job = get_job(job["id"])
+        success, *_ = run_job(job)
+        assert success is False, f"tick {tick}: expected failure"
+        assert observed["agent_runs"] == 2 + tick  # re-fired every tick
+        assert get_job(job["id"])["monitor_state"]["last_output_hash"] == hash_a
+
+    _install_agent_stubs_with_behavior(monkeypatch, observed, {"mode": "ok"})
+    job = get_job(job["id"])
+    success, *_ = run_job(job)
+    assert success is True
+    assert observed["agent_runs"] == 5
+    assert get_job(job["id"])["monitor_state"]["last_output_hash"] == hash_monitor_output(
+        "state Z"
+    )
+
+
+def test_state_commit_survives_scheduler_restart_after_success(hermes_env, monkeypatch):
+    """The committed state lands in durable storage (jobs.json + snapshot),
+    not just in memory — a restart between agent success and the next tick
+    keeps the new baseline."""
+    import importlib
+
+    from cron.scheduler import run_job
+
+    job = _make_monitor_job(hermes_env, "echo 'state A'\n")
+    observed: dict = {}
+    _install_agent_stubs(monkeypatch, observed)
+    run_job(job)
+
+    _write_script(hermes_env, "mon.sh", "echo 'state B'\n")
+    import cron.jobs
+    job = cron.jobs.get_job(job["id"])
+    success, *_ = run_job(job)
+    assert success is True
+
+    importlib.reload(cron.jobs)
+    import cron.monitor
+    importlib.reload(cron.monitor)
+    import cron.scheduler
+    importlib.reload(cron.scheduler)
+    _install_agent_stubs(monkeypatch, observed)
+
+    job = cron.jobs.get_job(job["id"])
+    success, doc, final, error = cron.scheduler.run_job(job)
+    assert success is True
+    assert final == cron.scheduler.SILENT_MARKER  # 'state B' suppresses after restart
+    assert observed["agent_runs"] == 2
 
 
 # ---------------------------------------------------------------------------

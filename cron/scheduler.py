@@ -5486,9 +5486,15 @@ def run_job(
     # Runs BEFORE any agent machinery is constructed so an unchanged tick
     # costs one cheap source run + one hash, no LLM, no delivery.
     # ---------------------------------------------------------------
-    from cron.monitor import check_monitor, job_has_monitor
+    from cron.monitor import check_monitor, commit_monitor_state, job_has_monitor
 
     _monitor_context: Optional[str] = None
+    # Candidate monitor state for THIS tick. check_monitor deliberately does
+    # NOT persist it; run_job commits it (commit_monitor_state) only on the
+    # success paths below. If the agent run fails, the previous persisted
+    # state survives, so the next scheduled tick re-detects the SAME diff and
+    # re-fires the agent — the next tick IS the retry (no in-run backoff).
+    _monitor_pending_state: Optional[dict] = None
     if job_has_monitor(job):
         _mon = check_monitor(job)
         _mon_now = _hermes_now().strftime("%Y-%m-%d %H:%M:%S")
@@ -5529,8 +5535,10 @@ def run_job(
             return True, _mon_doc, SILENT_MARKER, None
         # Changed (or first run): inject the monitor context into the prompt
         # through the existing per-run context seam and fall through to a
-        # normal agent run.
+        # normal agent run. The new digest state stays PENDING until the
+        # run succeeds — see _monitor_pending_state above.
         _monitor_context = _mon.context_block
+        _monitor_pending_state = _mon.pending_state
         if _monitor_context:
             extra_prompt = (
                 f"{_monitor_context}\n\n{extra_prompt}" if extra_prompt else _monitor_context
@@ -5642,6 +5650,10 @@ def run_job(
                 f"**Run Time:** {_hermes_now().strftime('%Y-%m-%d %H:%M:%S')}\n\n"
                 "Script gate returned `wakeAgent=false` — agent skipped.\n"
             )
+            # Monitor tick whose agent run was cleanly gated off — same
+            # success semantics as a completed run, so the observed digest
+            # advances (otherwise the gate would re-fire every tick).
+            commit_monitor_state(_monitor_pending_state)
             return True, silent_doc, SILENT_MARKER, None
 
     try:
@@ -5670,9 +5682,21 @@ def run_job(
             "and the match is a false positive, rephrase the content to avoid "
             "the threat pattern (`tools/cronjob_tools.py::_CRON_THREAT_PATTERNS`)."
         )
+        # Agent never ran: retain the previous monitor state so the same
+        # change re-fires once the operator fixes the offending skill.
+        if _monitor_pending_state is not None:
+            logger.info(
+                "Job '%s': agent run blocked before start — monitor state "
+                "retained; the same change will re-fire on the next tick",
+                job_id,
+            )
         return False, blocked_doc, "", str(block_exc)
     if prompt is None:
         logger.info("Job '%s': script produced no output, skipping AI call.", job_name)
+        # No prompt to give the agent (script produced no output) but the
+        # monitor source DID run and reported a change — nothing failed, so
+        # advance the digest state. Otherwise every tick would re-detect.
+        commit_monitor_state(_monitor_pending_state)
         return True, "", SILENT_MARKER, None
     _cron_session_id = f"cron_{job_id}_{_hermes_now().strftime('%Y%m%d_%H%M%S')}"
 
@@ -6067,6 +6091,15 @@ def run_job(
                 "state. Set `cron.preflight: false` in config.yaml to "
                 "disable this validation."
             )
+            # Agent never ran: retain the previous monitor state so the same
+            # change re-fires once the configuration is fixed.
+            if _monitor_pending_state is not None:
+                logger.info(
+                    "Job '%s': agent run blocked by config validation — "
+                    "monitor state retained; the same change will re-fire "
+                    "on the next tick",
+                    job_id,
+                )
             return False, blocked_doc, "", f"{marker} {_pf_reason}"
 
         primary_model_for_drift = model
@@ -6597,6 +6630,13 @@ def run_job(
         
         logger.info("Job '%s' completed successfully", job_name)
 
+        # Monitor state commit-on-success: the agent completed this tick's
+        # change (or first-run baseline) run, so NOW the candidate digest
+        # state becomes the persisted state. Delivery outcome is independent
+        # — a later delivery failure must not rewind the monitor state
+        # (delivery has its own failure signals).
+        commit_monitor_state(_monitor_pending_state)
+
         # Emit one JSONL line per fire for usage audit.
         _audit_duration_ms = int((time.monotonic() - _audit_t_start) * 1000)
         _audit_response_silent = _is_cron_silence_response(final_response or "")
@@ -6618,6 +6658,19 @@ def run_job(
     except Exception as e:
         error_msg = f"{type(e).__name__}: {str(e)}"
         logger.exception("Job '%s' failed: %s", job_name, error_msg)
+        # Monitor state retention-on-failure: the agent run for this tick's
+        # detected change FAILED (exception / max_retries_exhausted /
+        # timeout). Deliberately do NOT commit the candidate state — the
+        # previous persisted state survives, so the next scheduled tick
+        # re-detects the SAME diff and re-fires the agent. The next tick IS
+        # the retry; no in-run backoff is added.
+        if _monitor_pending_state is not None:
+            logger.warning(
+                "Job '%s': agent run failed with a pending monitor change — "
+                "monitor state retained; the same change will re-fire on "
+                "the next tick",
+                job_id,
+            )
         # Best-effort audit write on failure path. _audit_fire_id
         # may be unset if the exception fired before submit() — guard
         # with a None check so the audit write itself never raises.

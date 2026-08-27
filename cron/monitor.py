@@ -9,7 +9,11 @@ hash stored from the last agent-triggering tick:
   the tick is recorded as a silent ``no_change`` run.
 * changed (or first run) → a "MONITOR CHANGE DETECTED" context block —
   unified diff of old vs new output (capped) plus the new output — is
-  injected into the prompt and the agent runs normally.
+  injected into the prompt and the agent runs normally. The candidate new
+  state is NOT persisted here; the scheduler commits it (``commit_monitor_state``)
+  only after the agent run reports success. A failed agent run therefore
+  keeps the PREVIOUS state, so the same diff re-fires the agent on the next
+  scheduled tick — the next tick IS the retry; no event is silently lost.
 * source failure → treated as an ERROR, never as a change. The stored hash
   is left untouched so a source that recovers to its previous output still
   suppresses.
@@ -53,13 +57,20 @@ _SNAPSHOT_FILENAME = "monitor_last_output.txt"
 
 @dataclass
 class MonitorOutcome:
-    """Result of one monitor-source evaluation."""
+    """Result of one monitor-source evaluation.
+
+    ``pending_state`` carries the CANDIDATE new digest state (hash + output)
+    for a changed/first-run tick. It is deliberately NOT persisted by
+    ``check_monitor``; the scheduler commits it via ``commit_monitor_state``
+    only after the agent run succeeds (see run_job in cron/scheduler.py).
+    """
 
     ok: bool
     changed: bool = False
     first_run: bool = False
     context_block: Optional[str] = None
     error: Optional[str] = None
+    pending_state: Optional[dict] = None
 
 
 def hash_monitor_output(output: str) -> str:
@@ -103,7 +114,13 @@ def _write_last_output(job_id: str, output: str) -> None:
     try:
         path = _snapshot_path(job_id)
         path.parent.mkdir(parents=True, exist_ok=True)
-        path.write_text(output, encoding="utf-8")
+        # Atomic write (temp + rename) so a crash mid-write can never leave
+        # a truncated/corrupt snapshot: the snapshot is the diff baseline for
+        # the NEXT change, and a partial file would silently produce a wrong
+        # diff or, worse, pair a new hash with stale snapshot bytes.
+        tmp = path.with_name(path.name + ".tmp")
+        tmp.write_text(output, encoding="utf-8")
+        tmp.replace(path)
     except Exception as exc:
         logger.warning("Monitor: failed to persist last output for %r: %s", job_id, exc)
 
@@ -147,10 +164,13 @@ def job_has_monitor(job: dict) -> bool:
 def check_monitor(job: dict) -> MonitorOutcome:
     """Run the monitor source and decide whether the agent should run.
 
-    On change (or first run) the new hash + snapshot are persisted BEFORE
-    the agent runs — detection time is the state boundary, so a failed
-    agent run doesn't re-alert on the same content forever.
-    On failure nothing is persisted.
+    On change (or first run) the new hash + snapshot are returned as
+    ``pending_state`` and NOT persisted here. The scheduler commits them
+    via ``commit_monitor_state`` only after the agent run reports success
+    — agent-success time is the state boundary, so a FAILED agent run
+    keeps the previous state and the same diff re-fires on the next tick
+    instead of being permanently swallowed.
+    On source failure nothing is persisted.
     """
     job_id = str(job.get("id") or "")
     ok, output = _run_monitor_source(job)
@@ -188,10 +208,34 @@ def check_monitor(job: dict) -> MonitorOutcome:
             f"### Current output\n\n```\n{shown_output}\n```"
         )
 
-    _persist_monitor_state(job_id, new_hash, output)
     return MonitorOutcome(
-        ok=True, changed=True, first_run=first_run, context_block=context_block
+        ok=True,
+        changed=True,
+        first_run=first_run,
+        context_block=context_block,
+        pending_state={"job_id": job_id, "new_hash": new_hash, "output": output},
     )
+
+
+def commit_monitor_state(pending: Optional[dict]) -> bool:
+    """Persist a monitor tick's candidate new state after a successful run.
+
+    Called by the scheduler's run_job success paths with the
+    ``MonitorOutcome.pending_state`` captured earlier in the same tick.
+    Tolerates ``None`` (non-monitor jobs / unchanged ticks) so callers can
+    call it unconditionally. Returns True when state was (already) committed.
+    """
+    if not pending:
+        return True
+    job_id = str(pending.get("job_id") or "")
+    if not job_id:
+        return False
+    _persist_monitor_state(
+        job_id,
+        str(pending.get("new_hash") or ""),
+        str(pending.get("output") or ""),
+    )
+    return True
 
 
 def _persist_monitor_state(job_id: str, new_hash: str, output: str) -> None:
